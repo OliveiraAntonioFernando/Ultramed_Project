@@ -1,0 +1,7 @@
+[mysqld]
+# Forçar o uso de InnoDB
+default-storage-engine = InnoDB
+
+# Forçar a codificação UTF8 (para compatibilidade com caracteres especiais e chaves estrangeiras)
+character-set-server = utf8mb4
+collation-server = utf8mb4_general_ci

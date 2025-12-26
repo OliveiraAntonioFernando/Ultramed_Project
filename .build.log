@@ -1,0 +1,13 @@
+2025-12-14T14:15:45.954491 Project directory: /root/ultramed
+2025-12-14T14:15:45.954770 Deploying project
+2025-12-14T14:15:45.955372 ------------------------------
+2025-12-14T14:15:46.080634  Container ultramed-db-1 Recreate 
+2025-12-14T14:15:46.507095  Container ultramed-db-1 Recreated 
+2025-12-14T14:15:46.507165  Container ultramed-web-1 Recreate 
+2025-12-14T14:15:46.596414  Container ultramed-web-1 Recreated 
+2025-12-14T14:15:46.613790  Container ultramed-db-1 Starting 
+2025-12-14T14:15:46.775491  Container ultramed-db-1 Started 
+2025-12-14T14:15:46.775548  Container ultramed-web-1 Starting 
+2025-12-14T14:15:47.024604  Container ultramed-web-1 Started 
+2025-12-14T14:15:47.035608 ------------------------------
+2025-12-14T14:15:47.035665 Project deployed successfully
