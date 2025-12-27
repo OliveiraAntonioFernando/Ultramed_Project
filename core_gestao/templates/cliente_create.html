@@ -1,0 +1,91 @@
+{% load static %}
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+<script>
+    tailwind.config = {
+        theme: {
+            extend: {
+                colors: {
+                    marsala: {
+                        50: '#fcf4f4',
+                        100: '#f9e9e9',
+                        700: '#700c15',
+                        800: '#5c0a11'
+                    }
+                }
+            }
+        }
+    }
+</script>
+
+<body class="bg-gray-100 font-sans min-h-screen p-4 md:p-12">
+    <div class="max-w-3xl mx-auto bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-marsala-100">
+        
+        <div class="bg-marsala-700 p-10 text-white flex justify-between items-center relative overflow-hidden">
+            <div class="absolute right-0 top-0 opacity-10 translate-x-1/4 -translate-y-1/4">
+                <i class="fas fa-user-plus fa-10x"></i>
+            </div>
+            <div class="relative z-10">
+                <h1 class="text-3xl font-black italic uppercase tracking-tighter">Novo Paciente</h1>
+                <p class="text-xs font-bold uppercase opacity-90 tracking-widest mt-1">Atendimento Particular - Ultramed</p>
+            </div>
+            <a href="{% url 'sistema_interno:painel_colaborador' %}" class="relative z-10 bg-white/20 hover:bg-white text-white hover:text-mars-700 px-6 py-2 rounded-2xl text-xs font-black uppercase transition-all border border-white/30">
+                <i class="fas fa-chevron-left mr-2"></i> Voltar
+            </a>
+        </div>
+
+        <form method="post" class="p-10 space-y-8 bg-white">
+            {% csrf_token %}
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div class="md:col-span-2">
+                    <label class="text-[11px] font-black text-marsala-700 uppercase ml-2 tracking-widest flex items-center gap-2">
+                        <i class="fas fa-id-card"></i> Nome Completo do Paciente
+                    </label>
+                    <input type="text" name="nome_completo" required class="w-full bg-marsala-50 border-2 border-transparent focus:border-marsala-700 p-4 rounded-2xl outline-none font-bold text-gray-800 transition-all shadow-sm" placeholder="Digite o nome completo">
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-black text-marsala-700 uppercase ml-2 tracking-widest flex items-center gap-2">
+                        <i class="fas fa-fingerprint"></i> CPF
+                    </label>
+                    <input type="text" name="cpf" required class="w-full bg-marsala-50 border-2 border-transparent focus:border-marsala-700 p-4 rounded-2xl outline-none font-mono font-bold text-gray-800 transition-all shadow-sm" placeholder="000.000.000-00">
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-black text-marsala-700 uppercase ml-2 tracking-widest flex items-center gap-2">
+                        <i class="fab fa-whatsapp"></i> WhatsApp / Contato
+                    </label>
+                    <input type="tel" name="telefone" required class="w-full bg-marsala-50 border-2 border-transparent focus:border-marsala-700 p-4 rounded-2xl outline-none font-bold text-gray-800 transition-all shadow-sm" placeholder="(94) 9 0000-0000">
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-black text-marsala-700 uppercase ml-2 tracking-widest flex items-center gap-2">
+                        <i class="fas fa-calendar-day"></i> Data de Nascimento
+                    </label>
+                    <input type="date" name="data_nascimento" required class="w-full bg-marsala-50 border-2 border-transparent focus:border-marsala-700 p-4 rounded-2xl outline-none font-bold text-gray-700 transition-all shadow-sm">
+                </div>
+
+                <div>
+                    <label class="text-[11px] font-black text-marsala-700 uppercase ml-2 tracking-widest flex items-center gap-2">
+                        <i class="fas fa-venus-mars"></i> Gênero
+                    </label>
+                    <select name="sexo" class="w-full bg-marsala-50 border-2 border-transparent focus:border-marsala-700 p-4 rounded-2xl outline-none font-bold text-gray-800 transition-all shadow-sm appearance-none cursor-pointer">
+                        <option value="M">Masculino</option>
+                        <option value="F">Feminino</option>
+                        <option value="O">Outro / Preferir não dizer</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="py-4">
+                <div class="w-full h-px bg-marsala-100"></div>
+            </div>
+
+            <button type="submit" class="w-full bg-marsala-700 text-white py-6 rounded-[2rem] font-black uppercase italic text-lg shadow-xl hover:bg-marsala-800 hover:shadow-marsala-700/20 transition-all transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                <i class="fas fa-check-circle text-xl"></i> Finalizar e Salvar Cadastro
+            </button>
+        </form>
+    </div>
+</body>

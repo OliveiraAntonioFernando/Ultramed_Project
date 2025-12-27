@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="p-8">
+    <div class="max-w-6xl mx-auto bg-white rounded-[2rem] shadow-xl overflow-hidden border border-marsala-100">
+        <div class="bg-marsala-700 p-6 text-white flex justify-between items-center">
+            <h2 class="text-xl font-black italic uppercase italic">Pacientes Cadastrados</h2>
+            <a href="{% url 'sistema_interno:cliente_create' %}" class="bg-white/20 hover:bg-white text-white hover:text-marsala-700 px-4 py-2 rounded-xl text-xs font-bold uppercase transition">Novo Cadastro</a>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-gray-50 border-b border-gray-100">
+                    <tr class="text-[10px] font-black text-marsala-700 uppercase tracking-widest">
+                        <th class="p-6">Nome do Paciente</th>
+                        <th class="p-6">CPF</th>
+                        <th class="p-6">Contato</th>
+                        <th class="p-6 text-center">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-50">
+                    {% for cliente in clientes %}
+                    <tr class="hover:bg-marsala-50/30 transition-colors">
+                        <td class="p-6 font-bold text-gray-800 uppercase text-xs">{{ cliente.nome_completo }}</td>
+                        <td class="p-6 font-mono text-xs text-gray-600">{{ cliente.cpf }}</td>
+                        <td class="p-6 text-xs font-bold text-gray-500">{{ cliente.telefone }}</td>
+                        <td class="p-6 text-center">
+                            <button class="text-marsala-700 hover:scale-110 transition"><i class="fas fa-edit"></i></button>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr><td colspan="4" class="p-20 text-center text-gray-300 font-black uppercase italic text-xs">Nenhum paciente encontrado.</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

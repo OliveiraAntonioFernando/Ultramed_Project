@@ -1,0 +1,66 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Ultramed Saúde</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        marsala: { 700: '#700c15', 800: '#5c0a11', 900: '#4a080d' }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100">
+        <div class="bg-marsala-700 p-8 text-center">
+            <h1 class="text-white text-2xl font-black italic tracking-tighter uppercase">Ultramed <span class="font-light opacity-80">Acesso</span></h1>
+        </div>
+
+        {% if messages %}
+            <div class="px-8 pt-4">
+                {% for message in messages %}
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-xl text-xs font-bold text-center">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <form method="post" action="{% url 'sistema_interno:login' %}" class="p-8 space-y-6">
+            {% csrf_token %}
+            <div>
+                <label class="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Usuário</label>
+                <div class="relative mt-1">
+                    <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="text" name="username" class="w-full bg-gray-50 border-0 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-marsala-700 outline-none font-bold text-sm" placeholder="Seu usuário" required>
+                </div>
+            </div>
+
+            <div>
+                <label class="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Senha</label>
+                <div class="relative mt-1">
+                    <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    <input type="password" name="password" class="w-full bg-gray-50 border-0 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-marsala-700 outline-none font-bold text-sm" placeholder="••••••••" required>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full bg-marsala-700 text-white py-4 rounded-2xl font-black uppercase italic text-sm shadow-xl hover:bg-marsala-800 transition-all transform hover:-translate-y-1">
+                Entrar no Sistema
+            </button>
+
+            <div class="text-center mt-4">
+                <a href="/" class="text-[10px] font-bold text-gray-400 hover:text-marsala-700 uppercase tracking-widest transition">Voltar para o site</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

@@ -5,7 +5,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'f!#o4kk(_+=@oiwl1e-gr#en#pg8rmizv3$#+w-^u69y@m0g=k')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'ultramedsaudexingu.com.br,localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['ultramedsaudexingu.com.br', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -14,6 +14,7 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'core_gestao',
 ]
 
 MIDDLEWARE = [
@@ -28,11 +29,10 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'ultramed_app.urls'
 
-# --- BLOCO QUE RESOLVE O ERRO admin.E403 ---
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [os.path.join(BASE_DIR, 'core_gestao/templates')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -44,7 +44,6 @@ TEMPLATES = [
         },
     },
 ]
-# ------------------------------------------
 
 WSGI_APPLICATION = 'ultramed_app.wsgi.application'
 
@@ -59,21 +58,8 @@ DATABASES = {
     }
 }
 
-AUTH_PASSWORD_VALIDATORS = [
-    {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',},
-    {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator',},
-]
-
-LANGUAGE_CODE = 'pt-br'
-TIME_ZONE = 'America/Belem'
-USE_I18N = True
-USE_TZ = True
-
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_content')
-
 MEDIA_URL = 'media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media_content')
 

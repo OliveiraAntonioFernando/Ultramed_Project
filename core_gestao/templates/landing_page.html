@@ -1,0 +1,369 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultramed Saúde Xingu - Referência em Medicina</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script>
+        // Configuração do Tailwind com a cor marsala
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        marsala: {
+                            50: '#fcf4f4',
+                            100: '#f9e9e9',
+                            200: '#f3d4d4',
+                            500: '#9a111d',
+                            700: '#700c15', /* COR OFICIAL */
+                            800: '#5c0a11',
+                            900: '#4a080d',
+                        }
+                    },
+                    animation: {
+                        'blink': 'blink 1s step-end infinite',
+                    },
+                    keyframes: {
+                        blink: {
+                            '0%, 100%': { borderColor: 'transparent' },
+                            '50%': { borderColor: 'white' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .loader { border-top-color: #700c15; animation: spinner 1.5s linear infinite; }
+        @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* EFEITO DE TROCA DE TEXTO */
+        .hero-title { transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; opacity: 1; transform: translateY(0); }
+        .hero-title.hidden-anim { opacity: 0; transform: translateY(10px); }
+
+        /* CORREÇÃO MOBILE: CSS para o Menu Hambúrguer (escondido por padrão) */
+        #mobile-menu {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out; /* Adiciona animação de deslizar */
+        }
+        #mobile-menu.open {
+            max-height: 500px; /* Altura suficiente para mostrar todo o conteúdo */
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 flex flex-col min-h-screen">
+
+    <div class="bg-marsala-900 text-white text-xs py-2 px-4 flex justify-between items-center border-b border-marsala-800">
+        <div class="flex gap-4 overflow-hidden whitespace-nowrap">
+            <span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-marsala-200"></i> <span class="hidden sm:inline">São Félix do Xingu</span><span class="sm:hidden">SFX</span></span>
+            <a href="https://wa.me/5594984496349" class="flex items-center gap-1 hover:text-green-400"><i class="fab fa-whatsapp"></i> (94) 98449-6349</a>
+        </div>
+        <div id="widget-clima" class="flex items-center gap-1 font-bold text-yellow-400 text-[10px] sm:text-xs animate-pulse">
+            <i class="fas fa-cloud-sun"></i> Verificando clima...
+        </div>
+    </div>
+
+    <nav class="bg-white shadow-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <a href="/">
+                    <img 
+                        src="{% static 'sistema_interno/img/logo_ultramed.png' %}" 
+                        alt="Ultramed" 
+                        class="h-10 sm:h-14 w-auto object-contain"
+                    >
+                </a>
+                <div class="flex flex-col justify-center">
+                    <span class="text-base sm:text-lg font-bold text-gray-800 block leading-tight tracking-tight">ULTRAMED</span>
+                    <span class="text-[8px] sm:text-[9px] text-marsala-700 font-bold tracking-[0.2em] uppercase">Clínica Médica</span>
+                </div>
+            </div>
+
+            <div class="hidden md:flex gap-4 text-gray-600 font-medium items-center">
+                <a href="#planos" class="hover:text-marsala-700 transition text-sm">Planos</a>
+                <a href="#vantagens" class="hover:text-marsala-700 transition text-sm">Vantagens</a>
+                <a href="#exames" class="hover:text-marsala-700 transition text-sm">Exames</a>
+
+                <a href="{% url 'sistema_interno:login' %}" class="text-blue-700 border border-blue-700 px-4 py-2 rounded-full font-bold hover:bg-blue-50 transition text-xs flex items-center gap-2" title="Acesso Médico">
+                    <i class="fas fa-user-md"></i> Médico
+                </a>
+
+                <a href="{% url 'sistema_interno:login' %}" class="text-marsala-700 border border-marsala-700 px-4 py-2 rounded-full font-bold hover:bg-marsala-50 transition text-xs flex items-center gap-2" title="Acesso Equipe">
+                    <i class="fas fa-id-badge"></i> Equipe
+                </a>
+                <a href="{% url 'sistema_interno:login' %}" class="text-red-700 border border-red-700 px-4 py-2 rounded-full font-bold hover:bg-red-50 transition text-xs flex items-center gap-2" title="Painel Administrativo">
+                    <i class="fas fa-crown"></i> Administrativo
+                </a>
+                <a href="{% url 'sistema_interno:login' %}" class="bg-marsala-700 text-white px-5 py-2 rounded-full font-bold hover:bg-marsala-800 transition shadow-md transform hover:-translate-y-0.5 text-xs flex items-center gap-2">
+                    <i class="fas fa-user-lock"></i> Cliente
+                </a>
+            </div>
+
+            <div class="md:hidden flex items-center">
+                <button onclick="toggleMenu()" class="text-gray-600 hover:text-marsala-700 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="md:hidden bg-white border-t border-gray-100 shadow-lg">
+            <div class="px-4 pt-2 pb-4 space-y-1 flex flex-col">
+                <a href="#planos" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Planos</a>
+                <a href="#vantagens" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Vantagens</a>
+                <a href="#exames" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Exames</a>
+
+                <div class="mt-2 pt-2 border-t border-gray-100 space-y-2">
+                    <a href="{% url 'sistema_interno:login' %}" class="flex items-center px-3 py-2 text-base font-medium text-blue-700 hover:bg-blue-50 rounded"><i class="fas fa-user-md w-6"></i> Portal Médico</a>
+                    <a href="{% url 'sistema_interno:login' %}" class="flex items-center px-3 py-2 text-base font-medium text-gray-600 hover:bg-gray-50 rounded"><i class="fas fa-id-badge w-6"></i> Portal Equipe</a>
+                    <a href="{% url 'sistema_interno:login' %}" class="flex items-center px-3 py-2 text-base font-bold text-marsala-800 bg-red-50 rounded border border-red-100"><i class="fas fa-crown w-6"></i> Administrativo</a>
+                    <a href="{% url 'sistema_interno:login' %}" class="block mt-2 text-center bg-marsala-700 text-white px-3 py-3 rounded-lg font-bold"><i class="fas fa-user-lock mr-2"></i> Área do Cliente</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <header class="bg-gradient-to-br from-marsala-700 to-marsala-900 text-white py-20 px-4 relative overflow-hidden text-center md:text-left">
+        <div class="absolute top-0 right-0 opacity-10 transform translate-x-1/3 -translate-y-1/4 pointer-events-none"><i class="fas fa-heart-pulse fa-10x"></i></div>
+
+        <div class="max-w-5xl mx-auto relative z-10 flex flex-col items-center md:items-start min-h-[300px] justify-center">
+            <p class="text-marsala-200 font-bold tracking-widest uppercase text-xs mb-4 bg-white/10 px-3 py-1 rounded-full border border-white/10">Ultramed Saúde</p>
+
+            <h1 id="hero-title" class="hero-title text-3xl md:text-6xl font-extrabold mb-6 tracking-tight leading-tight h-24 md:h-32 transition-all duration-500">
+                Referência em Medicina
+            </h1>
+
+            <p class="text-lg text-marsala-100 mb-8 max-w-xl font-light">
+                Tecnologia avançada, exames de imagem e atendimento humanizado para você e sua família.
+            </p>
+            <a href="#planos" class="bg-white text-marsala-700 px-8 py-4 rounded-full font-bold text-lg hover:bg-gray-100 transition shadow-lg inline-flex items-center gap-2 transform hover:scale-105">
+                Ver Nossos Planos <i class="fas fa-arrow-down animate-bounce"></i>
+            </a>
+        </div>
+    </header>
+
+    <section id="planos" class="py-16 px-4 bg-gray-50 -mt-8 relative z-20 rounded-t-3xl shadow-[0_-10px_20px_rgba(0,0,0,0.05)]">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-10">
+                <span class="text-marsala-700 font-bold tracking-widest text-xs uppercase">Nossas Opções</span>
+                <h2 class="text-3xl font-bold text-gray-900">Planos de Saúde</h2>
+            </div>
+
+            <div id="lista-planos" class="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 hover:shadow-xl transition relative flex flex-col h-full">
+                    <div class="mb-4"><span class="bg-marsala-50 text-marsala-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">ESSENCIAL</span></div>
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">Plano Essencial</h3>
+                    <div class="flex items-baseline mb-6"><span class="text-3xl font-extrabold text-marsala-700">R$ 44,90</span> <span class="text-gray-500 ml-1 text-xs">/vida</span></div>
+                    <ul class="space-y-2 mb-8 text-gray-600 flex-grow text-sm">
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Cobertura para até 3 pessoas</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>30% off na 1ª consulta/exame mensal</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>20% off a partir da 2ª consulta/exame</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Abrange serviços essenciais (Ultrassom, Mapa, Holter)</span></li>
+                    </ul>
+                    <button onclick="abrirModal('', 'Plano Essencial', 'PLANO')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Proposta</button>
+                </div>
+
+                <div class="bg-marsala-900 p-6 rounded-2xl shadow-2xl border-t-4 border-yellow-400 hover:shadow-xl transition relative flex flex-col h-full transform md:-translate-y-2 ring-2 ring-marsala-100">
+                    <div class="absolute top-0 right-0 bg-yellow-400 text-marsala-900 text-[10px] font-bold px-3 py-1 rounded-bl-lg shadow-md z-10">MAIS POPULAR</div>
+                    <div class="mb-4"><span class="bg-marsala-50 text-marsala-800 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">MASTER</span></div>
+                    <h3 class="text-xl font-bold mb-2 text-white">Master Familiar</h3>
+                    <div class="flex items-baseline mb-6"><span class="text-3xl font-extrabold text-yellow-300">R$ 59,90</span> <span class="text-gray-200 ml-1 text-xs">/vida</span></div>
+                    <ul class="space-y-2 mb-8 text-marsala-100 flex-grow text-sm">
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Cobertura para até 6 pessoas</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>30% off sem limite mensal</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Inclui Exames Avançados (Endoscopia, Biópsias)</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Maior cobertura de procedimentos</span></li>
+                    </ul>
+                    <button onclick="abrirModal('', 'Master Familiar', 'PLANO')" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-3 rounded-lg font-bold transition mt-auto shadow-md">Contratar Agora</button>
+                </div>
+
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-gray-800 hover:shadow-xl transition relative flex flex-col h-full">
+                    <div class="mb-4"><span class="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide">EMPRESARIAL</span></div>
+                    <h3 class="text-xl font-bold mb-2 text-gray-800">Plano Empresarial</h3>
+                    <div class="flex items-baseline mb-6"><span class="text-3xl font-extrabold text-gray-800">R$ 69,90</span> <span class="text-gray-500 ml-1 text-xs">/vida</span></div>
+                    <ul class="space-y-2 mb-8 text-gray-600 flex-grow text-sm">
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>A partir de 10 vidas ativas</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>40% off em exames laboratoriais de rotina</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>30% off em consultas/procedimentos/hormonais</span></li>
+                        <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Regras de todos os planos anteriores</span></li>
+                    </ul>
+                    <button onclick="abrirModal('', 'Plano Empresarial', 'PLANO')" class="block w-full text-center bg-gray-800 hover:bg-black text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Orçamento</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="vantagens" class="py-16 bg-white border-b border-gray-100">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <h2 class="text-3xl font-bold text-gray-900 mb-10">Clube de Vantagens</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="group p-6 bg-gray-50 border border-gray-100 rounded-2xl hover:shadow-lg transition duration-300">
+                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl group-hover:scale-110 transition"><i class="fas fa-pills"></i></div>
+                    <h3 class="text-lg font-bold mb-2 text-gray-800">Farmácia Ultramed</h3><p class="text-gray-600 text-sm">Até <strong class="text-green-600">20% OFF</strong> em medicamentos.</p>
+                </div>
+                <div class="group p-6 bg-gray-50 border border-gray-100 rounded-2xl hover:shadow-lg transition duration-300">
+                    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl group-hover:scale-110 transition"><i class="fas fa-laptop-medical"></i></div>
+                    <h3 class="text-lg font-bold mb-2 text-gray-800">Telemedicina</h3><p class="text-gray-600 text-sm">Atendimento médico sem sair de casa.</p>
+                </div>
+                <div class="group p-6 bg-gray-50 border border-gray-100 rounded-2xl hover:shadow-lg transition duration-300">
+                    <div class="w-16 h-16 bg-marsala-100 text-marsala-700 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl group-hover:scale-110 transition"><i class="fas fa-hospital-user"></i></div>
+                    <h3 class="text-lg font-bold mb-2 text-gray-800">Rede Credenciada</h3><p class="text-gray-600 text-sm">Exames e especialistas prioritários.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="exames" class="py-16 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-10"><h2 class="text-3xl font-bold text-gray-900">Exames e Procedimentos</h2></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 flex flex-col h-full">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-2"><div class="bg-marsala-50 p-2 rounded text-marsala-700"><i class="fas fa-heartbeat text-xl"></i></div><h3 class="text-lg font-bold text-gray-800">Cardiologia</h3></div>
+                    <ul class="space-y-2 text-sm text-gray-600 mb-6 flex-grow"><li><i class="fas fa-check text-green-500"></i> Eletrocardiograma (ECG)</li><li><i class="fas fa-check text-green-500"></i> MAPA 24h</li><li><i class="fas fa-check text-green-500"></i> Holter 24h</li><li><i class="fas fa-check text-green-500"></i> Espirometria</li></ul>
+                    <button onclick="abrirModalExame('Cardiologia')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-2 rounded font-bold shadow transition">Agendar</button>
+                </div>
+                <div class="bg-marsala-900 p-6 rounded-2xl shadow-lg text-white transform md:-translate-y-2 border border-marsala-700 flex flex-col h-full">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-2 border-marsala-700"><div class="bg-white/10 p-2 rounded text-white"><i class="fas fa-baby text-xl"></i></div><h3 class="text-lg font-bold">Ultrassonografia</h3></div>
+                    <ul class="space-y-2 text-sm text-marsala-100 mb-6 flex-grow"><li>• Obstétrica / Morfológica</li><li>• Mamas / Transvaginal</li><li>• Abdômen / Rins</li><li>• Próstata / Tireoide</li><li>• Doppler Obstétrico</li></ul>
+                    <button onclick="abrirModalExame('Ultrassonografia')" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-2 rounded font-bold shadow transition">Agendar</button>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 flex flex-col h-full">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-2"><div class="bg-marsala-50 p-2 rounded text-marsala-700"><i class="fas fa-user-md text-xl"></i></div><h3 class="text-lg font-bold text-gray-800">Procedimentos</h3></div>
+                    <ul class="space-y-2 text-sm text-gray-600 mb-6 flex-grow"><li><i class="fas fa-check text-green-500"></i> Endoscopia Digestiva</li><li><i class="fas fa-check text-green-500"></i> Inserção DIU / Implanon</li><li><i class="fas fa-check text-green-500"></i> PAAF / Biópsias</li><li><i class="fas fa-check text-green-500"></i> EEG e Polissonografia</li></ul>
+                    <button onclick="abrirModalExame('Procedimentos')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-2 rounded font-bold shadow transition">Agendar</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div id="modal-cadastro" class="modal opacity-0 pointer-events-none fixed w-full h-full top-0 left-0 flex items-center justify-center z-50 px-4">
+        <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-80 backdrop-blur-sm" onclick="fecharModal()"></div>
+        <div class="modal-container bg-white w-full max-w-md mx-auto rounded-2xl shadow-2xl z-50 overflow-hidden transform transition-all scale-95">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-6"><p class="text-xl font-bold text-marsala-700" id="modal-titulo">Solicitar Proposta</p><button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-times fa-lg"></i></button></div>
+                <div id="form-lead" class="space-y-4">
+                    <p id="plano-nome-modal" data-interesse="" class="font-bold text-gray-800 bg-marsala-50 p-3 rounded-lg text-center border border-marsala-100 text-sm"></p>
+                    
+                    <div><label for="nome-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input id="nome-modal" type="text" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none"></div>
+                    <div><label for="telefone-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label><input id="telefone-modal" type="tel" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none" placeholder="(93) 99999-9999"></div>
+                    
+                    <button onclick="enviarSolicitacao()" class="w-full bg-marsala-700 hover:bg-marsala-800 text-white font-bold py-4 rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2">Enviar Solicitação</button>
+                </div>
+                
+                <div id="sucesso-lead" class="hidden text-center py-8"><div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-check"></i></div><h3 class="text-xl font-bold text-gray-800">Recebemos seu pedido!</h3><p class="text-gray-600 text-sm mt-2">Aguarde nosso contato.</p><button onclick="fecharModal()" class="mt-6 text-gray-500 text-sm underline">Fechar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 text-gray-400 py-10 text-center mt-auto text-sm border-t border-gray-800">
+        <img src="{% static 'sistema_interno/img/logo_ultramed.png' %}" alt="Ultramed" class="h-10 w-auto grayscale opacity-50 mx-auto mb-4">
+        <p class="mb-2">&copy; 2025 Ultramed Saúde Xingu.</p>
+        <div class="flex justify-center gap-4 text-xs mb-4"><a href="#" class="hover:text-white">Termos de Uso</a><a href="#" class="hover:text-white">Política de Privacidade</a></div>
+        <p class="text-xs text-gray-600">Desenvolvido por <a href="https://www.rinancode.com.br" target="_blank" class="text-marsala-700 hover:text-white transition font-bold">Rinan Code</a>.</p>
+    </footer>
+
+    <script>
+        // JS para a animação do título
+        const frases = ["Referência em Medicina", "Exames de Imagem", "No Coração do Xingu"];
+        let indexFrase = 0;
+        const elTitulo = document.getElementById('hero-title');
+
+        function trocarFrase() {
+            elTitulo.classList.add('hidden-anim');
+            setTimeout(() => {
+                let texto = frases[indexFrase];
+                if(indexFrase === 2) texto += "<br/><span class='text-3xl md:text-4xl font-light opacity-90'>Ultramed</span>";
+                elTitulo.innerHTML = texto;
+                indexFrase = (indexFrase + 1) % frases.length;
+                elTitulo.classList.remove('hidden-anim');
+            }, 500);
+        }
+        trocarFrase();
+        setInterval(trocarFrase, 4000);
+
+        // JS Básico para o Menu Mobile (CORRIGIDO)
+        function toggleMenu() { 
+            document.getElementById('mobile-menu').classList.toggle('open'); 
+        }
+
+        // JS para o Modal de Contato (AJUSTADO)
+        function abrirModal(id, nome, tipo) {
+            document.getElementById('plano-nome-modal').innerText = nome;
+            document.getElementById('modal-titulo').innerText = (tipo === 'EXAME') ? "Agendar Exame" : "Interesse no Plano";
+            
+            // Salva o interesse na div para ser pego na hora de enviar
+            document.getElementById('plano-nome-modal').setAttribute('data-interesse', nome); 
+
+            document.body.classList.add('modal-active');
+            const modal = document.getElementById('modal-cadastro');
+            modal.classList.remove('opacity-0', 'pointer-events-none');
+            
+            // Reseta o estado do formulário para o envio
+            document.getElementById('form-lead').classList.remove('hidden');
+            document.getElementById('sucesso-lead').classList.add('hidden');
+            document.querySelector('#form-lead button').disabled = false;
+            document.querySelector('#form-lead button').innerHTML = `Enviar Solicitação`;
+        }
+        function abrirModalExame(exame) { abrirModal('', exame, 'EXAME'); }
+        function fecharModal() { 
+            document.body.classList.remove('modal-active'); 
+            document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none'); 
+        }
+
+        // FUNÇÃO DE ENVIO AJAX PARA O DJANGO
+        async function enviarSolicitacao() {
+            const nome = document.getElementById('nome-modal').value.trim();
+            const telefone = document.getElementById('telefone-modal').value.trim();
+            const interesse = document.getElementById('plano-nome-modal').getAttribute('data-interesse'); 
+
+            if (!nome || !telefone) {
+                alert("Por favor, preencha seu Nome e WhatsApp para continuarmos.");
+                return;
+            }
+
+            const btn = document.querySelector('#form-lead button');
+            btn.disabled = true;
+            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...`;
+
+            const data = { nome, telefone, interesse };
+
+            try {
+                // CHAMADA AJAX PARA A VIEW api_lead_capture
+                const response = await fetch('/sistema/api/lead-capture/', { 
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data),
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    document.getElementById('form-lead').classList.add('hidden');
+                    document.getElementById('sucesso-lead').classList.remove('hidden');
+                    document.getElementById('nome-modal').value = '';
+                    document.getElementById('telefone-modal').value = '';
+                } else {
+                    alert("Erro ao enviar solicitação: " + result.message);
+                }
+
+            } catch (error) {
+                alert("Erro de conexão com o servidor. Tente novamente.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `Enviar Solicitação`;
+            }
+        }
+
+        // JS para carregar clima (Mantido, mas requer internet)
+        async function carregarClima() { try { const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.6447&longitude=-51.995&current_weather=true'); const data = await res.json(); if(data.current_weather) { document.getElementById('widget-clima').innerHTML = `<i class="fas fa-sun text-yellow-400"></i> ${Math.round(data.current_weather.temperature)}°C em São Félix`; } } catch(e) { document.getElementById('widget-clima').innerHTML = ''; } }
+        carregarClima();
+    </script>
+</body>
+</html>

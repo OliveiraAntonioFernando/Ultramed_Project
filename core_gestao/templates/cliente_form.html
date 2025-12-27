@@ -1,0 +1,104 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultramed | Paciente Particular</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        .marsala-bg { background-color: #700c15; }
+        .marsala-text { color: #700c15; }
+        .focus-marsala:focus { border-color: #700c15; outline: none; }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen pb-12">
+
+    <nav class="marsala-bg p-4 shadow-xl text-white">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h1 class="text-xl font-black italic uppercase tracking-tighter">
+                Ultramed <span class="font-light text-xs lowercase not-italic">| Cadastro Particular</span>
+            </h1>
+            <a href="{% url 'sistema_interno:painel_colaborador' %}" class="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl text-xs font-bold uppercase transition">
+                <i class="fa-solid fa-arrow-left mr-1"></i> Voltar
+            </a>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto p-4 md:p-8">
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200">
+                <h3 class="marsala-text font-black uppercase italic text-sm mb-6 border-b pb-2 flex items-center">
+                    <i class="fa-solid fa-user mr-2"></i> Identificação do Paciente
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">Nome Completo</label>
+                        <input type="text" name="nome" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala font-semibold" required>
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">CPF</label>
+                        <input type="text" name="cpf" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala" placeholder="000.000.000-00">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">Data de Nascimento</label>
+                        <input type="date" name="data_nascimento" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-200">
+                <h3 class="marsala-text font-black uppercase italic text-sm mb-6 border-b pb-2 flex items-center">
+                    <i class="fa-solid fa-location-dot mr-2"></i> Contato e Localização
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">WhatsApp / Telefone</label>
+                        <input type="text" name="telefone" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala" placeholder="(00) 00000-0000">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">E-mail</label>
+                        <input type="email" name="email" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">Endereço</label>
+                        <input type="text" name="endereco" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala" placeholder="Rua, número, bairro, cidade">
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
+                <h3 class="marsala-text font-black uppercase italic text-sm mb-6 border-b pb-2 flex items-center">
+                    <i class="fa-solid fa-stethoscope mr-2"></i> Atendimento Particular
+                </h3>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="col-span-2">
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">Procedimento / Consulta</label>
+                        <input type="text" name="procedimento" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala" placeholder="Ex: Consulta Clínica, Ultrassom, etc.">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">Valor Cobrado (R$)</label>
+                        <input type="text" name="valor" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala font-bold text-green-700" placeholder="0,00">
+                    </div>
+                    <div>
+                        <label class="block text-[10px] font-black text-gray-400 uppercase ml-2">Forma de Pagamento</label>
+                        <select name="pagamento" class="w-full p-4 bg-gray-50 border border-gray-200 rounded-2xl focus-marsala font-bold">
+                            <option value="Dinheiro">Dinheiro</option>
+                            <option value="Pix">Pix</option>
+                            <option value="Cartão de Débito">Cartão de Débito</option>
+                            <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full marsala-bg text-white font-black py-6 rounded-[2.5rem] shadow-2xl hover:scale-[1.02] active:scale-95 transition-all uppercase italic tracking-widest text-lg">
+                Finalizar Atendimento Particular
+            </button>
+        </form>
+    </div>
+</body>
+</html>
