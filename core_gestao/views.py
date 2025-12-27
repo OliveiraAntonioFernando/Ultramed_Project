@@ -19,7 +19,7 @@ def login_view(request):
             if user.is_superuser or user.groups.filter(name='Administrativo').exists():
                 return redirect('sistema_interno:master_dashboard')
             return redirect('sistema_interno:painel_colaborador')
-        messages.error(request, "Usuario ou senha invalidos")
+        messages.error(request, "Usuário ou senha inválidos")
     return render(request, 'login.html')
 
 def logout_view(request):
@@ -35,8 +35,8 @@ def master_dashboard(request):
     inadimplencia = Fatura.objects.filter(status='ATRASADO').aggregate(Sum('valor'))['valor__sum'] or 0
     pendente = Fatura.objects.filter(status='PENDENTE').aggregate(Sum('valor'))['valor__sum'] or 0
     
-    total_geral = faturamento_pago + inadimplencia + pendente
-    taxa_adimplencia = (faturamento_pago / total_geral * 100) if total_geral > 0 else 0
+    total_geral = float(faturamento_pago) + float(inadimplencia) + float(pendente)
+    taxa_adimplencia = (float(faturamento_pago) / total_geral * 100) if total_geral > 0 else 0
 
     context = {
         'total_pacientes': Paciente.objects.count(),
@@ -47,21 +47,22 @@ def master_dashboard(request):
         'taxa_adimplencia': round(taxa_adimplencia, 1),
         'leads': LeadSite.objects.all().order_by('-data_solicitacao')[:5],
         'faturas_abertas': Fatura.objects.filter(status__in=['PENDENTE', 'ATRASADO']).order_by('data_vencimento'),
-        'is_admin': True,
     }
     return render(request, 'master_dashboard.html', context)
 
 @login_required
 def fatura_baixar(request, fatura_id):
-    if not (request.user.is_superuser or request.user.groups.filter(name='Administrativo').exists()):
-        return redirect('sistema_interno:painel_colaborador')
-    
     fatura = get_object_or_404(Fatura, id=fatura_id)
     fatura.status = 'PAGO'
     fatura.data_pagamento = timezone.now()
     fatura.save()
-    messages.success(request, f"Pagamento de {fatura.paciente.nome_completo} confirmado!")
+    messages.success(request, f"Recebimento de {fatura.paciente.nome_completo} confirmado.")
     return redirect('sistema_interno:master_dashboard')
+
+@login_required
+def cliente_list(request):
+    pacientes = Paciente.objects.all().order_by('nome_completo')
+    return render(request, 'cliente_list.html', {'pacientes': pacientes})
 
 @login_required
 def painel_colaborador(request):
@@ -79,7 +80,7 @@ def painel_colaborador(request):
 def cliente_create(request):
     if request.method == 'POST':
         Paciente.objects.create(
-            nome_completo=request.POST.get('nome_completo') or request.POST.get('nome'),
+            nome_completo=request.POST.get('nome_completo'),
             cpf=request.POST.get('cpf'),
             telefone=request.POST.get('telefone'),
             data_nascimento=request.POST.get('data_nascimento'),
@@ -90,17 +91,10 @@ def cliente_create(request):
     return render(request, 'cliente_create.html')
 
 @login_required
-def cliente_list(request):
-    pacientes = Paciente.objects.all().order_by('nome_completo')
-    return render(request, 'painel_colaborador.html', {'pacientes': pacientes})
+def agenda_view(request): return render(request, 'agenda.html')
 
 @login_required
-def agenda_view(request):
-    return render(request, 'agenda.html')
-
-@login_required
-def plan_create(request):
-    return render(request, 'plan_form.html')
+def plan_create(request): return render(request, 'plan_form.html')
 
 @csrf_exempt
 def api_lead_capture(request):
