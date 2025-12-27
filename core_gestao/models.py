@@ -16,7 +16,6 @@ class Paciente(models.Model):
     data_nascimento = models.DateField()
     sexo = models.CharField(max_length=1, choices=[('M', 'Masculino'), ('F', 'Feminino')], default='M')
     plano = models.ForeignKey(Plano, on_delete=models.SET_NULL, null=True, blank=True)
-    # Campo para Dependentes: aponta para outro Paciente (o Titular)
     responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependentes')
     data_cadastro = models.DateTimeField(auto_now_add=True)
     def __str__(self): return self.nome_completo
