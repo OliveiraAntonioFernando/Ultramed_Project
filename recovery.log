@@ -7,3 +7,9 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  3 files changed, 90 insertions(+), 84 deletions(-)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    2b0e4ce..2b17366  main -> main
+[main aad817d] Ponto de Recuperação Automático: 2025-12-27 04:00:01
+ 8 files changed, 107 insertions(+), 135 deletions(-)
+ delete mode 100644 core_gestao/migrations/0002_remove_paciente_email_plano_descricao_and_more.py
+ create mode 100644 core_gestao/templates/base.html
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   2b17366..aad817d  main -> main
