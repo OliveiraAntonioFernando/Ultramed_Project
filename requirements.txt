@@ -1,5 +1,0 @@
-Django==5.0.0
-gunicorn
-mysqlclient
-python-dotenv
-whitenoise
