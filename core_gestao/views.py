@@ -7,7 +7,6 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
-# --- ACESSO ---
 def login_view(request):
     if request.method == 'POST':
         u = request.POST.get('username')
@@ -16,25 +15,24 @@ def login_view(request):
         if user:
             login(request, user)
             return redirect('sistema_interno:painel_colaborador')
-        messages.error(request, "Usuário ou senha inválidos")
+        messages.error(request, "Usuario ou senha invalidos")
     return render(request, 'login.html')
 
 def logout_view(request):
     logout(request)
     return redirect('sistema_interno:login')
 
-# --- PAINEL PROTEGIDO ---
 @login_required
 def painel_colaborador(request):
-    # Regra de Negócio: Administradores veem tudo, Equipe vê apenas o essencial
     leads = LeadSite.objects.all().order_by('-data_solicitacao')[:10]
     pacientes = Paciente.objects.all().order_by('-data_cadastro')[:10]
     
+    # Verifica perfis para o HTML esconder/mostrar botoes
     context = {
         'leads': leads,
         'pacientes': pacientes,
         'is_admin': request.user.is_superuser or request.user.groups.filter(name='Administrativo').exists(),
-        'is_medico': request.user.groups.filter(name='Médicos').exists(),
+        'is_medico': request.user.groups.filter(name='Medicos').exists(),
     }
     return render(request, 'painel_colaborador.html', context)
 
@@ -49,7 +47,6 @@ def cliente_create(request):
             sexo=request.POST.get('sexo', 'M'),
             endereco=request.POST.get('endereco', '')
         )
-        messages.success(request, "Paciente cadastrado com sucesso!")
         return redirect('sistema_interno:painel_colaborador')
     return render(request, 'cliente_create.html')
 
@@ -66,7 +63,6 @@ def agenda_view(request):
 def plan_create(request):
     return render(request, 'plan_form.html')
 
-# --- APIs ---
 @csrf_exempt
 def api_lead_capture(request):
     if request.method == 'POST':
