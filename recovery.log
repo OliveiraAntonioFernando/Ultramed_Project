@@ -127,3 +127,10 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  create mode 100644 core_gestao/.models.py.swp
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    47b8c29..1cda095  main -> main
+[main 764f4dc] Ponto de Recuperação Automático: 2025-12-27 17:30:02
+ 6 files changed, 217 insertions(+), 88 deletions(-)
+ delete mode 100644 core_gestao/.models.py.swp
+ create mode 100644 core_gestao/migrations/0004_paciente_bairro_paciente_cidade_paciente_endereco_and_more.py
+ create mode 100644 core_gestao/migrations/0005_paciente_possui_dependentes.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   1cda095..764f4dc  main -> main
