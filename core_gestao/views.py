@@ -1,8 +1,8 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Sum, Count
+from django.db.models import Sum
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -19,7 +19,7 @@ def login_view(request):
             if user.is_superuser or user.groups.filter(name='Administrativo').exists():
                 return redirect('sistema_interno:master_dashboard')
             return redirect('sistema_interno:painel_colaborador')
-        messages.error(request, "Usuário ou senha inválidos")
+        messages.error(request, "Usuario ou senha invalidos")
     return render(request, 'login.html')
 
 def logout_view(request):
@@ -31,7 +31,6 @@ def master_dashboard(request):
     if not (request.user.is_superuser or request.user.groups.filter(name='Administrativo').exists()):
         return redirect('sistema_interno:painel_colaborador')
 
-    # KPIs Financeiros
     faturamento_pago = Fatura.objects.filter(status='PAGO').aggregate(Sum('valor'))['valor__sum'] or 0
     inadimplencia = Fatura.objects.filter(status='ATRASADO').aggregate(Sum('valor'))['valor__sum'] or 0
     pendente = Fatura.objects.filter(status='PENDENTE').aggregate(Sum('valor'))['valor__sum'] or 0
@@ -47,9 +46,22 @@ def master_dashboard(request):
         'pendente_receber': pendente,
         'taxa_adimplencia': round(taxa_adimplencia, 1),
         'leads': LeadSite.objects.all().order_by('-data_solicitacao')[:5],
+        'faturas_abertas': Fatura.objects.filter(status__in=['PENDENTE', 'ATRASADO']).order_by('data_vencimento'),
         'is_admin': True,
     }
     return render(request, 'master_dashboard.html', context)
+
+@login_required
+def fatura_baixar(request, fatura_id):
+    if not (request.user.is_superuser or request.user.groups.filter(name='Administrativo').exists()):
+        return redirect('sistema_interno:painel_colaborador')
+    
+    fatura = get_object_or_404(Fatura, id=fatura_id)
+    fatura.status = 'PAGO'
+    fatura.data_pagamento = timezone.now()
+    fatura.save()
+    messages.success(request, f"Pagamento de {fatura.paciente.nome_completo} confirmado!")
+    return redirect('sistema_interno:master_dashboard')
 
 @login_required
 def painel_colaborador(request):

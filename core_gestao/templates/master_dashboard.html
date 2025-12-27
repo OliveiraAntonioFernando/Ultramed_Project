@@ -14,32 +14,26 @@
                         marsala: {
                             50: '#fcf4f4',
                             100: '#f9e9e9',
-                            600: '#8b0f1a',
                             700: '#700c15',
-                            800: '#5c0a11',
-                            900: '#40070c'
-                        },
-                        dark: '#1a0507', // Tom de fundo marsala quase preto
-                        card: '#2d0a0d'  // Tom de card marsala profundo
+                            800: '#5c0a11'
+                        }
                     }
                 }
             }
         }
     </script>
 </head>
-<body class="bg-dark text-gray-100 font-sans antialiased min-h-screen">
+<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen">
     
-    <nav class="border-b border-marsala-800/50 p-6 flex justify-between items-center bg-dark/80 backdrop-blur-md sticky top-0 z-50">
+    <nav class="bg-marsala-700 p-6 flex justify-between items-center shadow-xl sticky top-0 z-50">
         <div>
             <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">
-                Ultramed <span class="text-marsala-100 text-sm font-light opacity-50">| Master Control</span>
+                Ultramed <span class="text-marsala-100 text-sm font-light opacity-80">| Master Control</span>
             </h1>
         </div>
-        <div class="flex items-center gap-4">
-            <span class="text-[10px] font-black bg-marsala-700/30 text-marsala-100 border border-marsala-700/50 px-4 py-1 rounded-full uppercase italic tracking-widest">
-                Admin: {{ request.user.username }}
-            </span>
-            <a href="{% url 'sistema_interno:logout' %}" class="bg-marsala-700 hover:bg-red-600 w-10 h-10 flex items-center justify-center rounded-full transition-all shadow-lg">
+        <div class="flex items-center gap-4 text-white">
+            <span class="text-[10px] font-black bg-white/20 px-3 py-1 rounded-full uppercase italic">Admin: {{ request.user.username }}</span>
+            <a href="{% url 'sistema_interno:logout' %}" class="bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg hover:bg-marsala-100 transition-all">
                 <i class="fas fa-power-off text-sm"></i>
             </a>
         </div>
@@ -48,101 +42,100 @@
     <main class="p-8 max-w-7xl mx-auto">
         
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-            
-            <div class="bg-card p-6 rounded-[2.5rem] border border-marsala-800/30 shadow-2xl relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                    <i class="fas fa-hand-holding-dollar text-4xl"></i>
-                </div>
-                <p class="text-[10px] font-black text-marsala-100/50 uppercase tracking-widest">Faturamento Adimplente</p>
-                <h3 class="text-3xl font-black text-emerald-400 mt-2">R$ {{ faturamento_total|floatformat:2 }}</h3>
-                <p class="text-[9px] font-bold text-emerald-500/50 mt-1 uppercase italic">Total Recebido</p>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-md">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Faturamento Recebido</p>
+                <h3 class="text-3xl font-black text-emerald-600 mt-2">R$ {{ faturamento_total|floatformat:2 }}</h3>
             </div>
-
-            <div class="bg-card p-6 rounded-[2.5rem] border border-marsala-800/30 shadow-2xl relative overflow-hidden group">
-                <div class="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity text-red-500">
-                    <i class="fas fa-triangle-exclamation text-4xl"></i>
-                </div>
-                <p class="text-[10px] font-black text-marsala-100/50 uppercase tracking-widest text-red-200/60">Inadimplência</p>
-                <h3 class="text-3xl font-black text-red-500 mt-2">R$ {{ inadimplencia|floatformat:2 }}</h3>
-                <p class="text-[9px] font-bold text-red-500/50 mt-1 uppercase italic">Valores Atrasados</p>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-red-500 shadow-md">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Inadimplência</p>
+                <h3 class="text-3xl font-black text-red-600 mt-2">R$ {{ inadimplencia|floatformat:2 }}</h3>
             </div>
-
-            <div class="bg-card p-6 rounded-[2.5rem] border border-marsala-800/30 shadow-2xl relative overflow-hidden group">
-                <p class="text-[10px] font-black text-marsala-100/50 uppercase tracking-widest">Pendente a Receber</p>
-                <h3 class="text-3xl font-black text-yellow-500 mt-2">R$ {{ pendente_receber|floatformat:2 }}</h3>
-                <p class="text-[9px] font-bold text-yellow-500/50 mt-1 uppercase italic">Próximos Vencimentos</p>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-yellow-500 shadow-md">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Previsão Pendente</p>
+                <h3 class="text-3xl font-black text-gray-700 mt-2">R$ {{ pendente_receber|floatformat:2 }}</h3>
             </div>
-
-            <div class="bg-marsala-700 p-6 rounded-[2.5rem] shadow-marsala-900/50 shadow-2xl flex flex-col justify-center">
-                <p class="text-[10px] font-black text-white/60 uppercase tracking-widest">Taxa de Adimplência</p>
-                <h3 class="text-4xl font-black text-white mt-2">{{ taxa_adimplencia }}%</h3>
-                <div class="w-full bg-white/10 h-1.5 rounded-full mt-3 overflow-hidden">
-                    <div class="bg-emerald-400 h-full" style="width: {{ taxa_adimplencia }}%"></div>
-                </div>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-marsala-700 shadow-md">
+                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Saúde Financeira</p>
+                <h3 class="text-4xl font-black text-marsala-700 mt-2">{{ taxa_adimplencia }}%</h3>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
             
             <div class="lg:col-span-1 space-y-4">
-                <h4 class="text-[10px] font-black uppercase text-marsala-100/40 ml-4 tracking-widest">Módulos de Controle</h4>
+                <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest">Ferramentas de Gestão</h4>
                 
-                <a href="{% url 'sistema_interno:painel_colaborador' %}" class="flex items-center gap-4 bg-card p-5 rounded-3xl border border-marsala-800/30 hover:border-marsala-600 transition-all group">
-                    <div class="bg-marsala-700/20 p-3 rounded-2xl group-hover:bg-marsala-700 text-marsala-100 transition-all"><i class="fas fa-users"></i></div>
-                    <span class="text-xs font-black uppercase italic tracking-tight">Visão Operacional (Equipe)</span>
+                <a href="{% url 'sistema_interno:cliente_create' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-marsala-700 transition-all group">
+                    <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all"><i class="fas fa-user-plus"></i></div>
+                    <span class="text-xs font-bold uppercase">Cadastrar Paciente</span>
                 </a>
 
-                <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 bg-card p-5 rounded-3xl border border-marsala-800/30 hover:border-marsala-600 transition-all group">
-                    <div class="bg-marsala-700/20 p-3 rounded-2xl group-hover:bg-marsala-700 text-marsala-100 transition-all"><i class="fas fa-address-book"></i></div>
-                    <span class="text-xs font-black uppercase italic tracking-tight">Base Total de Pacientes</span>
+                <a href="{% url 'sistema_interno:plan_create' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-emerald-500 transition-all group">
+                    <div class="bg-emerald-50 p-3 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white text-emerald-500 transition-all"><i class="fas fa-hand-holding-usd"></i></div>
+                    <span class="text-xs font-bold uppercase">Gerenciar Planos</span>
                 </a>
 
-                <a href="/admin" class="flex items-center gap-4 bg-card p-5 rounded-3xl border border-marsala-800/30 hover:border-gray-500 transition-all group">
-                    <div class="bg-gray-800 p-3 rounded-2xl text-gray-400 group-hover:bg-white group-hover:text-black transition-all"><i class="fas fa-database"></i></div>
-                    <span class="text-xs font-black uppercase italic tracking-tight text-gray-400 group-hover:text-white">Banco de Dados Bruto</span>
+                <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-purple-500 transition-all group">
+                    <div class="bg-purple-50 p-3 rounded-2xl group-hover:bg-purple-500 group-hover:text-white text-purple-500 transition-all"><i class="fas fa-users-cog"></i></div>
+                    <span class="text-xs font-bold uppercase">Lista de Pacientes</span>
+                </a>
+
+                <a href="{% url 'sistema_interno:painel_colaborador' %}" class="flex items-center gap-4 bg-gray-100 p-5 rounded-3xl border border-gray-200 hover:border-gray-400 transition-all group">
+                    <div class="bg-gray-200 p-3 rounded-2xl group-hover:bg-gray-800 group-hover:text-white text-gray-600 transition-all"><i class="fas fa-arrow-left"></i></div>
+                    <span class="text-xs font-bold uppercase text-gray-600 group-hover:text-gray-800">Voltar ao Operacional</span>
                 </a>
             </div>
 
-            <div class="lg:col-span-2">
-                <div class="bg-card rounded-[2.5rem] border border-marsala-800/30 overflow-hidden shadow-2xl">
-                    <div class="p-6 border-b border-marsala-800/30 flex justify-between items-center bg-marsala-900/20">
-                        <h3 class="text-xs font-black uppercase italic text-marsala-100 tracking-widest">Leads em Potencial</h3>
-                        <span class="flex items-center gap-2 text-[9px] font-black bg-emerald-500/10 text-emerald-500 px-3 py-1 rounded-full border border-emerald-500/20">
-                            <span class="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-ping"></span> SITE ATIVO
-                        </span>
+            <div class="lg:col-span-2 space-y-6">
+                
+                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
+                        <h3 class="text-xs font-black uppercase italic text-marsala-700">Tesouraria: Baixa de Pagamentos</h3>
+                        <span class="w-2 h-2 bg-yellow-500 rounded-full animate-ping"></span>
                     </div>
-                    <div class="p-4 overflow-x-auto">
+                    <div class="overflow-x-auto">
                         <table class="w-full text-left">
-                            <thead>
-                                <tr class="text-[9px] uppercase text-marsala-100/30 border-b border-marsala-800/50">
-                                    <th class="p-4">Interessado</th>
-                                    <th class="p-4">Interesse</th>
-                                    <th class="p-4 text-right">Conversão</th>
-                                </tr>
-                            </thead>
-                            <tbody class="divide-y divide-marsala-800/20">
-                                {% for lead in leads %}
-                                <tr class="hover:bg-marsala-800/10 transition-colors">
-                                    <td class="p-4">
-                                        <div class="font-black text-sm text-marsala-50">{{ lead.nome }}</div>
-                                        <div class="text-[10px] text-marsala-100/40">{{ lead.telefone }}</div>
+                            <tbody class="divide-y divide-gray-50">
+                                {% for fatura in faturas_abertas %}
+                                <tr class="hover:bg-marsala-50/20 transition-colors">
+                                    <td class="p-4 pl-6">
+                                        <div class="font-black text-sm uppercase text-gray-800">{{ fatura.paciente.nome_completo }}</div>
+                                        <div class="text-[9px] text-gray-400 font-bold uppercase">Vence em: {{ fatura.data_vencimento|date:"d/m/Y" }}</div>
                                     </td>
-                                    <td class="p-4">
-                                        <span class="text-[10px] font-bold uppercase text-marsala-100/60 bg-marsala-900/40 px-3 py-1 rounded-lg border border-marsala-800/50">{{ lead.interesse }}</span>
-                                    </td>
-                                    <td class="p-4 text-right">
-                                        <a href="https://wa.me/55{{ lead.telefone }}" target="_blank" class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all shadow-lg inline-block">WhatsApp</a>
+                                    <td class="p-4"><span class="text-sm font-black text-gray-700">R$ {{ fatura.valor }}</span></td>
+                                    <td class="p-4 text-right pr-6">
+                                        <a href="{% url 'sistema_interno:fatura_baixar' fatura.id %}" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase shadow-md transition-all">Dar Baixa</a>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="3" class="p-10 text-center text-marsala-100/20 italic text-xs uppercase font-black">Nenhum lead aguardando...</td></tr>
+                                <tr><td colspan="3" class="p-10 text-center text-gray-300 font-bold uppercase italic text-[10px]">Nenhuma fatura pendente.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-50 flex justify-between items-center">
+                        <h3 class="text-xs font-black uppercase italic text-gray-500">Contatos Recentes do Site</h3>
+                    </div>
+                    <div class="p-4">
+                        <table class="w-full text-left">
+                            <tbody class="divide-y divide-gray-50">
+                                {% for lead in leads %}
+                                <tr>
+                                    <td class="p-3 font-bold uppercase text-xs text-gray-700">{{ lead.nome }}</td>
+                                    <td class="p-3 text-marsala-700 font-black italic text-[10px]">{{ lead.interesse }}</td>
+                                    <td class="p-3 text-right">
+                                        <a href="https://wa.me/55{{ lead.telefone }}" target="_blank" class="text-green-500 hover:text-green-600 font-black text-[10px] uppercase">WhatsApp</a>
+                                    </td>
+                                </tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
             </div>
-
         </div>
     </main>
 </body>

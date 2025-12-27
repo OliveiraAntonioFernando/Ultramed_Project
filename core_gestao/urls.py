@@ -8,6 +8,7 @@ urlpatterns = [
     path('logout/', views.logout_view, name='logout'),
     path('painel/', views.painel_colaborador, name='painel_colaborador'),
     path('master-control/', views.master_dashboard, name='master_dashboard'),
+    path('financeiro/baixar/<int:fatura_id>/', views.fatura_baixar, name='fatura_baixar'),
     path('paciente/novo/', views.cliente_create, name='cliente_create'),
     path('pacientes/', views.cliente_list, name='cliente_list'),
     path('agenda/', views.agenda_view, name='agenda'),
