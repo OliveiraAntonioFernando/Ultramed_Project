@@ -14,7 +14,6 @@ class Plano(models.Model):
 
 class Paciente(models.Model):
     SEXO_CHOICES = [('M', 'Masculino'), ('F', 'Feminino'), ('O', 'Outro')]
-    
     nome_completo = models.CharField(max_length=255)
     cpf = models.CharField(max_length=14, unique=True)
     telefone = models.CharField(max_length=20)
@@ -35,6 +34,3 @@ class LeadSite(models.Model):
     interesse = models.CharField(max_length=100)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
     atendido = models.BooleanField(default=False)
-
-    def __str__(self):
-        return f"{self.nome} - {self.interesse}"
