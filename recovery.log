@@ -122,3 +122,8 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    3316476..47b8c29  main -> main
+[main 1cda095] Ponto de Recuperação Automático: 2025-12-27 17:00:01
+ 6 files changed, 255 insertions(+), 267 deletions(-)
+ create mode 100644 core_gestao/.models.py.swp
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   47b8c29..1cda095  main -> main

@@ -1,116 +1,172 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="bg-gray-100 min-h-screen pb-20">
-    <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8">
-        <div class="max-w-6xl mx-auto flex justify-between items-center">
-            <div>
-                <h2 class="text-2xl font-black italic uppercase italic">Pacientes</h2>
-                <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Gestão de Beneficiários</p>
-            </div>
+<div class="bg-gray-100 min-h-screen pb-20 font-sans">
+    <nav class="bg-gradient-to-r from-marsala-800 to-marsala-700 p-8 rounded-b-[3.5rem] shadow-2xl text-white mb-10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
+            <h2 class="text-3xl font-black italic uppercase tracking-tighter">Gestão Ultramed</h2>
             <div class="flex gap-4">
-                <button onclick="abrirModalPaciente()" class="bg-white text-marsala-700 px-6 py-3 rounded-2xl font-black uppercase italic text-xs shadow-lg hover:bg-gray-100 transition-all flex items-center gap-2">
-                    <i class="fas fa-plus"></i> Novo Paciente
+                <button onclick="abrirModal()" class="bg-white text-marsala-800 px-8 py-4 rounded-2xl font-black uppercase italic text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-3 border-none">
+                    <i class="fas fa-user-plus"></i> Novo Registro
                 </button>
-                <a href="{% url 'sistema_interno:painel_colaborador' %}" class="bg-white/20 px-6 py-3 rounded-2xl hover:bg-white/30 transition-all text-xs font-bold uppercase italic flex items-center">
-                    Voltar
-                </a>
+                <a href="{% url 'sistema_interno:painel_colaborador' %}" class="bg-white/10 px-6 py-4 rounded-2xl hover:bg-white/20 transition-all text-xs font-bold uppercase italic flex items-center border border-white/10 text-white no-underline">Voltar</a>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-6xl mx-auto px-4">
-        <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Nome Completo</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">CPF</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Plano / Tipo</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400 text-right">Ações</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        {% for p in pacientes %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="p-6 text-xs font-black uppercase text-gray-800 italic">{{ p.nome_completo }}</td>
-                            <td class="p-6 text-xs text-gray-500">{{ p.cpf }}</td>
-                            <td class="p-6">
-                                {% if p.plano %}
-                                    <span class="text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full italic">{{ p.plano.nome }}</span>
-                                {% else %}
-                                    <span class="text-[9px] font-black uppercase bg-gray-100 text-gray-500 px-3 py-1 rounded-full italic">Particular</span>
-                                {% endif %}
-                            </td>
-                            <td class="p-6 text-right space-x-2">
-                                <a href="#" class="text-marsala-700 text-xs font-black uppercase italic mr-2">Editar</a>
-                                {% if request.user.username == 'medico' or request.user.username == 'master' %}
-                                <a href="{% url 'sistema_interno:prontuario_view' p.id %}" class="bg-marsala-700 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase italic hover:bg-marsala-800">
-                                    Prontuário
-                                </a>
-                                {% endif %}
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="4" class="p-20 text-center text-gray-400 uppercase italic text-xs font-bold">Nenhum paciente cadastrado.</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
+    <main class="max-w-[95%] mx-auto">
+        <div class="bg-white rounded-[3rem] shadow-xl border border-gray-100 overflow-hidden">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50/50">
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400">Paciente Titular</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">CPF</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">Plano / Dependentes</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-right">Ações</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    {% for p in pacientes %}
+                    <tr class="hover:bg-gray-50/80 transition-all">
+                        <td class="p-8">
+                            <p class="text-sm font-black uppercase text-gray-800 italic">{{ p.nome_completo }}</p>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">{{ p.telefone }}</p>
+                        </td>
+                        <td class="p-8 text-center text-xs font-mono font-bold text-gray-500">{{ p.cpf }}</td>
+                        <td class="p-8 text-center">
+                            <span class="text-[9px] font-black uppercase bg-marsala-50 text-marsala-700 px-3 py-1 rounded-full italic">{{ p.plano.nome|default:"Particular" }}</span>
+                            {% if p.possui_dependentes %}
+                                <span class="ml-2 text-[9px] font-black uppercase bg-blue-100 text-blue-700 px-3 py-1 rounded-full italic">Com Dependentes</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-8 text-right">
+                             <a href="{% url 'sistema_interno:prontuario_view' p.id %}" class="bg-marsala-700 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic hover:bg-marsala-800 no-underline transition-all">Prontuário</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
         </div>
     </main>
 </div>
 
-<div id="modal-paciente" class="fixed inset-0 bg-gray-900/80 backdrop-blur-sm z-50 flex items-center justify-center hidden px-4">
-    <div class="bg-white w-full max-w-lg rounded-[3rem] shadow-2xl overflow-hidden">
+<div id="modalPaciente" class="fixed inset-0 bg-marsala-900/60 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4 animate-fade-in">
+    <div class="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden border border-white/20 transform transition-all duration-300 scale-95" id="modalContainer">
+        
         <div class="bg-marsala-700 p-8 text-white flex justify-between items-center">
-            <h3 class="font-black uppercase italic text-lg text-white">Novo Paciente</h3>
-            <button onclick="fecharModalPaciente()" class="text-white/50 hover:text-white"><i class="fas fa-times fa-lg"></i></button>
-        </div>
-        <form method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-8 space-y-4">
-            {% csrf_token %}
             <div>
-                <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Nome Completo</label>
-                <input type="text" name="nome_completo" required class="w-full border-b-2 py-2 outline-none focus:border-marsala-700 text-sm uppercase italic font-bold">
+                <h3 class="text-2xl font-black uppercase italic leading-none">Admissão Completa Ultramed</h3>
+                <p class="text-[9px] font-bold uppercase opacity-60 tracking-widest mt-1">Titular e Dependentes</p>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">CPF</label>
-                    <input type="text" name="cpf" required placeholder="000.000.000-00" class="w-full border-b-2 py-2 outline-none focus:border-marsala-700 text-sm">
+            <button onclick="fecharModal()" class="w-12 h-12 bg-white/10 rounded-2xl hover:bg-white/20 flex items-center justify-center border-none text-white"><i class="fas fa-times"></i></button>
+        </div>
+
+        <form method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+            {% csrf_token %}
+            
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <div class="space-y-6">
+                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic"><i class="fas fa-user-tie mr-2"></i>Dados do Titular</h4>
+                    
+                    <div class="space-y-4">
+                        <input type="text" name="nome_completo" placeholder="NOME COMPLETO DO TITULAR" required class="w-full bg-white border border-gray-300 rounded-2xl px-6 py-4 outline-none focus:border-marsala-700 font-bold uppercase italic text-sm">
+                        
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="text" name="cpf" placeholder="CPF" required class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none focus:border-marsala-700 text-sm font-bold">
+                            <input type="text" name="telefone" placeholder="WHATSAPP" required class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none focus:border-marsala-700 text-sm font-bold">
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="date" name="data_nascimento" title="Data de Nascimento" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
+                            <select name="sexo" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
+                                <option value="M">Masculino</option>
+                                <option value="F">Feminino</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic pt-4"><i class="fas fa-map-marked-alt mr-2"></i>Endereço Residencial</h4>
+                    <div class="space-y-4">
+                        <input type="text" name="endereco" placeholder="RUA, NÚMERO, COMPLEMENTO" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="text" name="bairro" placeholder="BAIRRO" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
+                            <input type="text" name="cidade" value="São Félix do Xingu" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Telefone</label>
-                    <input type="text" name="telefone" required placeholder="(94) 9 0000-0000" class="w-full border-b-2 py-2 outline-none focus:border-marsala-700 text-sm">
+
+                <div class="space-y-6">
+                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic"><i class="fas fa-hand-holding-medical mr-2"></i>Plano Ultramed</h4>
+                    
+                    <div class="grid grid-cols-2 gap-4">
+                        <select name="plano" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
+                            <option value="">PARTICULAR</option>
+                            <option value="ESSENCIAL">ULTRAMED ESSENCIAL</option>
+                            <option value="MASTER">ULTRAMED MASTER FAMILIAR</option>
+                            <option value="EMPRESARIAL">ULTRAMED EMPRESARIAL</option>
+                        </select>
+                        <input type="text" name="modalidade_plano" placeholder="MODALIDADE (EX: OURO)" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
+                    </div>
+
+                    <div class="flex items-center justify-between bg-marsala-50 p-4 rounded-2xl border border-marsala-100">
+                        <span class="text-[10px] font-black uppercase text-marsala-800 italic">Possui Dependentes?</span>
+                        <input type="checkbox" name="possui_dependentes" id="checkDep" onchange="toggleDependentesSection()" class="w-5 h-5 accent-marsala-700">
+                    </div>
+
+                    <div id="sessaoDependentes" class="hidden space-y-4 animate-slide-up">
+                        <div class="flex justify-between items-center">
+                            <h4 class="text-[10px] font-black uppercase text-blue-700 italic">Lista de Dependentes</h4>
+                            <button type="button" onclick="addDependenteRow()" class="text-[9px] bg-blue-600 text-white px-3 py-1 rounded-lg font-bold uppercase"> + Adicionar</button>
+                        </div>
+                        
+                        <div id="containerDependentes" class="space-y-3">
+                            <div class="grid grid-cols-12 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 relative">
+                                <div class="col-span-6">
+                                    <input type="text" name="dep_nome[]" placeholder="NOME DO DEPENDENTE" class="w-full text-[10px] p-2 border rounded-lg uppercase font-bold">
+                                </div>
+                                <div class="col-span-3">
+                                    <input type="date" name="dep_nasc[]" class="w-full text-[10px] p-2 border rounded-lg">
+                                </div>
+                                <div class="col-span-3">
+                                    <select name="dep_parentesco[]" class="w-full text-[10px] p-2 border rounded-lg font-bold">
+                                        <option value="CONJUGE">CÔNJUGE</option>
+                                        <option value="FILHO">FILHO(A)</option>
+                                    </select>
+                                </div>
+                                <div class="col-span-12 mt-2">
+                                    <input type="text" name="dep_cpf[]" placeholder="CPF DO DEPENDENTE" class="w-full text-[10px] p-2 border rounded-lg">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Data Nascimento</label>
-                    <input type="date" name="data_nascimento" required class="w-full border-b-2 py-2 outline-none focus:border-marsala-700 text-sm">
-                </div>
-                <div>
-                    <label class="text-[10px] font-black uppercase text-gray-400 tracking-widest">Sexo</label>
-                    <select name="sexo" class="w-full border-b-2 py-2 outline-none focus:border-marsala-700 text-sm bg-transparent">
-                        <option value="M">Masculino</option>
-                        <option value="F">Feminino</option>
-                    </select>
-                </div>
-            </div>
-            <button type="submit" class="w-full bg-marsala-700 text-white font-black py-4 rounded-2xl uppercase italic shadow-xl hover:bg-marsala-800 transition-all mt-4">
-                Salvar Cadastro
+
+            <button type="submit" class="w-full bg-marsala-700 text-white font-black py-6 rounded-[2rem] uppercase italic shadow-2xl hover:bg-marsala-800 transition-all border-none cursor-pointer mt-8 text-sm tracking-widest">
+                <i class="fas fa-check-circle mr-2"></i> FINALIZAR CADASTRO COMPLETO
             </button>
         </form>
     </div>
 </div>
 
 <script>
-    function abrirModalPaciente() {
-        document.getElementById('modal-paciente').classList.remove('hidden');
+    function abrirModal() { document.getElementById('modalPaciente').classList.remove('hidden'); document.getElementById('modalPaciente').classList.add('flex'); }
+    function fecharModal() { document.getElementById('modalPaciente').classList.add('hidden'); }
+    
+    function toggleDependentesSection() {
+        const check = document.getElementById('checkDep');
+        document.getElementById('sessaoDependentes').classList.toggle('hidden', !check.checked);
     }
-    function fecharModalPaciente() {
-        document.getElementById('modal-paciente').classList.add('hidden');
+
+    function addDependenteRow() {
+        const container = document.getElementById('containerDependentes');
+        const html = `
+            <div class="grid grid-cols-12 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 mt-2">
+                <div class="col-span-6"><input type="text" name="dep_nome[]" placeholder="NOME DO DEPENDENTE" class="w-full text-[10px] p-2 border rounded-lg uppercase font-bold"></div>
+                <div class="col-span-3"><input type="date" name="dep_nasc[]" class="w-full text-[10px] p-2 border rounded-lg"></div>
+                <div class="col-span-3"><select name="dep_parentesco[]" class="w-full text-[10px] p-2 border rounded-lg font-bold"><option value="CONJUGE">CÔNJUGE</option><option value="FILHO">FILHO(A)</option></select></div>
+                <div class="col-span-12 mt-2"><input type="text" name="dep_cpf[]" placeholder="CPF DO DEPENDENTE" class="w-full text-[10px] p-2 border rounded-lg"></div>
+            </div>`;
+        container.insertAdjacentHTML('beforeend', html);
     }
 </script>
 {% endblock %}

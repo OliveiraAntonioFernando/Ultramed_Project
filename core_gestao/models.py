@@ -12,10 +12,22 @@ class Plano(models.Model):
 class Paciente(models.Model):
     nome_completo = models.CharField(max_length=255)
     cpf = models.CharField(max_length=14, unique=True)
+    possui_dependentes = models.BooleanField(default=False)
     telefone = models.CharField(max_length=20)
     data_nascimento = models.DateField()
     sexo = models.CharField(max_length=1, choices=[('M', 'Masculino'), ('F', 'Feminino')], default='M')
+    
+    # NOVOS CAMPOS ADICIONADOS (ENDEREÇO)
+    # Verifique a linha do campo endereco, deve ser exatamente assim:
+    endereco = models.CharField(max_length=255, blank=True, null=True)
+    bairro = models.CharField(max_length=100, blank=True, null=True)
+    cidade = models.CharField(max_length=100, default="São Félix do Xingu")
+    
+    # NOVOS CAMPOS ADICIONADOS (DETALHES DO PLANO)
     plano = models.ForeignKey(Plano, on_delete=models.SET_NULL, null=True, blank=True)
+    modalidade_plano = models.CharField(max_length=100, blank=True, null=True)
+    vencimento_plano = models.DateField(null=True, blank=True)
+    
     responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependentes')
     data_cadastro = models.DateTimeField(auto_now_add=True)
     def __str__(self): return self.nome_completo
