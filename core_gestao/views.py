@@ -7,6 +7,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.decorators import login_required
 
+# --- ACESSO ---
 def login_view(request):
     if request.method == 'POST':
         u = request.POST.get('username')
@@ -22,11 +23,20 @@ def logout_view(request):
     logout(request)
     return redirect('sistema_interno:login')
 
+# --- PAINEL PROTEGIDO ---
 @login_required
 def painel_colaborador(request):
+    # Regra de Negócio: Administradores veem tudo, Equipe vê apenas o essencial
     leads = LeadSite.objects.all().order_by('-data_solicitacao')[:10]
     pacientes = Paciente.objects.all().order_by('-data_cadastro')[:10]
-    return render(request, 'painel_colaborador.html', {'leads': leads, 'pacientes': pacientes})
+    
+    context = {
+        'leads': leads,
+        'pacientes': pacientes,
+        'is_admin': request.user.is_superuser or request.user.groups.filter(name='Administrativo').exists(),
+        'is_medico': request.user.groups.filter(name='Médicos').exists(),
+    }
+    return render(request, 'painel_colaborador.html', context)
 
 @login_required
 def cliente_create(request):
@@ -46,7 +56,7 @@ def cliente_create(request):
 @login_required
 def cliente_list(request):
     pacientes = Paciente.objects.all().order_by('nome_completo')
-    return render(request, 'painel_colaborador.html', {'pacientes': pacientes}) # Reaproveita o painel ou crie cliente_list.html
+    return render(request, 'painel_colaborador.html', {'pacientes': pacientes})
 
 @login_required
 def agenda_view(request):
@@ -56,6 +66,7 @@ def agenda_view(request):
 def plan_create(request):
     return render(request, 'plan_form.html')
 
+# --- APIs ---
 @csrf_exempt
 def api_lead_capture(request):
     if request.method == 'POST':
@@ -71,6 +82,7 @@ def api_lead_capture(request):
             return JsonResponse({'success': False}, status=400)
     return JsonResponse({'success': False}, status=405)
 
+@login_required
 def api_buscar_paciente(request):
     term = request.GET.get('term', '')
     pacientes = Paciente.objects.filter(nome_completo__icontains=term) | Paciente.objects.filter(cpf__icontains=term)
