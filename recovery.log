@@ -81,3 +81,12 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    e2fa011..5154de7  main -> main
+[main b53c990] Ponto de Recuperação Automático: 2025-12-27 13:00:02
+ 10 files changed, 373 insertions(+), 189 deletions(-)
+ create mode 100644 core_gestao/.urls.py.swp
+ create mode 100644 core_gestao/migrations/0002_rename_descricao_fatura_linha_digitavel_and_more.py
+ create mode 100644 core_gestao/templates/fatura_form.html
+ create mode 100644 core_gestao/templates/gestao_exames.html
+ create mode 100644 core_gestao/templates/painel_paciente.html
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   5154de7..b53c990  main -> main

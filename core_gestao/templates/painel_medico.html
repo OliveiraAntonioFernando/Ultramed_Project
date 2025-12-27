@@ -1,0 +1,37 @@
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <nav class="bg-marsala-700 p-6 shadow-lg text-white flex justify-between items-center">
+        <h2 class="text-xl font-black uppercase italic">Consultório | <span class="font-light">Atendimento</span></h2>
+        <a href="{% url 'sistema_interno:master_dashboard' %}" class="text-[10px] font-black bg-white/20 px-4 py-2 rounded-full uppercase italic">Sair do Consultório</a>
+    </nav>
+
+    <div class="p-8 max-w-5xl mx-auto">
+        <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 bg-gray-50 border-b">
+                <h3 class="text-xs font-black uppercase text-gray-400 tracking-widest">Pacientes Aguardando</h3>
+            </div>
+            <div class="divide-y divide-gray-50">
+                {% for p in pacientes %}
+                <div class="p-6 flex justify-between items-center hover:bg-marsala-50/30 transition-all">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 bg-marsala-100 rounded-2xl flex items-center justify-center text-marsala-700 font-bold">
+                            {{ p.nome_completo|slice:":1" }}
+                        </div>
+                        <div>
+                            <p class="text-sm font-black text-gray-800 uppercase">{{ p.nome_completo }}</p>
+                            <p class="text-[10px] text-gray-400 font-bold uppercase">{{ p.plano.nome|default:"Particular" }}</p>
+                        </div>
+                    </div>
+                    <a href="{% url 'sistema_interno:prontuario_view' p.id %}" class="bg-marsala-700 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic shadow-md hover:bg-marsala-800">
+                        Atender Agora
+                    </a>
+                </div>
+                {% empty %}
+                <div class="p-20 text-center text-gray-300 font-black uppercase italic text-xs">Nenhum paciente na fila.</div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
