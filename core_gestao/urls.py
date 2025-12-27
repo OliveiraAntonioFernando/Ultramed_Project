@@ -4,20 +4,23 @@ from . import views
 app_name = 'sistema_interno'
 
 urlpatterns = [
-    # Acesso e Painel
+    # Acesso
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    
+    # Painéis
     path('painel/', views.painel_colaborador, name='painel_colaborador'),
+    path('master-control/', views.master_dashboard, name='master_dashboard'),
     
-    # Gestão de Pacientes
+    # Pacientes
     path('paciente/novo/', views.cliente_create, name='cliente_create'),
-    path('pacientes/', views.cliente_list, name='cliente_list'), # ROTA QUE FALTAVA
+    path('pacientes/', views.cliente_list, name='cliente_list'),
     
-    # Agenda e Planos
+    # Agenda e Vendas
     path('agenda/', views.agenda_view, name='agenda'),
     path('plano/venda/', views.plan_create, name='plan_create'),
     
-    # APIs
+    # APIs (JavaScript)
     path('api/lead-capture/', views.api_lead_capture, name='lead_capture'),
     path('api/buscar-paciente/', views.api_buscar_paciente, name='api_buscar_paciente'),
 ]
