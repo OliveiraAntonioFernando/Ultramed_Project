@@ -1,47 +1,33 @@
-version: '3.8'
-
 services:
-  # 1. BANCO DE DADOS (MARIADB)
   db:
     image: mariadb:10.5
     container_name: ultramed-db
+    restart: always
     environment:
-      # Variáveis de ambiente mapeadas do .env (CRÍTICAS)
       - MARIADB_DATABASE=${SQL_DATABASE}
       - MARIADB_USER=${SQL_USER}
       - MARIADB_PASSWORD=${SQL_PASSWORD}
-      - MARIADB_ROOT_PASSWORD=${SQL_ROOT_PASSWORD} 
-    ports:
-      - "3306:3306"
+      - MARIADB_ROOT_PASSWORD=${SQL_ROOT_PASSWORD}
     volumes:
       - ultramed_mariadb_data:/var/lib/mysql
     healthcheck:
-      # Verifica se o banco de dados está pronto antes de iniciar o Web
-      test: ["CMD", "mariadb-admin", "ping", "-h", "localhost"]
-      interval: 5s
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${SQL_USER}", "-p${SQL_PASSWORD}"]
+      interval: 10s
       timeout: 5s
       retries: 5
 
-  # 2. SERVIÇO WEB (DJANGO / GUNICORN)
   web:
     build: .
     container_name: ultramed-web
-    
-    # [!!! COMANDO FINAL E ROBUSTO !!!]
-    # Executa migrações, coleta arquivos estáticos e inicia o Gunicorn com caminhos absolutos.
-    command: ["/bin/sh", "-c", 
-              "sleep 15 && 
-               /usr/local/bin/python3 manage.py migrate --noinput && 
-               /usr/local/bin/python3 manage.py collectstatic --noinput --clear && 
-               /usr/local/bin/gunicorn ultramed_app.wsgi:application --bind 0.0.0.0:8000"
-            ]
-    
+    restart: always
+    command: >
+      sh -c "sleep 5 &&
+             python manage.py migrate --noinput &&
+             python manage.py collectstatic --noinput &&
+             gunicorn ultramed_app.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     environment:
-      # Variáveis de ambiente garantem que o Django encontre o settings.py e o DB.
       - DJANGO_SETTINGS_MODULE=ultramed_app.settings
       - PYTHONPATH=/app
-      
-      # Variáveis do .env
       - DJANGO_SECRET_KEY=${DJANGO_SECRET_KEY}
       - DEBUG=${DEBUG}
       - SQL_ENGINE=${SQL_ENGINE}
@@ -50,31 +36,26 @@ services:
       - SQL_PASSWORD=${SQL_PASSWORD}
       - SQL_HOST=db
       - SQL_PORT=${SQL_PORT}
-      
     volumes:
-      # Mapeia o código fonte do host para o /app no container
       - .:/app
-      - ./static_content:/usr/share/nginx/html/static
-      
+      - ./static_content:/app/static_content
+      - ./media_content:/app/media_content
     depends_on:
       db:
         condition: service_healthy
 
-  # 3. NGINX (PROXY REVERSO)
   nginx:
     image: nginx:1.24-alpine
     container_name: ultramed-nginx
+    restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      # Mapeamento do arquivo de configuração do Nginx
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      # Mapeia a pasta estática (STATIC_ROOT)
-      - ./static_content:/usr/share/nginx/html/static 
-      # Mapeia a pasta de certificados SSL (onde o Nginx busca os .pem)
-      - ./nginx/certs:/etc/nginx/ssl 
-      
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./static_content:/usr/share/nginx/html/static:ro
+      - ./media_content:/usr/share/nginx/html/media:ro
+      - ./nginx/certs:/etc/nginx/ssl:ro
     depends_on:
       - web
 

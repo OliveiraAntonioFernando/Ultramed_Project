@@ -1,26 +1,25 @@
-# Imagem base
 FROM python:3.12-slim
 
-# Define variáveis de ambiente
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-# Define o diretório de trabalho dentro do container
 WORKDIR /app
 
-# Instala as dependências, incluindo as bibliotecas C necessárias para mysqlclient
-COPY requirements.txt /app/
-# ... (Linha 12: COPY requirements.txt /app/)
-RUN apt update && \
-    apt install -y default-libmysqlclient-dev pkg-config gcc libmariadb3 && \
-    pip install --upgrade pip && \
-    pip install -r requirements.txt && \
-    apt purge -y default-libmysqlclient-dev pkg-config gcc && \
-    apt autoremove -y && \
-    rm -rf /var/lib/apt/lists/*
+# Instala dependências de sistema e mantém as libs de execução do MariaDB
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libmariadb-dev \
+    libmariadb3 \
+    pkg-config \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copia o código do projeto para o container
-COPY . /app/
+COPY requirements.txt .
+RUN pip install --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
-# Expõe a porta que o Gunicorn vai usar
+# Limpa apenas ferramentas de compilação, mantendo as bibliotecas compartilhadas
+RUN apt-get purge -y pkg-config gcc && apt-get autoremove -y
+
+COPY . .
+
 EXPOSE 8000
