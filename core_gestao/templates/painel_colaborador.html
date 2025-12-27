@@ -1,184 +1,90 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Painel Equipe - Ultramed</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        marsala: {
-                            50: '#fcf4f4',
-                            100: '#f9e9e9',
-                            700: '#700c15',
-                            800: '#5c0a11'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-gray-50 font-sans min-h-screen">
-    <nav class="bg-marsala-700 p-4 shadow-lg text-white">
-        <div class="max-w-7xl mx-auto flex justify-between items-center">
-            <div class="flex items-center gap-3">
-                <h1 class="text-xl font-black italic tracking-tighter uppercase">Ultramed 
-                    <span class="font-light text-sm opacity-80">
-                        {% if is_medico %}| Médicos{% elif is_admin %}| Admin{% else %}| Equipe{% endif %}
-                    </span>
-                </h1>
+{% extends 'base.html' %}
+{% block content %}
+<div class="bg-gray-100 min-h-screen pb-20">
+    <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8">
+        <div class="max-w-5xl mx-auto flex justify-between items-center">
+            <div>
+                <h2 class="text-2xl font-black italic uppercase italic">Painel Equipe</h2>
+                <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Ultramed Clínica Médica</p>
             </div>
-            <div class="flex items-center gap-4">
-                <span class="text-[10px] font-black bg-white/20 px-3 py-1 rounded-full uppercase italic">Operador: {{ request.user.username }}</span>
-                <a href="{% url 'sistema_interno:logout' %}" class="hover:text-gray-300 transition-colors text-sm font-bold uppercase flex items-center gap-2">
-                    <i class="fa-solid fa-power-off"></i> Sair
-                </a>
-            </div>
+            <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-2xl hover:bg-white/30 transition-all">
+                <i class="fas fa-power-off"></i>
+            </a>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto p-6 grid grid-cols-1 md:grid-cols-4 gap-6">
+    <main class="max-w-5xl mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+            <a href="{% url 'sistema_interno:cliente_list' %}" class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 hover:shadow-xl transition-all group flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-user-plus"></i>
+                </div>
+                <h3 class="text-lg font-black uppercase text-gray-800 italic">Pacientes</h3>
+                <p class="text-xs text-gray-400 mt-2">Cadastrar e gerenciar beneficiários</p>
+            </a>
 
-        <div class="md:col-span-1 space-y-4">
-            <div class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100">
-                <p class="text-[10px] font-black text-gray-400 uppercase mb-4 tracking-widest text-center border-b pb-2">Ações Disponíveis</p>
-
-                {% if not is_medico %}
-                <a href="{% url 'sistema_interno:cliente_create' %}" class="flex items-center justify-center gap-2 w-full bg-marsala-700 text-white font-black py-4 rounded-2xl hover:scale-105 transition-all shadow-md uppercase text-[11px] italic mb-3">
-                    <i class="fa-solid fa-user-plus"></i> Paciente Particular
-                </a>
-
-                <a href="{% url 'sistema_interno:plan_create' %}" class="flex items-center justify-center gap-2 w-full bg-blue-800 text-white font-black py-4 rounded-2xl hover:scale-105 transition-all shadow-md uppercase text-[11px] italic mb-3 border-2 border-blue-400">
-                    <i class="fa-solid fa-file-contract"></i> Venda de Planos
-                </a>
-                {% endif %}
-
-                <a href="{% url 'sistema_interno:agenda' %}" class="flex items-center justify-center gap-2 w-full bg-gray-800 text-white font-black py-4 rounded-2xl hover:scale-105 transition-all shadow-md uppercase text-[11px] italic mb-3">
-                    <i class="fa-solid fa-calendar-check"></i> {% if is_medico %}Minha Agenda{% else %}Nova Agenda{% endif %}
-                </a>
-
-                {% if is_admin %}
-                <hr class="my-4 border-gray-50">
-                <a href="/admin" class="flex items-center justify-center gap-2 w-full bg-yellow-600 text-white font-black py-4 rounded-2xl hover:scale-105 transition-all shadow-md uppercase text-[11px] italic">
-                    <i class="fa-solid fa-lock"></i> Painel Geral (Master)
-                </a>
-                {% endif %}
-            </div>
-
-            <div class="bg-white p-4 rounded-[1.5rem] shadow-sm border border-gray-100 flex items-center justify-center gap-3">
-                <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                <span class="text-[10px] font-black text-gray-500 uppercase">Sistema Online</span>
-            </div>
+            <a href="{% url 'sistema_interno:fatura_create' %}" class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 hover:shadow-xl transition-all group flex flex-col items-center text-center">
+                <div class="w-20 h-20 bg-marsala-100 text-marsala-700 rounded-3xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+                    <i class="fas fa-file-invoice-dollar"></i>
+                </div>
+                <h3 class="text-lg font-black uppercase text-gray-800 italic">Emitir Fatura</h3>
+                <p class="text-xs text-gray-400 mt-2">Lançar novas cobranças</p>
+            </a>
         </div>
 
-        <div class="md:col-span-3 space-y-6">
-
-            {% if not is_medico %}
-            <div class="bg-white rounded-[2rem] shadow-md border-2 border-marsala-100 overflow-hidden">
-                <div class="p-6 border-b border-marsala-50 bg-marsala-50/50 flex justify-between items-center">
-                    <div>
-                        <h3 class="font-black text-marsala-700 uppercase italic tracking-tight text-sm flex items-center gap-2">
-                            <i class="fas fa-bell animate-bounce"></i> Solicitações do Site
-                        </h3>
-                    </div>
-                    <span class="bg-marsala-700 text-white text-[9px] font-black px-3 py-1 rounded-full animate-pulse">SITE</span>
+        <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-8 border-b bg-gray-50/50 flex justify-between items-center">
+                <div>
+                    <h3 class="text-xs font-black uppercase italic text-gray-500">Pedidos do Site</h3>
+                    <p class="text-[9px] text-gray-400 uppercase font-bold">Aguardando atendimento</p>
                 </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead class="bg-gray-50">
-                            <tr class="text-[9px] font-black text-gray-400 uppercase tracking-widest">
-                                <th class="p-4">Interessado</th>
-                                <th class="p-4">Interesse</th>
-                                <th class="p-4 text-center">Ação Imediata</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            {% for lead in leads %}
-                            <tr class="hover:bg-marsala-50/20 transition-colors">
-                                <td class="p-4">
-                                    <div class="font-black text-gray-800 uppercase text-xs">{{ lead.nome }}</div>
-                                    <div class="text-[10px] text-gray-400 font-bold">{{ lead.telefone }}</div>
-                                </td>
-                                <td class="p-4">
-                                    <span class="text-[10px] font-black text-marsala-700 uppercase italic bg-marsala-50 px-3 py-1 rounded-lg">{{ lead.interesse }}</span>
-                                </td>
-                                <td class="p-4 text-center">
-                                    <a href="https://wa.me/55{{ lead.telefone }}" target="_blank"
-                                       class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white font-black px-4 py-2 rounded-xl text-[10px] uppercase transition-transform hover:scale-105 shadow-sm">
-                                        <i class="fab fa-whatsapp text-sm"></i> Chamar no Zap
-                                    </a>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="3" class="p-10 text-center text-gray-300 font-bold uppercase italic text-[10px]">
-                                    Nenhuma solicitação pendente.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+                <span class="bg-marsala-700 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase italic">Novos</span>
             </div>
-            {% endif %}
-
-            <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-6 border-b border-gray-50 flex justify-between items-center bg-gray-50/50">
-                    <div>
-                        <h3 class="font-black text-gray-800 uppercase italic tracking-tight text-sm">Monitoramento de Pacientes</h3>
-                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1 italic">Dados Recentes</p>
-                    </div>
-                    {% if not is_medico %}
-                    <a href="{% url 'sistema_interno:cliente_list' %}" class="text-[10px] font-black text-marsala-700 hover:underline uppercase border-2 border-marsala-700/10 px-4 py-2 rounded-xl transition-all hover:bg-marsala-50">Ver Todos</a>
-                    {% endif %}
-                </div>
-
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr class="text-[10px] font-black text-gray-400 uppercase tracking-widest bg-gray-50/30 border-b">
-                                <th class="p-6">Nome / Contato</th>
-                                <th class="p-6">CPF</th>
-                                <th class="p-6">Convênio</th>
-                                <th class="p-6 text-center">Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-gray-50">
-                            {% for paciente in pacientes %}
-                            <tr class="hover:bg-gray-50 transition-colors">
-                                <td class="p-6">
-                                    <div class="font-black text-gray-800 uppercase text-xs italic">{{ paciente.nome_completo }}</div>
-                                    <div class="text-[10px] text-gray-400 font-bold">{{ paciente.telefone }}</div>
-                                </td>
-                                <td class="p-6 font-mono text-xs text-gray-600">{{ paciente.cpf }}</td>
-                                <td class="p-6">
-                                    <span class="bg-marsala-50 text-marsala-700 text-[9px] font-black px-3 py-1 rounded-lg uppercase italic border border-marsala-100">
-                                        {{ paciente.plano.nome|default:"PARTICULAR" }}
-                                    </span>
-                                </td>
-                                <td class="p-6 text-center">
-                                    <button class="text-gray-300 hover:text-marsala-700 transition-all"><i class="fa-solid fa-circle-info text-lg"></i></button>
-                                </td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="4" class="p-20 text-center text-gray-300 font-black text-xs uppercase italic tracking-widest">
-                                    Nenhum registro encontrado.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="bg-gray-50">
+                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Data</th>
+                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Nome</th>
+                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">WhatsApp</th>
+                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Interesse</th>
+                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Ação</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50">
+                        {% for lead in leads_recentes %}
+                        <tr class="hover:bg-gray-50 transition-colors">
+                            <td class="p-6 text-xs text-gray-500">{{ lead.data_solicitacao|date:"d/m H:i" }}</td>
+                            <td class="p-6 text-xs font-black uppercase text-gray-800 italic">{{ lead.nome }}</td>
+                            <td class="p-6 text-xs font-bold text-marsala-700">
+                                <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank">
+                                    <i class="fab fa-whatsapp mr-1"></i> {{ lead.telefone }}
+                                </a>
+                            </td>
+                            <td class="p-6">
+                                <span class="text-[9px] font-black uppercase bg-gray-100 px-3 py-1 rounded-full text-gray-600 italic">
+                                    {{ lead.interesse }}
+                                </span>
+                            </td>
+                            <td class="p-6">
+                                <button class="text-[10px] font-black uppercase text-emerald-600 hover:text-emerald-700 italic">
+                                    Marcar Atendido
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="p-20 text-center">
+                                <i class="fas fa-inbox text-4xl text-gray-200 mb-4 block"></i>
+                                <p class="text-xs text-gray-300 font-black uppercase italic tracking-widest">Nenhum pedido novo no momento</p>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
             </div>
-
         </div>
     </main>
-</body>
-</html>
+</div>
+{% endblock %}

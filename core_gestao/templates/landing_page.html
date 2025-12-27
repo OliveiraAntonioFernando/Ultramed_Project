@@ -5,9 +5,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultramed Saúde Xingu - Referência em Medicina</title>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
-    
+
     <script>
         // Configuração do Tailwind com a cor marsala
         tailwind.config = {
@@ -38,7 +38,7 @@
         }
     </script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    
+
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         body { font-family: 'Inter', sans-serif; }
@@ -76,9 +76,9 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/">
-                    <img 
-                        src="{% static 'sistema_interno/img/logo_ultramed.png' %}" 
-                        alt="Ultramed" 
+                    <img
+                        src="{% static 'sistema_interno/img/logo_ultramed.png' %}"
+                        alt="Ultramed"
                         class="h-10 sm:h-14 w-auto object-contain"
                     >
                 </a>
@@ -250,13 +250,13 @@
                 <div class="flex justify-between items-center mb-6"><p class="text-xl font-bold text-marsala-700" id="modal-titulo">Solicitar Proposta</p><button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-times fa-lg"></i></button></div>
                 <div id="form-lead" class="space-y-4">
                     <p id="plano-nome-modal" data-interesse="" class="font-bold text-gray-800 bg-marsala-50 p-3 rounded-lg text-center border border-marsala-100 text-sm"></p>
-                    
+
                     <div><label for="nome-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input id="nome-modal" type="text" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none"></div>
                     <div><label for="telefone-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label><input id="telefone-modal" type="tel" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none" placeholder="(93) 99999-9999"></div>
-                    
+
                     <button onclick="enviarSolicitacao()" class="w-full bg-marsala-700 hover:bg-marsala-800 text-white font-bold py-4 rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2">Enviar Solicitação</button>
                 </div>
-                
+
                 <div id="sucesso-lead" class="hidden text-center py-8"><div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-check"></i></div><h3 class="text-xl font-bold text-gray-800">Recebemos seu pedido!</h3><p class="text-gray-600 text-sm mt-2">Aguarde nosso contato.</p><button onclick="fecharModal()" class="mt-6 text-gray-500 text-sm underline">Fechar</button></div>
             </div>
         </div>
@@ -289,22 +289,22 @@
         setInterval(trocarFrase, 4000);
 
         // JS Básico para o Menu Mobile (CORRIGIDO)
-        function toggleMenu() { 
-            document.getElementById('mobile-menu').classList.toggle('open'); 
+        function toggleMenu() {
+            document.getElementById('mobile-menu').classList.toggle('open');
         }
 
         // JS para o Modal de Contato (AJUSTADO)
         function abrirModal(id, nome, tipo) {
             document.getElementById('plano-nome-modal').innerText = nome;
             document.getElementById('modal-titulo').innerText = (tipo === 'EXAME') ? "Agendar Exame" : "Interesse no Plano";
-            
+
             // Salva o interesse na div para ser pego na hora de enviar
-            document.getElementById('plano-nome-modal').setAttribute('data-interesse', nome); 
+            document.getElementById('plano-nome-modal').setAttribute('data-interesse', nome);
 
             document.body.classList.add('modal-active');
             const modal = document.getElementById('modal-cadastro');
             modal.classList.remove('opacity-0', 'pointer-events-none');
-            
+
             // Reseta o estado do formulário para o envio
             document.getElementById('form-lead').classList.remove('hidden');
             document.getElementById('sucesso-lead').classList.add('hidden');
@@ -312,16 +312,16 @@
             document.querySelector('#form-lead button').innerHTML = `Enviar Solicitação`;
         }
         function abrirModalExame(exame) { abrirModal('', exame, 'EXAME'); }
-        function fecharModal() { 
-            document.body.classList.remove('modal-active'); 
-            document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none'); 
+        function fecharModal() {
+            document.body.classList.remove('modal-active');
+            document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none');
         }
 
-        // FUNÇÃO DE ENVIO AJAX PARA O DJANGO
+        // FUNÇÃO DE ENVIO AJAX PARA O DJANGO (CORRIGIDA E BLINDADA)
         async function enviarSolicitacao() {
             const nome = document.getElementById('nome-modal').value.trim();
             const telefone = document.getElementById('telefone-modal').value.trim();
-            const interesse = document.getElementById('plano-nome-modal').getAttribute('data-interesse'); 
+            const interesse = document.getElementById('plano-nome-modal').getAttribute('data-interesse');
 
             if (!nome || !telefone) {
                 alert("Por favor, preencha seu Nome e WhatsApp para continuarmos.");
@@ -332,14 +332,16 @@
             btn.disabled = true;
             btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...`;
 
-            const data = { nome, telefone, interesse };
+            // AJUSTE: Usando FormData para o Django ler via request.POST
+            const formData = new FormData();
+            formData.append('nome', nome);
+            formData.append('telefone', telefone);
+            formData.append('interesse', interesse);
 
             try {
-                // CHAMADA AJAX PARA A VIEW api_lead_capture
-                const response = await fetch('/sistema/api/lead-capture/', { 
+                const response = await fetch('/sistema/api/lead-capture/', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(data),
+                    body: formData,
                 });
 
                 const result = await response.json();
@@ -350,7 +352,7 @@
                     document.getElementById('nome-modal').value = '';
                     document.getElementById('telefone-modal').value = '';
                 } else {
-                    alert("Erro ao enviar solicitação: " + result.message);
+                    alert("Erro ao enviar solicitação: " + (result.message || "Erro interno."));
                 }
 
             } catch (error) {
@@ -361,7 +363,7 @@
             }
         }
 
-        // JS para carregar clima (Mantido, mas requer internet)
+        // JS para carregar clima
         async function carregarClima() { try { const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.6447&longitude=-51.995&current_weather=true'); const data = await res.json(); if(data.current_weather) { document.getElementById('widget-clima').innerHTML = `<i class="fas fa-sun text-yellow-400"></i> ${Math.round(data.current_weather.temperature)}°C em São Félix`; } } catch(e) { document.getElementById('widget-clima').innerHTML = ''; } }
         carregarClima();
     </script>
