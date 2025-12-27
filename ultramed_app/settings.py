@@ -75,3 +75,8 @@ CSRF_TRUSTED_ORIGINS = ['https://ultramedsaudexingu.com.br', 'https://www.ultram
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Configurações de redirecionamento de acesso
+LOGIN_URL = '/sistema/login/'
+LOGIN_REDIRECT_URL = '/sistema/painel/'
+LOGOUT_REDIRECT_URL = '/sistema/login/'
