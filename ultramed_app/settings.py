@@ -5,7 +5,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'f!#o4kk(_+=@oiwl1e-gr#en#pg8rmizv3$#+w-^u69y@m0g=k')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
-ALLOWED_HOSTS = ['ultramedsaudexingu.com.br', 'localhost', '127.0.0.1']
+
+# Ajuste de domínios permitidos
+ALLOWED_HOSTS = ['ultramedsaudexingu.com.br', 'www.ultramedsaudexingu.com.br', 'localhost', '127.0.0.1']
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -58,9 +60,18 @@ DATABASES = {
     }
 }
 
+LANGUAGE_CODE = 'pt-br'
+TIME_ZONE = 'America/Belem'
+USE_I18N = True
+USE_TZ = True
+
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static_content')
-MEDIA_URL = 'media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media_content')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# --- SEGURANÇA PARA HTTPS E DOMÍNIO (CORREÇÃO DO ERRO 403) ---
+CSRF_TRUSTED_ORIGINS = ['https://ultramedsaudexingu.com.br', 'https://www.ultramedsaudexingu.com.br']
+CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = True
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
