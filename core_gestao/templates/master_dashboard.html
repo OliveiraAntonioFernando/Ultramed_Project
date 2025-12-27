@@ -1,111 +1,132 @@
-{% load static %}
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <title>Master Executivo | Ultramed Control</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        marsala: {
-                            50: '#fcf4f4',
-                            700: '#700c15',
-                            800: '#5c0a11'
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-</head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen">
-    
-    <nav class="bg-marsala-700 p-6 flex justify-between items-center shadow-xl sticky top-0 z-50">
-        <h1 class="text-2xl font-black italic tracking-tighter uppercase text-white">
-            Ultramed <span class="text-marsala-100 text-sm font-light opacity-80">| Master Control</span>
+{% extends 'base.html' %}
+
+{% block title %}Master Control | Ultramed{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen">
+    <nav class="bg-marsala-700 p-6 shadow-xl flex justify-between items-center text-white sticky top-0 z-50">
+        <h1 class="text-2xl font-black italic uppercase tracking-tighter">
+            Ultramed <span class="text-marsala-100 text-sm font-light opacity-80 not-italic uppercase">| Master Control</span>
         </h1>
-        <a href="{% url 'sistema_interno:logout' %}" class="bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg">
-            <i class="fas fa-power-off"></i>
-        </a>
+        <div class="flex items-center gap-4">
+            <span class="text-[10px] font-black bg-white/20 px-4 py-1 rounded-full uppercase italic tracking-widest">
+                Admin: {{ request.user.username }}
+            </span>
+            <a href="{% url 'sistema_interno:logout' %}" class="bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg hover:bg-marsala-100 transition-all">
+                <i class="fas fa-power-off text-sm"></i>
+            </a>
+        </div>
     </nav>
 
     <main class="p-8 max-w-7xl mx-auto">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-md">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Faturamento Realizado</p>
-                <h3 class="text-3xl font-black text-emerald-600 mt-2">R$ {{ faturamento_total|floatformat:2 }}</h3>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-sm transition-transform hover:scale-105">
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento Pago</p>
+                <h3 class="text-2xl font-black text-emerald-600 mt-2 text-center">R$ {{ faturamento_total|floatformat:2 }}</h3>
             </div>
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-red-500 shadow-md">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Inadimplência</p>
-                <h3 class="text-3xl font-black text-red-600 mt-2">R$ {{ inadimplencia|floatformat:2 }}</h3>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-red-500 shadow-sm transition-transform hover:scale-105">
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Inadimplência</p>
+                <h3 class="text-2xl font-black text-red-600 mt-2 text-center">R$ {{ inadimplencia|floatformat:2 }}</h3>
             </div>
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-yellow-500 shadow-md">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Previsão Pendente</p>
-                <h3 class="text-3xl font-black text-gray-700 mt-2">R$ {{ pendente_receber|floatformat:2 }}</h3>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-yellow-500 shadow-sm transition-transform hover:scale-105">
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Previsão Pendente</p>
+                <h3 class="text-2xl font-black text-gray-700 mt-2 text-center">R$ {{ pendente_receber|floatformat:2 }}</h3>
             </div>
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-marsala-700 shadow-md">
-                <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Taxa de Adimplência</p>
-                <h3 class="text-4xl font-black text-marsala-700 mt-2">{{ taxa_adimplencia }}%</h3>
+            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-marsala-700 shadow-sm transition-transform hover:scale-105">
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Taxa de Adimplência</p>
+                <h3 class="text-2xl font-black text-marsala-700 mt-2 text-center">{{ taxa_adimplencia }}%</h3>
             </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
             <div class="lg:col-span-1 space-y-4">
-                <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest">Menu de Gestão</h4>
+                <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest">Ações Administrativas</h4>
                 
+                <a href="{% url 'sistema_interno:fatura_create' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-marsala-700 transition-all group">
+                    <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all"><i class="fas fa-barcode"></i></div>
+                    <span class="text-xs font-bold uppercase italic text-marsala-700">Lançar Novo Boleto</span>
+                </a>
+
                 <a href="{% url 'sistema_interno:cliente_create' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-marsala-700 transition-all group">
                     <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all"><i class="fas fa-user-plus"></i></div>
-                    <span class="text-xs font-bold uppercase italic">Novo Paciente</span>
+                    <span class="text-xs font-bold uppercase italic text-gray-700 group-hover:text-marsala-700">Cadastrar Paciente</span>
                 </a>
 
                 <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-marsala-700 transition-all group">
-                    <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all"><i class="fas fa-list-ul"></i></div>
-                    <span class="text-xs font-bold uppercase italic">Lista de Pacientes</span>
+                    <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all"><i class="fas fa-users-viewfinder"></i></div>
+                    <span class="text-xs font-bold uppercase italic text-gray-700 group-hover:text-marsala-700">Lista de Pacientes</span>
                 </a>
 
-                <a href="{% url 'sistema_interno:plan_create' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-emerald-500 transition-all group">
-                    <div class="bg-emerald-50 p-3 rounded-2xl group-hover:bg-emerald-500 group-hover:text-white text-emerald-500 transition-all"><i class="fas fa-file-invoice-dollar"></i></div>
-                    <span class="text-xs font-bold uppercase italic">Planos e Vendas</span>
-                </a>
-
-                <a href="{% url 'sistema_interno:painel_colaborador' %}" class="flex items-center gap-4 bg-gray-50 p-5 rounded-3xl border border-gray-200 hover:border-marsala-700 transition-all group">
-                    <div class="bg-gray-200 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-gray-500 transition-all"><i class="fas fa-users-cog"></i></div>
-                    <span class="text-xs font-bold uppercase italic text-gray-500 group-hover:text-marsala-700">Painel Operacional</span>
+                <a href="{% url 'sistema_interno:painel_medico' %}" class="flex items-center gap-4 bg-gray-100 p-5 rounded-3xl border border-gray-200 hover:border-marsala-700 transition-all group">
+                    <div class="bg-gray-200 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-gray-500 transition-all"><i class="fas fa-stethoscope"></i></div>
+                    <span class="text-xs font-bold uppercase italic text-gray-500 group-hover:text-marsala-700">Ir para Painel Médico</span>
                 </a>
             </div>
 
-            <div class="lg:col-span-2 space-y-6">
+            <div class="lg:col-span-2 space-y-8">
+                
                 <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="p-6 border-b border-gray-50 bg-gray-50/50 flex justify-between items-center">
-                        <h3 class="text-xs font-black uppercase italic text-marsala-700">Tesouraria: Baixa de Pagamentos</h3>
+                    <div class="p-6 border-b border-gray-50 bg-marsala-50/50 flex justify-between items-center">
+                        <h3 class="text-xs font-black uppercase italic text-marsala-800">
+                            <i class="fas fa-comment-dollar mr-2"></i> Cobranças Ativas (Aguardando Pagamento)
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <tbody class="divide-y divide-gray-50">
+                                {% for b in boletos_recentes %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="p-4 pl-8">
+                                        <div class="font-black text-sm uppercase text-gray-800">{{ b.paciente.nome_completo }}</div>
+                                        <div class="text-[9px] text-gray-400 font-bold uppercase">Vencimento: {{ b.data_vencimento|date:"d/m/Y" }}</div>
+                                    </td>
+                                    <td class="p-4 text-center">
+                                        <span class="text-sm font-black text-gray-700">R$ {{ b.valor }}</span>
+                                    </td>
+                                    <td class="p-4 text-right pr-8 space-x-4">
+                                        <button onclick="navigator.clipboard.writeText('{{ b.linha_digitavel }}'); alert('Código copiado!')" class="text-gray-400 hover:text-marsala-700" title="Copiar Código de Barras">
+                                            <i class="fas fa-copy"></i>
+                                        </button>
+                                        <a href="https://wa.me/55{{ b.paciente.telefone }}?text=Olá, segue o link do seu boleto Ultramed: {{ b.link_boleto }}" target="_blank" class="text-emerald-500 hover:scale-125 transition-transform inline-block" title="Enviar via WhatsApp">
+                                            <i class="fab fa-whatsapp text-lg"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td colspan="3" class="p-10 text-center text-gray-300 font-black uppercase italic text-[10px]">Nenhum boleto pendente.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-50 bg-gray-50 flex justify-between items-center">
+                        <h3 class="text-xs font-black uppercase italic text-gray-400">
+                             Baixa de Recebimento Manual
+                        </h3>
                     </div>
                     <div class="overflow-x-auto">
                         <table class="w-full text-left">
                             <tbody class="divide-y divide-gray-50">
                                 {% for fatura in faturas_abertas %}
                                 <tr class="hover:bg-marsala-50/20 transition-colors">
-                                    <td class="p-4 pl-6">
+                                    <td class="p-4 pl-8">
                                         <div class="font-black text-sm uppercase text-gray-800">{{ fatura.paciente.nome_completo }}</div>
-                                        <div class="text-[9px] text-gray-400 font-bold uppercase">Venc: {{ fatura.data_vencimento|date:"d/m/Y" }}</div>
                                     </td>
-                                    <td class="p-4"><span class="text-sm font-black text-gray-700">R$ {{ fatura.valor }}</span></td>
-                                    <td class="p-4 text-right pr-6">
-                                        <a href="{% url 'sistema_interno:fatura_baixar' fatura.id %}" class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase shadow-md transition-all inline-block">Confirmar</a>
+                                    <td class="p-4 text-right pr-8">
+                                        <a href="{% url 'sistema_interno:fatura_baixar' fatura.id %}" class="bg-emerald-500 hover:bg-emerald-600 text-white px-5 py-2 rounded-xl text-[9px] font-black uppercase shadow-md transition-all">Confirmar Pagamento</a>
                                     </td>
                                 </tr>
-                                {% empty %}
-                                <tr><td colspan="3" class="p-10 text-center text-gray-300 font-black uppercase italic text-[10px]">Tudo em dia!</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
                     </div>
                 </div>
+
             </div>
         </div>
     </main>
-</body>
-</html>
+</div>
+{% endblock %}
