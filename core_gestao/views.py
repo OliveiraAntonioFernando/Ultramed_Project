@@ -5,32 +5,39 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum
 from django.utils import timezone
+from datetime import timedelta
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame
 
 # =================================================================
-# 1. REGRAS DE NEGÓCIO (LOGICA DE DESCONTOS E LIMITES)
+# 1. REGRAS DE NEGÓCIO (LOGICA DE DESCONTOS ANUAIS)
 # =================================================================
 
 def calcular_valor_com_desconto(paciente, valor_base):
     """
-    Aplica as regras da Ultramed:
-    - Particular: 0% desconto.
-    - Essencial: 30% no 1º atendimento do mês, 20% nos demais.
+    Aplica as regras da Ultramed (Modelo Anual):
+    - Se plano vencido ou sem plano: 0% desconto.
+    - Essencial: 30% no 1º atendimento do mês (via Prontuario), 20% nos demais.
     - Master: 30% fixo.
     - Empresarial: 35% fixo.
     """
-    if not paciente.plano:
+    agora = timezone.now()
+    
+    # Validação de plano ativo (Anuidade)
+    if not paciente.plano or not paciente.vencimento_plano:
+        return float(valor_base)
+    
+    if paciente.vencimento_plano < agora.date():
         return float(valor_base)
 
     plano_nome = paciente.plano.nome.upper()
     desconto = 0.0
 
     if 'ESSENCIAL' in plano_nome:
-        ja_usou_este_mes = Fatura.objects.filter(
+        # Verifica uso no mês atual para renovar o desconto de 30%
+        ja_usou_este_mes = Prontuario.objects.filter(
             paciente=paciente,
-            status='PAGO',
-            data_pagamento__month=timezone.now().month,
-            data_pagamento__year=timezone.now().year
+            data_atendimento__month=agora.month,
+            data_atendimento__year=agora.year
         ).exists()
         desconto = 0.30 if not ja_usou_este_mes else 0.20
     elif 'MASTER' in plano_nome:
@@ -79,6 +86,14 @@ def cliente_list(request):
 def cliente_create(request):
     if request.method == 'POST':
         plano_id = request.POST.get('plano')
+        venc_input = request.POST.get('vencimento_plano')
+        
+        # Lógica de Anuidade Automática (+365 dias)
+        if not venc_input:
+            vencimento = timezone.now().date() + timedelta(days=365)
+        else:
+            vencimento = venc_input
+
         titular = Paciente.objects.create(
             nome_completo=request.POST.get('nome_completo'),
             cpf=request.POST.get('cpf'),
@@ -91,17 +106,19 @@ def cliente_create(request):
             possui_dependentes=request.POST.get('possui_dependentes') == 'on',
             modalidade_plano=request.POST.get('modalidade_plano'),
             plano_id=plano_id if request.POST.get('plano_tipo') == 'PLANO' else None,
-            vencimento_plano=request.POST.get('vencimento_plano') or None
+            vencimento_plano=vencimento
         )
 
+        # Cadastro de dependentes com herança de plano e vencimento
         nomes_dep = request.POST.getlist('dep_nome[]')
         cpfs_dep = request.POST.getlist('dep_cpf[]')
         nascs_dep = request.POST.getlist('dep_nasc[]')
 
         limite = 999
         if titular.plano:
-            if 'ESSENCIAL' in titular.plano.nome.upper(): limite = 3
-            elif 'MASTER' in titular.plano.nome.upper(): limite = 6
+            p_nome = titular.plano.nome.upper()
+            if 'ESSENCIAL' in p_nome: limite = 3
+            elif 'MASTER' in p_nome: limite = 6
 
         for i in range(min(len(nomes_dep), limite)):
             if nomes_dep[i].strip():
@@ -114,7 +131,8 @@ def cliente_create(request):
                     endereco=titular.endereco,
                     bairro=titular.bairro,
                     cidade=titular.cidade,
-                    plano=titular.plano
+                    plano=titular.plano,
+                    vencimento_plano=titular.vencimento_plano
                 )
     return redirect('sistema_interno:cliente_list')
 
@@ -144,7 +162,7 @@ def fatura_store(request):
     return redirect('sistema_interno:master_dashboard')
 
 # =================================================================
-# 5. ATENDIMENTO E PAINÉIS (CORRIGIDO: ADICIONADO PAINEL_PACIENTE)
+# 5. ATENDIMENTO E PAINÉIS
 # =================================================================
 
 @login_required
