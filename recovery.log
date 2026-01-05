@@ -1691,3 +1691,8 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    595734e..f9afcfa  main -> main
 0: command not found
+[main 925e970] Ponto de Recuperação Automático: 2026-01-04 22:00:01
+ 4 files changed, 87 insertions(+), 24 deletions(-)
+ create mode 100644 core_gestao/migrations/0006_rename_valor_mensal_plano_valor_anual_and_more.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   f9afcfa..925e970  main -> main
