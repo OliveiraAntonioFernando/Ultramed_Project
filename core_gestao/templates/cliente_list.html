@@ -20,7 +20,7 @@
                     <tr class="bg-gray-50/50">
                         <th class="p-8 text-[11px] font-black uppercase text-gray-400">Paciente Titular</th>
                         <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">CPF</th>
-                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">Plano / Dependentes</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">Plano / Vencimento</th>
                         <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -34,8 +34,8 @@
                         <td class="p-8 text-center text-xs font-mono font-bold text-gray-500">{{ p.cpf }}</td>
                         <td class="p-8 text-center">
                             <span class="text-[9px] font-black uppercase bg-marsala-50 text-marsala-700 px-3 py-1 rounded-full italic">{{ p.plano.nome|default:"Particular" }}</span>
-                            {% if p.possui_dependentes %}
-                                <span class="ml-2 text-[9px] font-black uppercase bg-blue-100 text-blue-700 px-3 py-1 rounded-full italic">Com Dependentes</span>
+                            {% if p.vencimento_plano %}
+                                <p class="text-[9px] mt-1 font-bold text-gray-400 uppercase">Expira em: {{ p.vencimento_plano|date:"d/m/Y" }}</p>
                             {% endif %}
                         </td>
                         <td class="p-8 text-right">
@@ -51,30 +51,27 @@
 
 <div id="modalPaciente" class="fixed inset-0 bg-marsala-900/60 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4 animate-fade-in">
     <div class="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden border border-white/20 transform transition-all duration-300 scale-95" id="modalContainer">
-        
+
         <div class="bg-marsala-700 p-8 text-white flex justify-between items-center">
             <div>
                 <h3 class="text-2xl font-black uppercase italic leading-none">Admissão Completa Ultramed</h3>
                 <p class="text-[9px] font-bold uppercase opacity-60 tracking-widest mt-1">Titular e Dependentes</p>
             </div>
-            <button onclick="fecharModal()" class="w-12 h-12 bg-white/10 rounded-2xl hover:bg-white/20 flex items-center justify-center border-none text-white"><i class="fas fa-times"></i></button>
+            <button onclick="fecharModal()" class="w-12 h-12 bg-white/10 rounded-2xl hover:bg-white/20 flex items-center justify-center border-none text-white cursor-pointer"><i class="fas fa-times"></i></button>
         </div>
 
         <form method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
             {% csrf_token %}
-            
+
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
                 <div class="space-y-6">
                     <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic"><i class="fas fa-user-tie mr-2"></i>Dados do Titular</h4>
-                    
                     <div class="space-y-4">
                         <input type="text" name="nome_completo" placeholder="NOME COMPLETO DO TITULAR" required class="w-full bg-white border border-gray-300 rounded-2xl px-6 py-4 outline-none focus:border-marsala-700 font-bold uppercase italic text-sm">
-                        
                         <div class="grid grid-cols-2 gap-4">
                             <input type="text" name="cpf" placeholder="CPF" required class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none focus:border-marsala-700 text-sm font-bold">
                             <input type="text" name="telefone" placeholder="WHATSAPP" required class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none focus:border-marsala-700 text-sm font-bold">
                         </div>
-
                         <div class="grid grid-cols-2 gap-4">
                             <input type="date" name="data_nascimento" title="Data de Nascimento" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
                             <select name="sexo" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
@@ -95,19 +92,26 @@
                 </div>
 
                 <div class="space-y-6">
-                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic"><i class="fas fa-hand-holding-medical mr-2"></i>Plano Ultramed</h4>
+                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic"><i class="fas fa-hand-holding-medical mr-2"></i>Plano Ultramed Anual</h4>
                     
-                    <div class="grid grid-cols-2 gap-4">
+                    <div class="space-y-4">
                         <select name="plano" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
-                            <option value="">PARTICULAR</option>
-                            <option value="ESSENCIAL">ULTRAMED ESSENCIAL</option>
-                            <option value="MASTER">ULTRAMED MASTER FAMILIAR</option>
-                            <option value="EMPRESARIAL">ULTRAMED EMPRESARIAL</option>
+                            <option value="">PARTICULAR (SEM PLANO)</option>
+                            {% for pl in planos %}
+                                <option value="{{ pl.id }}">{{ pl.nome }}</option>
+                            {% endfor %}
                         </select>
-                        <input type="text" name="modalidade_plano" placeholder="MODALIDADE (EX: OURO)" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <input type="text" name="modalidade_plano" placeholder="MODALIDADE (EX: OURO)" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
+                            <div class="relative">
+                                <input type="date" name="vencimento_plano" title="Vencimento da Anuidade" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
+                                <span class="text-[8px] absolute -bottom-5 left-2 text-gray-400 font-bold uppercase">Vencimento Anuidade</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="flex items-center justify-between bg-marsala-50 p-4 rounded-2xl border border-marsala-100">
+                    <div class="flex items-center justify-between bg-marsala-50 p-4 rounded-2xl border border-marsala-100 mt-6">
                         <span class="text-[10px] font-black uppercase text-marsala-800 italic">Possui Dependentes?</span>
                         <input type="checkbox" name="possui_dependentes" id="checkDep" onchange="toggleDependentesSection()" class="w-5 h-5 accent-marsala-700">
                     </div>
@@ -115,46 +119,42 @@
                     <div id="sessaoDependentes" class="hidden space-y-4 animate-slide-up">
                         <div class="flex justify-between items-center">
                             <h4 class="text-[10px] font-black uppercase text-blue-700 italic">Lista de Dependentes</h4>
-                            <button type="button" onclick="addDependenteRow()" class="text-[9px] bg-blue-600 text-white px-3 py-1 rounded-lg font-bold uppercase"> + Adicionar</button>
+                            <button type="button" onclick="addDependenteRow()" class="text-[9px] bg-blue-600 text-white px-3 py-1 rounded-lg font-bold uppercase cursor-pointer"> + Adicionar</button>
                         </div>
-                        
                         <div id="containerDependentes" class="space-y-3">
-                            <div class="grid grid-cols-12 gap-2 bg-gray-50 p-3 rounded-xl border border-gray-200 relative">
-                                <div class="col-span-6">
-                                    <input type="text" name="dep_nome[]" placeholder="NOME DO DEPENDENTE" class="w-full text-[10px] p-2 border rounded-lg uppercase font-bold">
-                                </div>
-                                <div class="col-span-3">
-                                    <input type="date" name="dep_nasc[]" class="w-full text-[10px] p-2 border rounded-lg">
-                                </div>
-                                <div class="col-span-3">
-                                    <select name="dep_parentesco[]" class="w-full text-[10px] p-2 border rounded-lg font-bold">
-                                        <option value="CONJUGE">CÔNJUGE</option>
-                                        <option value="FILHO">FILHO(A)</option>
-                                    </select>
-                                </div>
-                                <div class="col-span-12 mt-2">
-                                    <input type="text" name="dep_cpf[]" placeholder="CPF DO DEPENDENTE" class="w-full text-[10px] p-2 border rounded-lg">
-                                </div>
                             </div>
-                        </div>
                     </div>
                 </div>
             </div>
 
             <button type="submit" class="w-full bg-marsala-700 text-white font-black py-6 rounded-[2rem] uppercase italic shadow-2xl hover:bg-marsala-800 transition-all border-none cursor-pointer mt-8 text-sm tracking-widest">
-                <i class="fas fa-check-circle mr-2"></i> FINALIZAR CADASTRO COMPLETO
+                <i class="fas fa-check-circle mr-2"></i> FINALIZAR CADASTRO ANUAL
             </button>
         </form>
     </div>
 </div>
 
 <script>
-    function abrirModal() { document.getElementById('modalPaciente').classList.remove('hidden'); document.getElementById('modalPaciente').classList.add('flex'); }
-    function fecharModal() { document.getElementById('modalPaciente').classList.add('hidden'); }
-    
+    function abrirModal() { 
+        document.getElementById('modalPaciente').classList.remove('hidden'); 
+        document.getElementById('modalPaciente').classList.add('flex'); 
+    }
+    function fecharModal() { 
+        document.getElementById('modalPaciente').classList.add('hidden'); 
+        document.getElementById('modalPaciente').classList.remove('flex');
+    }
+
     function toggleDependentesSection() {
         const check = document.getElementById('checkDep');
-        document.getElementById('sessaoDependentes').classList.toggle('hidden', !check.checked);
+        const sessao = document.getElementById('sessaoDependentes');
+        const container = document.getElementById('containerDependentes');
+        
+        sessao.classList.toggle('hidden', !check.checked);
+        
+        // Se ligar e estiver vazio, adiciona a primeira linha
+        if (check.checked && container.innerHTML.trim() === "") {
+            addDependenteRow();
+        }
     }
 
     function addDependenteRow() {
