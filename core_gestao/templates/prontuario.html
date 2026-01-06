@@ -1,49 +1,87 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block content %}
-<div class="bg-gray-50 min-h-screen p-8">
-    <div class="max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
-        <div class="space-y-6">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
-                <div class="text-center mb-6">
-                    <div class="w-20 h-20 bg-marsala-700 rounded-3xl mx-auto mb-4 flex items-center justify-center text-white text-3xl font-black">
-                        {{ paciente.nome_completo|slice:":1" }}
+<div class="bg-gray-50 min-h-screen p-4 md:p-8">
+    <div class="max-w-6xl mx-auto space-y-6">
+
+        <div class="flex justify-start">
+            <a href="javascript:history.back()" class="flex items-center gap-2 text-marsala-700 hover:text-marsala-800 font-bold uppercase text-xs tracking-widest transition-all group">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transform group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Voltar
+            </a>
+        </div>
+
+        <div class="w-full bg-white border border-gray-300 rounded-sm overflow-hidden shadow-sm">
+            <div class="bg-marsala-700 p-4 flex items-center justify-between">
+                <div class="flex items-center gap-6">
+                    <img src="{% static 'sistema_interno/img/logo_ultramed.png' %}" 
+                         alt="Ultramed" 
+                         class="h-14 w-auto">
+                    
+                    <div class="text-white">
+                        <h1 class="text-4xl font-bold tracking-tighter leading-none">ULTRAMED</h1>
+                        <p class="text-[10px] uppercase tracking-[0.4em] font-semibold mt-1">Clínica Médica</p>
                     </div>
-                    <h3 class="text-lg font-black uppercase text-gray-800">{{ paciente.nome_completo }}</h3>
-                    <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{ paciente.data_nascimento|date:"d/m/Y" }} ({{ paciente.sexo }})</p>
                 </div>
-                <hr class="mb-6 opacity-50">
-                <div class="space-y-4">
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">Plano: <span class="text-marsala-700">{{ paciente.plano.nome|default:"Particular" }}</span></p>
-                    <p class="text-[10px] font-black text-gray-400 uppercase tracking-widest">CPF: <span class="text-gray-700">{{ paciente.cpf }}</span></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-x-12 gap-y-2 px-6 py-4 text-[13px] leading-tight border-t border-gray-400">
+                <div class="flex gap-2">
+                    <span class="text-gray-500 font-normal">Paciente:</span> 
+                    <strong class="uppercase text-gray-900 text-base">{{ paciente.nome_completo }}</strong>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <span class="text-gray-500 font-normal">Pedido:</span> 
+                    <strong class="text-gray-900">{{ atendimento.id|default:"---" }}</strong>
+                </div>
+                
+                <div class="flex gap-2">
+                    <span class="text-gray-500 font-normal">Idade:</span> 
+                    <strong class="text-gray-900">{{ paciente.data_nascimento|timesince }}</strong>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <span class="text-gray-500 font-normal">Sexo do Pac.:</span> 
+                    <strong class="uppercase text-gray-900">{{ paciente.sexo }}</strong>
+                </div>
+
+                <div class="flex gap-2">
+                    <span class="text-gray-500 font-normal">CPF:</span> 
+                    <strong class="text-gray-900">{{ paciente.cpf|default:"---" }}</strong>
+                </div>
+                <div class="flex gap-2 justify-end">
+                    <span class="text-gray-500 font-normal">Data do Exame:</span> 
+                    <strong class="text-gray-900">{% now "d/m/y" %}</strong>
+                </div>
+
+                <div class="flex gap-2 col-span-2 border-t border-gray-100 pt-2 mt-1">
+                    <span class="text-gray-500 font-normal">Solicitante:</span> 
+                    <strong class="uppercase text-gray-900 font-bold tracking-wider">Dr. Valdenor Lima Gomes Júnior </strong>
                 </div>
             </div>
         </div>
 
-        <div class="lg:col-span-2 space-y-8">
-            <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-t-4 border-marsala-700">
-                <h4 class="text-xs font-black uppercase italic text-marsala-700 mb-6 tracking-widest">Nova Evolução Clínica</h4>
-                <form method="POST">
-                    {% csrf_token %}
-                    <textarea name="evolucao" rows="6" class="w-full bg-gray-50 border-none rounded-2xl p-6 text-sm focus:ring-2 focus:ring-marsala-700" placeholder="Descreva o atendimento, sintomas e conduta..."></textarea>
-                    <button type="submit" class="w-full mt-4 bg-marsala-700 text-white font-black py-4 rounded-2xl uppercase italic shadow-lg">Finalizar Atendimento</button>
-                </form>
-            </div>
+        <div class="bg-white p-8 rounded-[2rem] shadow-xl border-t-4 border-marsala-700">
+            <h4 class="text-xs font-black uppercase italic text-marsala-700 mb-6 tracking-widest">Nova Evolução Clínica</h4>
+            <form method="POST">
+                {% csrf_token %}
+                <textarea name="evolucao" rows="12" class="w-full bg-gray-50 border border-gray-100 rounded-2xl p-6 text-lg focus:ring-2 focus:ring-marsala-700 outline-none" placeholder="Descreva o atendimento..."></textarea>
+                <button type="submit" class="w-full mt-4 bg-marsala-700 text-white font-black py-5 rounded-2xl uppercase italic shadow-lg">Finalizar Atendimento</button>
+            </form>
+        </div>
 
-            <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-6 bg-gray-50 border-b">
-                    <h4 class="text-xs font-black uppercase text-gray-400 tracking-widest">Histórico do Prontuário</h4>
+        <div class="bg-white rounded-[2rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div class="p-6 bg-gray-50 border-b">
+                <h4 class="text-xs font-black uppercase text-gray-400 tracking-widest">Histórico do Prontuário</h4>
+            </div>
+            <div class="p-8 space-y-6">
+                {% for h in historico %}
+                <div class="border-l-4 border-marsala-100 pl-6 pb-6 border-b border-gray-50 last:border-b-0">
+                    <p class="text-[10px] font-black text-marsala-700 uppercase">{{ h.data_atendimento|date:"d/m/Y H:i" }} | Dr. {{ h.medico.first_name }}</p>
+                    <p class="mt-2 text-sm text-gray-700 leading-relaxed">{{ h.evolucao }}</p>
                 </div>
-                <div class="p-8 space-y-6">
-                    {% for h in historico %}
-                    <div class="border-l-4 border-marsala-100 pl-6 pb-6 border-b border-gray-50 last:border-b-0">
-                        <p class="text-[10px] font-black text-marsala-700 uppercase">{{ h.data_atendimento|date:"d/m/Y H:i" }} | Dr. {{ h.medico.first_name }}</p>
-                        <p class="mt-2 text-sm text-gray-700 leading-relaxed">{{ h.evolucao }}</p>
-                    </div>
-                    {% empty %}
-                    <p class="text-center text-[10px] font-black text-gray-300 uppercase italic">Nenhum histórico registrado.</p>
-                    {% endfor %}
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
