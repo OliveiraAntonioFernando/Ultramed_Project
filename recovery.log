@@ -1794,3 +1794,8 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    a1cef82..bac3599  main -> main
+[main 3693eff] Ponto de Recuperação Automático: 2026-01-07 00:00:02
+ 12 files changed, 619 insertions(+), 496 deletions(-)
+ create mode 100644 core_gestao/migrations/0007_remove_fatura_linha_digitavel_and_more.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   bac3599..3693eff  main -> main
