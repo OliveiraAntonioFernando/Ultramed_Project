@@ -2,88 +2,106 @@
 {% block content %}
 <div class="bg-gray-100 min-h-screen pb-20">
     <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8">
-        <div class="max-w-5xl mx-auto flex justify-between items-center">
+        <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-black italic uppercase italic">Painel Equipe</h2>
+                <h2 class="text-2xl font-black italic uppercase italic">Painel Operacional</h2>
                 <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Ultramed Clínica Médica</p>
             </div>
-            <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-2xl hover:bg-white/30 transition-all">
+            <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-2xl hover:bg-white/30 transition-all text-white">
                 <i class="fas fa-power-off"></i>
             </a>
         </div>
     </nav>
 
-    <main class="max-w-5xl mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-            <a href="{% url 'sistema_interno:cliente_list' %}" class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 hover:shadow-xl transition-all group flex flex-col items-center text-center">
-                <div class="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-3xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
+    <main class="max-w-7xl mx-auto px-4">
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+            <a href="{% url 'sistema_interno:agenda_view' %}" class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:border-marsala-700 transition-all group flex items-center gap-4 no-underline">
+                <div class="w-12 h-12 bg-marsala-100 text-marsala-700 rounded-2xl flex items-center justify-center text-xl group-hover:bg-marsala-700 group-hover:text-white transition-all">
+                    <i class="fas fa-calendar-plus"></i>
+                </div>
+                <span class="text-xs font-black uppercase text-gray-700 italic">Novo Agendamento</span>
+            </a>
+            <a href="{% url 'sistema_interno:cliente_list' %}" class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:border-marsala-700 transition-all group flex items-center gap-4 no-underline">
+                <div class="w-12 h-12 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center text-xl group-hover:bg-emerald-700 group-hover:text-white transition-all">
                     <i class="fas fa-user-plus"></i>
                 </div>
-                <h3 class="text-lg font-black uppercase text-gray-800 italic">Pacientes</h3>
-                <p class="text-xs text-gray-400 mt-2">Cadastrar e gerenciar beneficiários</p>
+                <span class="text-xs font-black uppercase text-gray-700 italic">Gestão de Pacientes</span>
             </a>
-
-            <a href="{% url 'sistema_interno:fatura_create' %}" class="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 hover:shadow-xl transition-all group flex flex-col items-center text-center">
-                <div class="w-20 h-20 bg-marsala-100 text-marsala-700 rounded-3xl flex items-center justify-center text-3xl mb-6 group-hover:scale-110 transition-transform">
-                    <i class="fas fa-file-invoice-dollar"></i>
+            <a href="{% url 'sistema_interno:fatura_create' %}" class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:border-marsala-700 transition-all group flex items-center gap-4 no-underline">
+                <div class="w-12 h-12 bg-blue-100 text-blue-700 rounded-2xl flex items-center justify-center text-xl group-hover:bg-blue-700 group-hover:text-white transition-all">
+                    <i class="fas fa-dollar-sign"></i>
                 </div>
-                <h3 class="text-lg font-black uppercase text-gray-800 italic">Emitir Fatura</h3>
-                <p class="text-xs text-gray-400 mt-2">Lançar novas cobranças</p>
+                <span class="text-xs font-black uppercase text-gray-700 italic">Lançar Pagamento</span>
             </a>
         </div>
 
-        <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
-            <div class="p-8 border-b bg-gray-50/50 flex justify-between items-center">
-                <div>
-                    <h3 class="text-xs font-black uppercase italic text-gray-500">Pedidos do Site</h3>
-                    <p class="text-[9px] text-gray-400 uppercase font-bold">Aguardando atendimento</p>
-                </div>
-                <span class="bg-marsala-700 text-white text-[10px] px-3 py-1 rounded-full font-black uppercase italic">Novos</span>
-            </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <div class="overflow-x-auto">
-                <table class="w-full text-left border-collapse">
-                    <thead>
-                        <tr class="bg-gray-50">
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Data</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Nome</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">WhatsApp</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Interesse</th>
-                            <th class="p-6 text-[10px] font-black uppercase text-gray-400">Ação</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-50">
-                        {% for lead in leads_recentes %}
-                        <tr class="hover:bg-gray-50 transition-colors">
-                            <td class="p-6 text-xs text-gray-500">{{ lead.data_solicitacao|date:"d/m H:i" }}</td>
-                            <td class="p-6 text-xs font-black uppercase text-gray-800 italic">{{ lead.nome }}</td>
-                            <td class="p-6 text-xs font-bold text-marsala-700">
-                                <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank">
-                                    <i class="fab fa-whatsapp mr-1"></i> {{ lead.telefone }}
-                                </a>
-                            </td>
-                            <td class="p-6">
-                                <span class="text-[9px] font-black uppercase bg-gray-100 px-3 py-1 rounded-full text-gray-600 italic">
-                                    {{ lead.interesse }}
-                                </span>
-                            </td>
-                            <td class="p-6">
-                                <button class="text-[10px] font-black uppercase text-emerald-600 hover:text-emerald-700 italic">
-                                    Marcar Atendido
-                                </button>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="5" class="p-20 text-center">
-                                <i class="fas fa-inbox text-4xl text-gray-200 mb-4 block"></i>
-                                <p class="text-xs text-gray-300 font-black uppercase italic tracking-widest">Nenhum pedido novo no momento</p>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="space-y-4">
+                <div class="flex items-center justify-between px-6">
+                    <h3 class="text-xs font-black uppercase italic text-gray-500 tracking-widest">Interessados (Site)</h3>
+                    <span class="bg-marsala-100 text-marsala-700 text-[10px] px-3 py-1 rounded-full font-black uppercase italic">{{ leads_recentes.count }} Novos</span>
+                </div>
+                <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="max-h-[500px] overflow-y-auto">
+                        <table class="w-full text-left">
+                            <tbody class="divide-y divide-gray-50">
+                                {% for lead in leads_recentes %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="p-6">
+                                        <div class="font-black text-sm uppercase text-gray-800 italic leading-none">{{ lead.nome }}</div>
+                                        <div class="text-[10px] text-marsala-600 font-bold mt-2 uppercase tracking-tighter">{{ lead.interesse }}</div>
+                                    </td>
+                                    <td class="p-6 text-right">
+                                        <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" class="bg-emerald-500 text-white p-3 rounded-xl hover:bg-emerald-600 transition-all inline-block">
+                                            <i class="fab fa-whatsapp"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td class="p-20 text-center text-gray-300 font-black uppercase italic text-[10px]">Nenhum pedido novo</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
+
+            <div class="space-y-4">
+                <div class="flex items-center justify-between px-6">
+                    <h3 class="text-xs font-black uppercase italic text-gray-500 tracking-widest">Agendados para Hoje</h3>
+                    <a href="{% url 'sistema_interno:agenda_view' %}" class="text-[10px] font-black uppercase text-marsala-700 no-underline hover:underline">Ver Agenda Completa</a>
+                </div>
+                <div class="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
+                    <div class="max-h-[500px] overflow-y-auto">
+                        <table class="w-full text-left">
+                            <tbody class="divide-y divide-gray-50">
+                                {% for ag in agendamentos_hoje %}
+                                <tr class="hover:bg-gray-50 transition-colors">
+                                    <td class="p-6">
+                                        <div class="font-black text-sm uppercase text-gray-800 italic leading-none">{{ ag.paciente.nome_completo }}</div>
+                                        <div class="text-[10px] font-bold mt-2 {% if ag.status == 'CHEGOU' %}text-emerald-600{% else %}text-amber-500{% endif %}">
+                                            <i class="fas fa-clock mr-1"></i> {{ ag.hora|time:"H:i" }} - {{ ag.get_status_display }}
+                                        </div>
+                                    </td>
+                                    <td class="p-6 text-right">
+                                        {% if ag.status == 'AGENDADO' %}
+                                        <a href="{% url 'sistema_interno:agenda_view' %}?status=CHEGOU&id={{ ag.id }}" class="bg-marsala-700 text-white text-[9px] font-black px-4 py-2 rounded-xl uppercase italic shadow-md">Fazer Check-in</a>
+                                        {% else %}
+                                        <span class="text-emerald-500 text-[9px] font-black uppercase italic"><i class="fas fa-check-circle mr-1"></i> Já na Clínica</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td class="p-20 text-center text-gray-300 font-black uppercase italic text-[10px]">Sem agendamentos para hoje</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </main>
 </div>

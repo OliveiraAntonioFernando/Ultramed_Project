@@ -3,13 +3,13 @@
 <div class="p-8 bg-gray-50 min-h-screen">
     <div class="max-w-2xl mx-auto bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-gray-100">
         <div class="bg-marsala-700 p-8 text-white">
-            <h2 class="text-2xl font-black italic uppercase">Lançar Cobrança / Boleto</h2>
-            <p class="text-xs opacity-70">Preencha os dados do boleto gerado no seu banco</p>
+            <h2 class="text-2xl font-black italic uppercase">Registrar Pagamento</h2>
+            <p class="text-xs opacity-70">Lançamento de anuidade via PIX ou Cartão de Crédito</p>
         </div>
-        
+
         <form method="POST" class="p-8 space-y-5">
             {% csrf_token %}
-            
+
             <div>
                 <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Selecionar Paciente</label>
                 <select name="paciente" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold" required>
@@ -20,31 +20,43 @@
                 </select>
             </div>
 
+            <div>
+                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Método de Pagamento</label>
+                <div class="grid grid-cols-2 gap-4">
+                    <label class="relative flex items-center p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 border-2 border-transparent has-[:checked]:border-marsala-700 transition-all">
+                        <input type="radio" name="metodo_pagamento" value="PIX" class="hidden" required checked>
+                        <span class="font-bold text-gray-700 uppercase text-xs">PIX</span>
+                    </label>
+                    <label class="relative flex items-center p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 border-2 border-transparent has-[:checked]:border-marsala-700 transition-all">
+                        <input type="radio" name="metodo_pagamento" value="CARTAO" class="hidden">
+                        <span class="font-bold text-gray-700 uppercase text-xs">Cartão de Crédito</span>
+                    </label>
+                </div>
+            </div>
+
             <div class="grid grid-cols-2 gap-4">
                 <div>
                     <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Valor (R$)</label>
-                    <input type="text" name="valor" placeholder="0.00" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold" required>
+                    <input type="number" step="0.01" name="valor" placeholder="598.80" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold" required>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Vencimento</label>
-                    <input type="date" name="vencimento" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700" required>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Data da Transação</label>
+                    <input type="date" name="data_pagamento" value="{% now 'Y-m-d' %}" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700" required>
                 </div>
             </div>
 
             <div>
-                <label class="block text-[10px] font-black text-marsala-700 uppercase mb-2">Linha Digitável (Código de Barras)</label>
-                <input type="text" name="linha_digitavel" placeholder="Cole aqui o código de barras do seu banco" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 text-xs">
-            </div>
-
-            <div>
-                <label class="block text-[10px] font-black text-marsala-700 uppercase mb-2">Link do PDF (Opcional)</label>
-                <input type="url" name="link_boleto" placeholder="https://..." class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 text-xs">
+                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Status</label>
+                <select name="status" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold uppercase text-xs text-green-600">
+                    <option value="pago">Confirmado / Pago</option>
+                    <option value="pendente">Pendente / Aguardando</option>
+                </select>
             </div>
 
             <button type="submit" class="w-full bg-marsala-700 text-white font-black py-5 rounded-3xl uppercase italic shadow-lg hover:bg-marsala-800 transition-all">
-                Salvar e Listar no Master
+                Confirmar e Ativar Plano
             </button>
-            
+
             <a href="{% url 'sistema_interno:master_dashboard' %}" class="block text-center text-[10px] font-black text-gray-400 uppercase hover:text-marsala-700 transition-all">Cancelar e Voltar</a>
         </form>
     </div>

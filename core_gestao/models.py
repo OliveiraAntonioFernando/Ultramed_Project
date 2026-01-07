@@ -4,16 +4,15 @@ from django.contrib.auth.models import User
 
 class Plano(models.Model):
     NOME_CHOICES = [
-        ('ESSENCIAL', 'Ultramed Essencial'), 
-        ('MASTER', 'Ultramed Master Familiar'), 
+        ('ESSENCIAL', 'Ultramed Essencial'),
+        ('MASTER', 'Ultramed Master Familiar'),
         ('EMPRESARIAL', 'Ultramed Empresarial')
     ]
     nome = models.CharField(max_length=50, choices=NOME_CHOICES)
     descricao = models.TextField(blank=True, null=True)
-    # Ajustado de mensal para anual
     valor_anual = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    
-    def __str__(self): 
+
+    def __str__(self):
         return self.nome
 
 class Paciente(models.Model):
@@ -38,18 +37,39 @@ class Paciente(models.Model):
     responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependentes')
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self): 
+    def __str__(self):
         return self.nome_completo
 
 class Fatura(models.Model):
     STATUS_CHOICES = [('PAGO', 'Pago'), ('PENDENTE', 'Pendente'), ('ATRASADO', 'Atrasado')]
+    METODO_CHOICES = [('PIX', 'PIX'), ('CARTAO', 'Cartão de Crédito')] # Novo campo
+    
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
     valor = models.DecimalField(max_digits=10, decimal_places=2)
-    data_vencimento = models.DateField()
+    data_vencimento = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
-    linha_digitavel = models.CharField(max_length=255, blank=True, null=True)
-    link_boleto = models.URLField(blank=True, null=True)
+    metodo_pagamento = models.CharField(max_length=20, choices=METODO_CHOICES, blank=True, null=True)
     data_pagamento = models.DateField(null=True, blank=True)
+
+class Agenda(models.Model): # Nova classe para Agendamentos
+    TIPOS = [('CONSULTA', 'Consulta'), ('EXAME', 'Exame')]
+    STATUS = [
+        ('AGENDADO', 'Agendado'), 
+        ('CHEGOU', 'Em Espera (Chegou)'), 
+        ('FINALIZADO', 'Finalizado'), 
+        ('CANCELADO', 'Cancelado')
+    ]
+
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+    data = models.DateField()
+    hora = models.TimeField()
+    tipo = models.CharField(max_length=10, choices=TIPOS, default='CONSULTA')
+    status = models.CharField(max_length=15, choices=STATUS, default='AGENDADO')
+    observacoes = models.TextField(blank=True, null=True)
+    data_registro = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.data} {self.hora} - {self.paciente.nome_completo}"
 
 class Exame(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
@@ -57,7 +77,6 @@ class Exame(models.Model):
     data_solicitacao = models.DateField(auto_now_add=True)
     laudo = models.TextField(blank=True, null=True)
     realizado = models.BooleanField(default=False)
-    # Campos para cálculo de economia
     valor_tabela = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     valor_pago = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
