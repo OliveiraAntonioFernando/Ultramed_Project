@@ -8,5 +8,5 @@ def landing_page(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', landing_page, name='home'),
-    path('sistema/', include('core_gestao.urls')),
+    path('', include('core_gestao.urls')),
 ]

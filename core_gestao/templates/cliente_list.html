@@ -5,9 +5,9 @@
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <h2 class="text-3xl font-black italic uppercase tracking-tighter text-white">Gestão Ultramed</h2>
             <div class="flex gap-4">
-                <button onclick="abrirModal()" class="bg-white text-marsala-800 px-8 py-4 rounded-2xl font-black uppercase italic text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-3 border-none">
+                <a href="/sistema/paciente/novo/" class="bg-white text-marsala-800 px-8 py-4 rounded-2xl font-black uppercase italic text-xs shadow-lg hover:scale-105 transition-all flex items-center gap-3 no-underline border-none leading-none cursor-pointer">
                     <i class="fas fa-user-plus"></i> Novo Registro
-                </button>
+                </a>
                 <a href="{% url 'sistema_interno:painel_colaborador' %}" class="bg-white/10 px-6 py-4 rounded-2xl hover:bg-white/20 transition-all text-xs font-bold uppercase italic flex items-center border border-white/10 text-white no-underline">Voltar</a>
             </div>
         </div>
@@ -34,17 +34,9 @@
                         <td class="p-8 text-center text-xs font-mono font-bold text-gray-500">{{ p.cpf }}</td>
                         <td class="p-8 text-center">
                             {% if p.plano %}
-                                <span class="text-[9px] font-black uppercase bg-marsala-50 text-marsala-700 px-3 py-1 rounded-full italic">
-                                    {{ p.plano.nome }}
-                                </span>
+                                <span class="text-[9px] font-black uppercase bg-marsala-50 text-marsala-700 px-3 py-1 rounded-full italic">{{ p.plano.nome }}</span>
                             {% else %}
-                                <span class="text-[9px] font-black uppercase bg-gray-100 text-gray-400 px-3 py-1 rounded-full italic">
-                                    Particular (Sem Plano)
-                                </span>
-                            {% endif %}
-
-                            {% if p.vencimento_plano %}
-                                <p class="text-[9px] mt-1 font-bold text-gray-400 uppercase">Expira em: {{ p.vencimento_plano|date:"d/m/Y" }}</p>
+                                <span class="text-[9px] font-black uppercase bg-gray-100 text-gray-400 px-3 py-1 rounded-full italic">Particular</span>
                             {% endif %}
                         </td>
                         <td class="p-8 text-right">
@@ -58,51 +50,28 @@
     </main>
 </div>
 
-<div id="modalPaciente" class="fixed inset-0 bg-marsala-900/60 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4 animate-fade-in">
-    <div class="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden border border-white/20 transform transition-all duration-300 scale-95" id="modalContainer">
+<div id="modalPaciente" class="fixed inset-0 bg-marsala-900/60 backdrop-blur-xl z-50 hidden flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-5xl rounded-[3.5rem] shadow-2xl overflow-hidden">
         <div class="bg-marsala-700 p-8 text-white flex justify-between items-center">
-            <div>
-                <h3 class="text-2xl font-black uppercase italic leading-none text-white">Admissão Completa Ultramed</h3>
-                <p class="text-[9px] font-bold uppercase opacity-60 tracking-widest mt-1 text-white">Titular e Dependentes</p>
-            </div>
-            <button onclick="fecharModal()" class="w-12 h-12 bg-white/10 rounded-2xl hover:bg-white/20 flex items-center justify-center border-none text-white cursor-pointer"><i class="fas fa-times text-white"></i></button>
+            <h3 class="text-2xl font-black uppercase italic text-white">Admissão</h3>
+            <button onclick="fecharModal()" class="text-white border-none bg-transparent cursor-pointer"><i class="fas fa-times"></i></button>
         </div>
-        <form method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10 space-y-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <form method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10">
             {% csrf_token %}
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
-                <div class="space-y-6">
-                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic text-marsala-700"><i class="fas fa-user-tie mr-2"></i>Dados do Titular</h4>
-                    <div class="space-y-4">
-                        <input type="text" name="nome_completo" placeholder="NOME COMPLETO DO TITULAR" required class="w-full bg-white border border-gray-300 rounded-2xl px-6 py-4 outline-none focus:border-marsala-700 font-bold uppercase italic text-sm">
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="text" name="cpf" placeholder="CPF" required class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none focus:border-marsala-700 text-sm font-bold">
-                            <input type="text" name="telefone" placeholder="WHATSAPP" required class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none focus:border-marsala-700 text-sm font-bold">
-                        </div>
-                    </div>
-                </div>
-                <div class="space-y-6">
-                    <h4 class="text-xs font-black uppercase text-marsala-700 border-b-2 border-marsala-100 pb-2 italic text-marsala-700"><i class="fas fa-hand-holding-medical mr-2"></i>Plano Ultramed Anual</h4>
-                    <div class="space-y-4">
-                        <select name="plano" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
-                            <option value="">PARTICULAR (SEM PLANO)</option>
-                            {% for pl in planos %}
-                                <option value="{{ pl.id }}">{{ pl.nome }}</option>
-                            {% endfor %}
-                        </select>
-                        <div class="grid grid-cols-2 gap-4">
-                            <input type="text" name="modalidade_plano" placeholder="MODALIDADE (EX: OURO)" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold uppercase">
-                            <input type="date" name="vencimento_plano" class="w-full border border-gray-300 rounded-2xl px-5 py-3 outline-none text-sm font-bold">
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <button type="submit" class="w-full bg-marsala-700 text-white font-black py-6 rounded-[2rem] uppercase italic shadow-2xl hover:bg-marsala-800 transition-all border-none cursor-pointer mt-8 text-sm tracking-widest text-white">FINALIZAR CADASTRO ANUAL</button>
+            <input type="text" name="nome_completo" placeholder="NOME" class="w-full border p-4 rounded-xl mb-4">
+            <button type="submit" class="w-full bg-marsala-700 text-white p-4 rounded-xl font-bold uppercase">Cadastrar via Modal</button>
         </form>
     </div>
 </div>
 
 <script>
-    function abrirModal() { document.getElementById('modalPaciente').classList.remove('hidden'); document.getElementById('modalPaciente').classList.add('flex'); }
-    function fecharModal() { document.getElementById('modalPaciente').classList.add('hidden'); document.getElementById('modalPaciente').classList.remove('flex'); }
+    function abrirModal() { 
+        document.getElementById('modalPaciente').classList.remove('hidden'); 
+        document.getElementById('modalPaciente').classList.add('flex'); 
+    }
+    function fecharModal() { 
+        document.getElementById('modalPaciente').classList.add('hidden'); 
+        document.getElementById('modalPaciente').classList.remove('flex'); 
+    }
 </script>
 {% endblock %}
