@@ -2,7 +2,7 @@
 {% load static %}
 
 {% block content %}
-<div class="bg-gray-100 min-h-screen pb-20 font-sans">
+<div class="bg-gray-100 min-h-screen pb-20 font-sans text-left">
     <nav class="bg-gradient-to-r from-marsala-800 to-marsala-700 p-8 rounded-b-[3.5rem] shadow-2xl text-white mb-10">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <h2 class="text-3xl font-black italic uppercase tracking-tighter text-white">Gestão Ultramed</h2>
@@ -20,9 +20,10 @@
             <table class="w-full text-left border-collapse">
                 <thead>
                     <tr class="bg-gray-50/50">
-                        <th class="p-8 text-[11px] font-black uppercase text-gray-400">Paciente Titular</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400">Paciente / Tipo</th>
                         <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">CPF</th>
-                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">Plano / Vencimento</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">Plano Ativo</th>
+                        <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-center">Vencimento</th>
                         <th class="p-8 text-[11px] font-black uppercase text-gray-400 text-right">Ações</th>
                     </tr>
                 </thead>
@@ -31,26 +32,37 @@
                     <tr class="hover:bg-gray-50/80 transition-all">
                         <td class="p-8">
                             <p class="text-sm font-black uppercase text-gray-800 italic">{{ p.nome_completo }}</p>
-                            <p class="text-[10px] text-gray-400 font-bold uppercase">{{ p.telefone }}</p>
-                        </td>
-                        <td class="p-8 text-center text-xs font-mono font-bold text-gray-500">{{ p.cpf }}</td>
-                        
-                        <td class="p-8 text-center">
-                            {% if p.plano %}
-                                <div class="inline-block bg-marsala-50 px-4 py-2 rounded-2xl border border-marsala-100">
-                                    <p class="text-[10px] font-black uppercase text-marsala-700 italic leading-none">{{ p.plano.nome }}</p>
-                                    <p class="text-[11px] font-mono font-black text-marsala-800 mt-1 uppercase">
-                                        <i class="far fa-calendar-alt mr-1"></i> 
-                                        {{ p.vencimento_plano|date:"d/m/Y" }}{{ p.data_vencimento|date:"d/m/Y" }}
-                                    </p>
-                                </div>
+                            {% if p.responsavel %}
+                                <span class="text-[9px] bg-blue-100 text-blue-600 px-2 py-0.5 rounded font-black uppercase italic border border-blue-200">Dependente</span>
                             {% else %}
-                                <span class="text-[9px] font-black uppercase bg-gray-100 text-gray-400 px-4 py-2 rounded-full italic border border-gray-200">Particular</span>
+                                <span class="text-[9px] bg-green-100 text-green-600 px-2 py-0.5 rounded font-black uppercase italic border border-green-200">Titular</span>
                             {% endif %}
                         </td>
-
-                        <td class="p-8 text-right">
-                             <a href="{% url 'sistema_interno:prontuario_view' p.id %}" class="bg-marsala-700 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic hover:bg-marsala-800 no-underline transition-all shadow-md">Prontuário</a>
+                        <td class="p-8 text-center text-xs font-mono font-bold text-gray-500">{{ p.cpf|default:"---" }}</td>
+                        <td class="p-8 text-center">
+                            {% if p.plano %}
+                                {% if "MASTER" in p.plano.nome|upper %}
+                                    <span class="bg-yellow-100 text-yellow-700 px-4 py-2 rounded-2xl text-[10px] font-black uppercase italic border border-yellow-300 shadow-sm">⭐ {{ p.plano.nome }}</span>
+                                {% elif "ESSENCIAL" in p.plano.nome|upper %}
+                                    <span class="bg-blue-100 text-blue-700 px-4 py-2 rounded-2xl text-[10px] font-black uppercase italic border border-blue-300 shadow-sm">🔹 {{ p.plano.nome }}</span>
+                                {% else %}
+                                    <span class="bg-marsala-50 text-marsala-700 px-4 py-2 rounded-2xl text-[10px] font-black uppercase italic border border-marsala-200 shadow-sm">{{ p.plano.nome }}</span>
+                                {% endif %}
+                            {% else %}
+                                <span class="bg-gray-100 text-gray-400 px-4 py-2 rounded-2xl text-[10px] font-black uppercase italic border border-gray-200">Particular</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-8 text-center">
+                            {% if p.vencimento_plano %}
+                                <p class="text-[11px] font-mono font-black text-gray-700 uppercase">
+                                    <i class="far fa-calendar-alt mr-1 text-marsala-600"></i> {{ p.vencimento_plano|date:"d/m/Y" }}
+                                </p>
+                            {% else %}
+                                <span class="text-[10px] text-gray-300 font-bold uppercase italic">Sem carência</span>
+                            {% endif %}
+                        </td>
+                        <td class="p-8 text-right font-black uppercase italic no-underline">
+                             <a href="{% url 'sistema_interno:prontuario_view' p.id %}" class="bg-marsala-700 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic no-underline shadow-md">Prontuário</a>
                         </td>
                     </tr>
                     {% endfor %}
@@ -60,103 +72,160 @@
     </main>
 </div>
 
-<div id="modalPaciente" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] hidden items-center justify-center p-4">
-    <div class="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+<div id="modalPaciente" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[998] hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-5xl rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[95vh]">
         <div class="bg-marsala-700 p-8 text-white flex justify-between items-center" style="background-color: #700c15;">
-            <h3 class="text-2xl font-black uppercase italic tracking-tighter">Cadastro Completo de Titular</h3>
-            <button onclick="fecharModal()" class="text-white border-none bg-transparent cursor-pointer text-2xl">
-                <i class="fas fa-times"></i>
-            </button>
+            <h3 class="text-2xl font-black uppercase italic tracking-tighter text-white">Admissão Completa</h3>
+            <button onclick="fecharModal()" class="text-white border-none bg-transparent cursor-pointer text-2xl">×</button>
         </div>
-        
-        <form method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10 space-y-8 overflow-y-auto">
+        <form id="formCadastro" method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10 space-y-6 overflow-y-auto text-left">
             {% csrf_token %}
-            
-            <div class="space-y-4">
-                <h4 class="text-xs font-black uppercase text-marsala-700 border-b pb-2 italic">1. Dados Pessoais do Titular</h4>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">Nome Completo</label>
-                        <input type="text" name="nome_completo" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold uppercase text-xs outline-none focus:border-marsala-700">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">CPF</label>
-                        <input type="text" name="cpf" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-mono font-bold text-xs outline-none focus:border-marsala-700">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">Data de Nascimento</label>
-                        <input type="date" name="data_nascimento" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">RG</label>
-                        <input type="text" name="rg" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">WhatsApp / Telefone</label>
-                        <input type="text" name="telefone" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">E-mail</label>
-                        <input type="email" name="email" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Nome Completo</label>
+                    <input type="text" id="input_nome" name="nome_completo" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold uppercase text-xs outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">CPF</label>
+                    <input type="text" id="input_cpf" name="cpf" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-mono font-bold text-xs outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">WhatsApp</label>
+                    <input type="text" id="input_tel" name="telefone" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Nascimento</label>
+                    <input type="date" id="input_nasc" name="data_nascimento" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Plano</label>
+                    <select name="plano" id="input_plano" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
+                        <option value="">Particular</option>
+                        {% for pl in planos %}
+                        <option value="{{ pl.id }}">{{ pl.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="md:col-span-2">
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Endereço (Rua e Nº)</label>
+                    <input type="text" id="input_end" name="endereco" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Bairro</label>
+                    <input type="text" id="input_bairro" name="bairro" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
+                </div>
+                <div>
+                    <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Cidade</label>
+                    <input type="text" id="input_cidade" name="cidade" value="São Félix do Xingu" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
                 </div>
             </div>
 
-            <div class="space-y-4">
-                <h4 class="text-xs font-black uppercase text-marsala-700 border-b pb-2 italic">2. Endereço</h4>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div class="md:col-span-2">
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">Rua / Logradouro</label>
-                        <input type="text" name="endereco" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">Número</label>
-                        <input type="text" name="numero" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">Bairro</label>
-                        <input type="text" name="bairro" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div class="md:col-span-2">
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">Cidade</label>
-                        <input type="text" name="cidade" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                    <div>
-                        <label class="text-[9px] font-black uppercase text-gray-400 ml-2">CEP</label>
-                        <input type="text" name="cep" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none">
-                    </div>
-                </div>
-            </div>
-
-            <div class="border-t border-gray-100 pt-6">
-                <div class="flex justify-between items-center mb-5">
-                    <h4 class="text-xs font-black uppercase text-marsala-700 italic">3. Dependentes</h4>
-                    <button type="button" onclick="addDep()" class="bg-gray-800 text-white px-4 py-2 rounded-lg text-[9px] font-black uppercase border-none cursor-pointer">+ Adicionar</button>
+            <div class="border-t pt-6">
+                <div class="flex justify-between items-center mb-4">
+                    <h4 class="text-xs font-black uppercase text-marsala-700 italic">Dependentes</h4>
+                    <button type="button" onclick="addDep()" class="bg-gray-100 px-4 py-2 rounded-lg text-[9px] font-black uppercase border-none cursor-pointer">+ Adicionar</button>
                 </div>
                 <div id="container-deps" class="space-y-3"></div>
             </div>
 
-            <button type="submit" class="w-full bg-marsala-700 text-white font-black py-5 rounded-[2rem] uppercase italic text-lg shadow-xl hover:bg-marsala-800 border-none cursor-pointer transition-all" style="background-color: #700c15;">
-                SALVAR CADASTRO COMPLETO
+            <button type="button" onclick="abrirContrato()" class="w-full bg-marsala-700 text-white font-black py-5 rounded-[2rem] uppercase italic text-lg shadow-xl border-none cursor-pointer">
+                GERAR TERMO DE ADESÃO
             </button>
         </form>
+    </div>
+</div>
+
+<div id="modalContrato" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[999] hidden items-center justify-center p-4">
+    <div class="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh]">
+        <div id="printArea" class="p-10 md:p-16 overflow-y-auto text-gray-800 text-[11px] text-justify font-sans leading-relaxed">
+            <h1 class="text-center text-lg font-black uppercase mb-1">TERMO DE ADESÃO AO PLANO DE ASSINATURA EM SAÚDE</h1>
+            <p class="text-center font-bold mb-8">(PROGRAMA DE DESCONTOS)</p>
+
+            <div class="space-y-4">
+                <p><strong>CONTRATADA:</strong><br>ULTRAMED CLÍNICA MÉDICA, CNPJ nº 00.000.000/0000-00, com sede à Rua [endereço], doravante denominada CLÍNICA.</p>
+                <p><strong>ASSINANTE:</strong><br><span id="c_nome" class="font-bold border-b border-black uppercase"></span>, CPF nº <span id="c_cpf" class="font-bold border-b border-black"></span>, residente em <span id="c_end" class="font-bold border-b border-black uppercase"></span>, Bairro <span id="c_bairro" class="font-bold border-b border-black uppercase"></span>, <span id="c_cidade" class="font-bold border-b border-black uppercase"></span>, doravante denominado ASSINANTE.</p>
+
+                <p><strong>CLÁUSULA 1 – DO OBJETO</strong><br>1.1. O presente Termo tem por objeto a adesão ao PLANO DE ASSINATURA EM SAÚDE <span id="c_plano_termo" class="font-black text-marsala-700"></span>, que concede ao ASSINANTE e seus dependentes descontos de até 30% em consultas, exames e serviços realizados exclusivamente na CLÍNICA, conforme tabela vigente.<br>1.2. Este plano NÃO é plano de saúde, NÃO possui cobertura assistencial, NÃO é regulamentado pela ANS e NÃO garante atendimento emergencial ou hospitalar.</p>
+
+                <p><strong>CLÁUSULA 2 – DA NATUREZA DO PLANO</strong><br>2.1. O ASSINANTE declara estar ciente de que o plano é local, limitado à CLÍNICA, e oferece apenas descontos, sendo de sua responsabilidade o pagamento dos valores residuais.</p>
+
+                <p><strong>CLÁUSULA 3 – DOS SERVIÇOS NÃO COBERTOS</strong><br>3.1. Este plano NÃO cobre: Internações hospitalares; Cirurgias; Urgência e emergência; Transporte, remoção ou ambulância (aérea ou terrestre); Medicamentos e tratamentos medicamentosos; Atendimentos fora da CLÍNICA.</p>
+
+                <p><strong>CLÁUSULA 4 – DOS DESCONTOS</strong><br>4.1. Os descontos são de até 30%, variáveis conforme serviço, especialidade e tabela interna vigente, não cumulativos com outras promoções.</p>
+
+                <p><strong>CLÁUSULA 5 – DOS DEPENDENTES</strong><br>5.1. O ASSINANTE poderá incluir dependentes familiares, limitados a: Cônjuge ou companheiro(a); Filhos(as) e enteados(as); Pais.<br>5.2. Os dependentes usufruirão exclusivamente dos mesmos descontos, não adquirindo qualquer vínculo contratual direto com a CLÍNICA.<br>5.3. O ASSINANTE é integralmente responsável pelas informações, autorizações e pagamentos relativos aos dependentes abaixo listados:</p>
+                <ul id="c_deps" class="list-none pl-4 space-y-1 font-bold uppercase text-[10px]"></ul>
+
+                <p><strong>CLÁUSULA 6 – DA VIGÊNCIA E PAGAMENTO</strong><br>6.1. Este Termo tem vigência de 12 (doze) meses, com início em <span class="font-bold">{% now "d/m/Y" %}</span>.<br>6.2. O valor da assinatura é de R$ [valor] mensais, cujo inadimplemento implicará suspensão imediata dos benefícios.</p>
+
+                <p><strong>CLÁUSULA 7 – DO CANCELAMENTO</strong><br>7.1. O cancelamento poderá ser solicitado a qualquer tempo, sem reembolso de valores pagos.</p>
+
+                <p><strong>CLÁUSULA 8 – DA PROTEÇÃO DE DADOS</strong><br>8.1. Os dados pessoais serão tratados conforme a LGPD (Lei nº 13.709/2018), exclusivamente para execução deste Termo.</p>
+
+                <p><strong>CLÁUSULA 9 – DO FORO</strong><br>9.1. Fica eleito o foro da comarca de São Félix do Xingu/PA.</p>
+
+                <p class="pt-6 font-black text-center italic uppercase border-t border-gray-100 text-sm">DECLARO QUE LI, COMPREENDI E CONCORDO COM TODOS OS TERMOS DESTE CONTRATO.</p>
+            </div>
+
+            <div class="mt-20 grid grid-cols-2 gap-12 text-center">
+                <div><div class="border-t border-black pt-2"><p class="font-black uppercase" id="s_nome"></p><p>CPF: <span id="s_cpf"></span></p></div></div>
+                <div><div class="border-t border-black pt-2"><p class="font-black uppercase">ULTRAMED CLÍNICA MÉDICA</p><p>CONTRATADA</p></div></div>
+            </div>
+        </div>
+        <div class="p-6 bg-gray-50 flex gap-4 border-t">
+            <button onclick="confirmarVenda()" class="flex-1 bg-green-600 text-white font-black py-4 rounded-xl uppercase border-none cursor-pointer">Confirmar e Salvar</button>
+            <button onclick="fecharContrato()" class="bg-gray-300 text-gray-700 px-8 py-4 rounded-xl font-black uppercase border-none cursor-pointer">Corrigir Dados</button>
+        </div>
     </div>
 </div>
 
 <script>
     function abrirModal() { document.getElementById('modalPaciente').classList.remove('hidden'); document.getElementById('modalPaciente').classList.add('flex'); }
     function fecharModal() { document.getElementById('modalPaciente').classList.add('hidden'); document.getElementById('modalPaciente').classList.remove('flex'); }
+
     function addDep() {
         const container = document.getElementById('container-deps');
         const div = document.createElement('div');
-        div.className = "flex flex-wrap md:flex-nowrap gap-3 bg-gray-50 p-4 rounded-2xl items-end border border-gray-100";
+        div.className = "flex gap-2 bg-gray-50 p-3 rounded-xl items-end border border-gray-200 text-left";
         div.innerHTML = `
-            <div class="flex-1 min-w-[200px]"><label class="text-[8px] font-black uppercase text-gray-400 ml-2">Nome</label><input type="text" name="dep_nome[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs uppercase shadow-sm"></div>
-            <div class="w-36"><label class="text-[8px] font-black uppercase text-gray-400 ml-2">Nascimento</label><input type="date" name="dep_nascimento[]" required class="w-full p-2 rounded-lg border-2 border-white text-xs shadow-sm"></div>
-            <div class="w-36"><label class="text-[8px] font-black uppercase text-gray-400 ml-2">Parentesco</label><select name="dep_parentesco[]" class="w-full p-2 rounded-lg border-2 border-white text-[10px] font-black shadow-sm uppercase"><option value="FILHO(A)">FILHO(A)</option><option value="CONJUGE">CONJUGE</option><option value="PAI/MAE">PAI/MAE</option></select></div>
-            <button type="button" onclick="this.parentElement.remove()" class="bg-red-50 text-red-500 border-none rounded-xl p-3 cursor-pointer"><i class="fas fa-trash-alt"></i></button>
+            <div class="flex-1 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Nome</label><input type="text" name="dep_nome[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs uppercase d-nome"></div>
+            <div class="w-32 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">CPF</label><input type="text" name="dep_cpf[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs d-cpf"></div>
+            <div class="w-32 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Nascimento</label><input type="date" name="dep_nascimento[]" required class="w-full p-2 rounded-lg border-2 border-white text-xs d-nasc"></div>
+            <div class="w-32 text-left">
+                <label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Grau</label>
+                <select name="dep_parentesco[]" class="w-full p-2 rounded-lg border-2 border-white text-[10px] font-black d-grau">
+                    <option value="FILHO(A)">FILHO(A)</option><option value="CONJUGE">CONJUGE</option><option value="PAI/MAE">PAI/MAE</option><option value="ENTEADO(A)">ENTEADO(A)</option>
+                </select>
+            </div>
+            <button type="button" onclick="this.parentElement.remove()" class="text-red-500 border-none bg-transparent cursor-pointer p-2"><i class="fas fa-trash"></i></button>
         `;
         container.appendChild(div);
     }
+
+    function abrirContrato() {
+        document.getElementById('c_nome').innerText = document.getElementById('s_nome').innerText = document.getElementById('input_nome').value;
+        document.getElementById('c_cpf').innerText = document.getElementById('s_cpf').innerText = document.getElementById('input_cpf').value;
+        document.getElementById('c_end').innerText = document.getElementById('input_end').value;
+        document.getElementById('c_bairro').innerText = document.getElementById('input_bairro').value;
+        document.getElementById('c_cidade').innerText = document.getElementById('input_cidade').value;
+
+        const sel = document.getElementById('input_plano');
+        document.getElementById('c_plano_termo').innerText = sel.options[sel.selectedIndex].text;
+
+        const lista = document.getElementById('c_deps');
+        lista.innerHTML = "";
+        document.querySelectorAll('#container-deps > div').forEach(row => {
+            const nome = row.querySelector('.d-nome').value;
+            const grau = row.querySelector('.d-grau').value;
+            const cpf = row.querySelector('.d-cpf').value;
+            if(nome) lista.innerHTML += `<li>• ${nome} - CPF: ${cpf} (${grau})</li>`;
+        });
+
+        document.getElementById('modalContrato').classList.remove('hidden');
+        document.getElementById('modalContrato').classList.add('flex');
+    }
+
+    function fecharContrato() { document.getElementById('modalContrato').classList.add('hidden'); }
+    function confirmarVenda() { document.getElementById('formCadastro').submit(); }
 </script>
 {% endblock %}

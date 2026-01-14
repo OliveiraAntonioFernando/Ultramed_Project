@@ -9,36 +9,43 @@ from datetime import timedelta
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda
 
 # =================================================================
-# 1. REGRAS DE NEGÓCIO (LOGICA DE DESCONTOS ANUAIS)
+# 1. REGRAS DE NEGÓCIO (LÓGICA DE DESCONTOS BLINDADA)
 # =================================================================
 
 def calcular_valor_com_desconto(paciente, valor_base):
-    agora = timezone.now()
+    """ Calcula o valor final garantindo que Particulares paguem 100% """
+    hoje = timezone.now().date()
     try:
         valor_base = float(valor_base)
     except:
         valor_base = 0.0
 
-    if not paciente.plano or not paciente.vencimento_plano:
+    # TRAVA DE SEGURANÇA: Se não tem plano vinculado, é PARTICULAR (Sem desconto)
+    if not paciente.plano:
         return valor_base
-    if paciente.vencimento_plano < agora.date():
+
+    # TRAVA DE VENCIMENTO: Se o plano expirou, vira PARTICULAR automaticamente
+    if not paciente.vencimento_plano or paciente.vencimento_plano < hoje:
         return valor_base
 
     plano_nome = paciente.plano.nome.upper()
     desconto = 0.0
 
+    # Cálculo por categoria de plano ativo
     if 'ESSENCIAL' in plano_nome:
+        # Regra Essencial: 30% no primeiro uso do mês, 20% nos demais
         ja_usou_este_mes = Prontuario.objects.filter(
             paciente=paciente,
-            data_atendimento__month=agora.month,
-            data_atendimento__year=agora.year
+            data_atendimento__month=timezone.now().month,
+            data_atendimento__year=timezone.now().year
         ).exists()
         desconto = 0.30 if not ja_usou_este_mes else 0.20
     elif 'MASTER' in plano_nome:
         desconto = 0.30
     elif 'EMPRESARIAL' in plano_nome:
         desconto = 0.35
-
+    
+    # Retorna o valor com o desconto aplicado
     return valor_base * (1 - desconto)
 
 # =================================================================
@@ -94,7 +101,7 @@ def cliente_create(request):
             plano_id=plano_id if plano_id else None,
             vencimento_plano=vencimento
         )
-        
+
         nomes_dep = request.POST.getlist('dep_nome[]')
         cpfs_dep = request.POST.getlist('dep_cpf[]')
         for i in range(len(nomes_dep)):
@@ -109,7 +116,7 @@ def cliente_create(request):
     return redirect('sistema_interno:cliente_list')
 
 # =================================================================
-# 4. FINANCEIRO E AGENDA (NOVA LÓGICA)
+# 4. FINANCEIRO E AGENDA
 # =================================================================
 
 @login_required
@@ -142,8 +149,7 @@ def fatura_store(request):
 @login_required
 def agenda_view(request):
     hoje = timezone.now().date()
-    
-    # Check-in e Status
+
     agendamento_id = request.GET.get('id')
     novo_status = request.GET.get('status')
     if agendamento_id and novo_status:
@@ -155,16 +161,15 @@ def agenda_view(request):
     if request.method == 'POST':
         paciente_id = request.POST.get('paciente_id')
         paciente = get_object_or_404(Paciente, id=paciente_id)
-        
+
         tipo = request.POST.get('tipo')
         exame_nome = request.POST.get('exame_nome', 'Consulta')
         valor_cheio = request.POST.get('valor_cheio', 0)
         comprovante = request.POST.get('comprovante', 'N/A')
-        
-        # Calcular valor final com base nas regras do plano
+
+        # AQUI O SISTEMA RECALCULA NO SERVIDOR POR SEGURANÇA
         valor_final = calcular_valor_com_desconto(paciente, valor_cheio)
 
-        # Criar Agendamento
         Agenda.objects.create(
             paciente=paciente,
             data=request.POST.get('data'),
@@ -174,7 +179,6 @@ def agenda_view(request):
             observacoes=f"Procedimento: {exame_nome} | Ref: {comprovante} | V.Tabela: {valor_cheio} | V.Final: {valor_final}"
         )
 
-        # Gerar Fatura Paga automaticamente
         Fatura.objects.create(
             paciente=paciente,
             valor=valor_final,
@@ -227,6 +231,43 @@ def api_buscar_paciente(request):
     pacientes = Paciente.objects.filter(Q(nome_completo__icontains=q) | Q(cpf__icontains=q))[:10]
     results = [{'id': p.id, 'text': f"{p.nome_completo} ({p.cpf})"} for p in pacientes]
     return JsonResponse({'results': results})
+
+@login_required
+def api_detalhes_paciente(request, paciente_id):
+    """ API ajustada para garantir 0% de desconto para particulares e vencidos """
+    paciente = get_object_or_404(Paciente, id=paciente_id)
+    hoje = timezone.now().date()
+
+    percentual = 0.0
+    plano_status = "PARTICULAR"
+
+    # Verificação rígida de Plano e Validade
+    if paciente.plano and paciente.vencimento_plano and paciente.vencimento_plano >= hoje:
+        plano_nome = paciente.plano.nome.upper()
+        plano_status = plano_nome
+
+        if 'ESSENCIAL' in plano_nome:
+            ja_usou_este_mes = Prontuario.objects.filter(
+                paciente=paciente,
+                data_atendimento__month=timezone.now().month,
+                data_atendimento__year=timezone.now().year
+            ).exists()
+            percentual = 0.30 if not ja_usou_este_mes else 0.20
+        elif 'MASTER' in plano_nome:
+            percentual = 0.30
+        elif 'EMPRESARIAL' in plano_nome:
+            percentual = 0.35
+    else:
+        # Se cair aqui, ou não tem plano ou está vencido
+        plano_status = "PARTICULAR / PLANO VENCIDO"
+        percentual = 0.0
+
+    return JsonResponse({
+        'id': paciente.id,
+        'plano': plano_status,
+        'percentual': percentual,
+        'cpf': paciente.cpf
+    })
 
 @csrf_exempt
 def api_lead_capture(request):

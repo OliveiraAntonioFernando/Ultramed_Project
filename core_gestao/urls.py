@@ -23,4 +23,5 @@ urlpatterns = [
     
     path('api/lead-capture/', views.api_lead_capture, name='lead_capture'),
     path('api/buscar-paciente/', views.api_buscar_paciente, name='api_buscar_paciente'),
+    path('api/detalhes-paciente/<int:paciente_id>/', views.api_detalhes_paciente, name='api_detalhes_paciente'),	
 ]
