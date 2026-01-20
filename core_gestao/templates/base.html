@@ -3,10 +3,11 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ultramed | Sistema Interno</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
     <script>
         tailwind.config = {
             theme: {
@@ -23,8 +24,36 @@
             }
         }
     </script>
+
+    {% if request.GET.app %}
+    <style>
+        body { -webkit-tap-highlight-color: transparent; }
+        ::-webkit-scrollbar { display: none; }
+    </style>
+    {% endif %}
 </head>
-<body class="bg-gray-50 text-gray-800 font-sans antialiased min-h-screen">
+
+<body class="{% if request.GET.app %}bg-white{% else %}bg-gray-50{% endif %} text-gray-800 font-sans antialiased min-h-screen">
+    
     {% block content %}{% endblock %}
+
+    {% if request.GET.app %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const links = document.querySelectorAll('a');
+            links.forEach(link => {
+                try {
+                    const url = new URL(link.href, window.location.origin);
+                    if (url.origin === window.location.origin) {
+                        url.searchParams.set('app', 'true');
+                        link.href = url.toString();
+                    }
+                } catch (e) {
+                    // Ignora links inválidos ou mailto/tel
+                }
+            });
+        });
+    </script>
+    {% endif %}
 </body>
 </html>
