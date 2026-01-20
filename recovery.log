@@ -2447,3 +2447,17 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  2 files changed, 25 insertions(+), 6 deletions(-)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    7cec56d..24cd6db  main -> main
+[main a8ecd8d] Ponto de Recuperação Automático: 2026-01-20 14:00:02
+ 17 files changed, 465 insertions(+), 142 deletions(-)
+ create mode 100644 core_gestao/migrations/0008_paciente_is_cronico_receita.py
+ create mode 100644 core_gestao/migrations/0009_paciente_doencas_cronicas.py
+ create mode 100644 core_gestao/migrations/0010_exame_arquivo_alter_exame_paciente.py
+ create mode 100644 exames/2026/01/20/1989963845-suco-de-caja_1.jpg
+ create mode 100644 exames/2026/01/20/Ultramed.png
+ create mode 100644 exames/2026/01/20/logo_ultramed.png
+ create mode 100644 exames/2026/01/20/logo_ultramed_Fx8MGDL.png
+ create mode 100644 exames/2026/01/20/logo_ultramed_M5wpGLF.png
+ create mode 100644 exames/2026/01/20/logo_ultramed_f6rjGQ2.png
+ create mode 100644 exames/2026/01/20/logo_ultramed_i2G3Dr7.png
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   24cd6db..a8ecd8d  main -> main
