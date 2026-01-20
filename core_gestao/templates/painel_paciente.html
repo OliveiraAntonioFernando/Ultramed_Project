@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load static %}
 
 {% block title %}Meu Espaço | Ultramed Clínica Médica{% endblock %}
 
@@ -27,28 +28,27 @@
         <div class="space-y-6">
             <div class="bg-marsala-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden text-white aspect-[1.6/1] flex flex-col justify-between border border-white/5">
                 <div class="flex justify-between items-start">
-                    <span class="font-black italic text-xl uppercase italic tracking-tighter text-white">Ultramed</span>
+                    <span class="font-black italic text-xl uppercase tracking-tighter text-white">Ultramed</span>
                     <i class="fas fa-id-card text-3xl opacity-20"></i>
                 </div>
-                
                 <div>
                     <p class="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1">Beneficiário Titular</p>
                     <h3 class="text-lg font-bold uppercase tracking-tight leading-tight">{{ paciente.nome_completo }}</h3>
                 </div>
-
                 <div class="flex justify-between items-end">
                     <div>
                         <p class="text-[8px] font-black uppercase opacity-60 tracking-widest">Plano Ativo</p>
-                        <p class="text-xs font-black italic uppercase">{{ paciente.plano.nome|default:"PLANO ESSENCIAL" }}</p>
+                        <p class="text-xs font-black italic uppercase">{{ paciente.plano.nome|default:"PARTICULAR" }}</p>
                     </div>
                     <div class="bg-white p-2 rounded-xl shadow-inner">
-                        <div class="w-10 h-10 bg-black"></div></div>
+                        <div class="w-10 h-10 bg-black"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
                 <h4 class="text-[10px] font-black uppercase text-gray-400 mb-6 tracking-widest flex items-center">
-                    <i class="fas fa-users mr-3 text-marsala-700"></i> Dependentes Vinculados
+                    <i class="fas fa-users mr-3 text-marsala-700"></i> Dependentes
                 </h4>
                 {% for dep in paciente.dependentes.all %}
                 <div class="flex items-center gap-4 mb-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -58,9 +58,7 @@
                     <span class="text-xs font-black text-gray-700 uppercase">{{ dep.nome_completo }}</span>
                 </div>
                 {% empty %}
-                <div class="text-center py-4">
-                    <p class="text-[10px] italic text-gray-300 font-bold uppercase tracking-widest">Nenhum dependente</p>
-                </div>
+                <p class="text-[10px] italic text-gray-300 font-bold uppercase tracking-widest text-center">Nenhum dependente</p>
                 {% endfor %}
             </div>
         </div>
@@ -68,44 +66,41 @@
         <div class="lg:col-span-2 space-y-8">
             
             <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-8 bg-gray-50 border-b flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest">Faturas e Boletos</h3>
+                <div class="p-8 bg-gray-50 border-b">
+                    <h3 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest">Histórico de Consultas</h3>
                 </div>
-                {% for f in faturas %}
-                <div class="p-8 flex justify-between items-center hover:bg-marsala-50/30 transition-all border-b last:border-0">
+                {% for c in consultas %}
+                <div class="p-6 flex justify-between items-center border-b last:border-0 hover:bg-gray-50 transition-all">
                     <div class="flex items-center gap-5">
-                        <div class="{% if f.status == 'PAGO' %}bg-emerald-50 text-emerald-600{% else %}bg-red-50 text-red-600{% endif %} w-12 h-12 rounded-3xl flex items-center justify-center text-xl">
-                            <i class="fas fa-barcode"></i>
+                        <div class="bg-marsala-50 text-marsala-700 w-12 h-12 rounded-2xl flex items-center justify-center text-xl">
+                            <i class="fas fa-calendar-check"></i>
                         </div>
                         <div>
-                            <p class="text-xs font-black text-gray-800 uppercase">Mensalidade {{ f.data_vencimento|date:"M/Y" }}</p>
-                            <p class="text-[9px] font-bold uppercase tracking-widest opacity-50">Vence em: {{ f.data_vencimento|date:"d/m/Y" }}</p>
+                            <p class="text-xs font-black text-gray-800 uppercase">{{ c.tipo }}</p>
+                            <p class="text-[9px] font-bold uppercase opacity-50">{{ c.data|date:"d/m/Y" }} às {{ c.hora }}</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <div class="text-right">
-                            <p class="text-lg font-black text-gray-800">R$ {{ f.valor }}</p>
-                            <p class="text-[8px] font-black uppercase {% if f.status == 'PAGO' %}text-emerald-500{% else %}text-red-500{% endif %} tracking-widest">{{ f.status }}</p>
-                        </div>
-                        {% if f.status != 'PAGO' and f.link_boleto %}
-                        <a href="{{ f.link_boleto }}" target="_blank" class="bg-marsala-700 text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase shadow-lg shadow-marsala-700/20 hover:bg-marsala-800 transition-all">Ver Boleto</a>
-                        {% endif %}
+                    <div>
+                        <span class="text-[8px] font-black uppercase px-3 py-1 rounded-full 
+                            {% if c.status == 'FINALIZADO' %} bg-emerald-100 text-emerald-600 
+                            {% elif c.status == 'CANCELADO' %} bg-red-100 text-red-600 
+                            {% else %} bg-sky-100 text-sky-600 {% endif %}">
+                            {{ c.status }}
+                        </span>
                     </div>
                 </div>
                 {% empty %}
-                <div class="p-20 text-center">
-                    <p class="text-gray-300 font-black uppercase italic text-xs tracking-[0.2em]">Sem faturas pendentes</p>
-                </div>
+                <div class="p-10 text-center text-gray-300 font-black uppercase italic text-xs">Nenhuma consulta registrada</div>
                 {% endfor %}
             </div>
 
             <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-8 bg-emerald-50/30 border-b flex justify-between items-center">
-                    <h3 class="text-xs font-black uppercase italic text-emerald-700 tracking-widest">Meus Exames</h3>
+                <div class="p-8 bg-emerald-50/30 border-b">
+                    <h3 class="text-xs font-black uppercase italic text-emerald-700 tracking-widest">Meus Exames e Laudos</h3>
                 </div>
                 <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for e in exames %}
-                    <div class="border border-gray-100 p-5 rounded-3xl flex items-center justify-between hover:border-emerald-500 transition-all bg-gray-50/30">
+                    <div class="border border-gray-100 p-5 rounded-3xl flex items-center justify-between bg-gray-50/30">
                         <div class="flex items-center gap-3">
                             <i class="fas fa-file-medical text-emerald-500 text-xl"></i>
                             <div>
@@ -113,16 +108,36 @@
                                 <p class="text-[8px] font-bold text-gray-400 uppercase tracking-tighter">{{ e.data_solicitacao|date:"d/m/Y" }}</p>
                             </div>
                         </div>
-                        {% if e.realizado %}
-                        <span class="bg-emerald-500 text-white px-3 py-1 rounded-lg text-[8px] font-black uppercase italic shadow-md">Disponível</span>
-                        {% else %}
-                        <span class="text-[8px] font-black uppercase text-yellow-500 bg-yellow-50 px-3 py-1 rounded-lg">Em Análise</span>
+                        {% if e.arquivo %}
+                        <a href="{{ e.arquivo.url }}" target="_blank" class="bg-emerald-500 text-white px-3 py-2 rounded-xl text-[8px] font-black uppercase italic no-underline shadow-md hover:bg-emerald-600 transition-all">
+                            <i class="fas fa-download"></i>
+                        </a>
                         {% endif %}
                     </div>
                     {% empty %}
-                    <div class="col-span-2 text-center py-10">
-                        <p class="text-gray-300 font-black uppercase italic text-xs tracking-widest">Nenhum exame localizado</p>
+                    <p class="col-span-2 text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhum exame localizado</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-8 bg-sky-50/30 border-b">
+                    <h3 class="text-xs font-black uppercase italic text-sky-700 tracking-widest">Minhas Receitas</h3>
+                </div>
+                <div class="p-8 space-y-4">
+                    {% for r in receitas %}
+                    <div class="flex justify-between items-center p-5 bg-gray-50/50 rounded-3xl border border-gray-100">
+                        <div class="flex items-center gap-4">
+                            <div class="bg-white p-3 rounded-2xl shadow-sm text-sky-500"><i class="fas fa-pills"></i></div>
+                            <div>
+                                <p class="text-[10px] font-black text-gray-800 uppercase">Receituário Digital</p>
+                                <p class="text-[8px] font-bold text-gray-400 uppercase">{{ r.data_emissao|date:"d/m/Y - H:i" }}</p>
+                            </div>
+                        </div>
+                        <button onclick="alert('CONTEÚDO DA RECEITA:\n\n{{ r.conteudo|escapejs }}')" class="bg-sky-500 text-white px-5 py-2 rounded-xl text-[8px] font-black uppercase italic border-none cursor-pointer hover:bg-sky-600 transition-all">Ver</button>
                     </div>
+                    {% empty %}
+                    <p class="text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhuma receita disponível</p>
                     {% endfor %}
                 </div>
             </div>

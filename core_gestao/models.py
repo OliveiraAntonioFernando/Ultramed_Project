@@ -13,7 +13,7 @@ class Plano(models.Model):
     valor_anual = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
-        return self.nome
+        return self.get_nome_display()
 
 class Paciente(models.Model):
     nome_completo = models.CharField(max_length=255)
@@ -36,8 +36,9 @@ class Paciente(models.Model):
     # Hierarquia Familiar
     responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependentes')
     
-    # Campo para KPI de Crônicos
+    # Campo para KPI de Crônicos e Patologias
     is_cronico = models.BooleanField(default=False)
+    doencas_cronicas = models.CharField(max_length=500, blank=True, null=True)
     
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
@@ -75,14 +76,20 @@ class Agenda(models.Model):
     def __str__(self):
         return f"{self.data} {self.hora} - {self.paciente.nome_completo}"
 
+# CLASSE EXAME CORRIGIDA E UNIFICADA
 class Exame(models.Model):
-    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='exames_paciente')
     nome_exame = models.CharField(max_length=255)
     data_solicitacao = models.DateField(auto_now_add=True)
-    laudo = models.TextField(blank=True, null=True)
     realizado = models.BooleanField(default=False)
+    laudo = models.TextField(blank=True, null=True)
     valor_tabela = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     valor_pago = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    # CAMPO ARQUIVO PARA ANEXOS PDF/IMG
+    arquivo = models.FileField(upload_to='exames/%Y/%m/%d/', blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.nome_exame} - {self.paciente.nome_completo}"
 
 class Prontuario(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
@@ -92,12 +99,11 @@ class Prontuario(models.Model):
     prescricao = models.TextField(blank=True, null=True)
 
 class Receita(models.Model):
-    """ Novo Modelo para Gestão de Receitas e Renovação """
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='receitas')
     medico = models.ForeignKey(User, on_delete=models.CASCADE)
     conteudo = models.TextField()
     data_emissao = models.DateTimeField(auto_now_add=True)
-    hash_digital = models.CharField(max_length=100, blank=True, null=True) # Para futura assinatura
+    hash_digital = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"Receita de {self.paciente.nome_completo} - {self.data_emissao.strftime('%d/%m/%Y')}"

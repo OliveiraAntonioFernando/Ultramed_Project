@@ -4,18 +4,25 @@
 <div class="bg-gray-50 min-h-screen p-4 md:p-8">
     <div class="max-w-7xl mx-auto">
         
-        <div class="mb-6">
+        <div class="mb-6 flex justify-between items-center">
             <a href="{% url 'sistema_interno:painel_medico' %}" class="inline-flex items-center text-marsala-800 font-black uppercase tracking-tighter hover:scale-105 transition-transform no-underline">
                 <i class="fas fa-arrow-left mr-2"></i> Voltar à Fila
             </a>
+
+            <button type="button" onclick="abrirModalDoencas()" id="btn-cronico" 
+                class="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-md border-none cursor-pointer
+                {% if paciente.is_cronico %} bg-emerald-500 text-white {% else %} bg-gray-200 text-gray-500 {% endif %}">
+                <i class="fas fa-notes-medical mr-2"></i> 
+                <span id="txt-cronico">
+                    {% if paciente.doencas_cronicas %}{{ paciente.doencas_cronicas }}{% else %}Classificar Crônico{% endif %}
+                </span>
+            </button>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
             <div class="lg:col-span-2 space-y-6">
-                
                 <div id="area-laudo" class="w-full bg-white border border-gray-300 rounded-sm overflow-hidden shadow-sm">
-                    <div class="bg-marsala-700 p-6 flex items-center justify-between text-white">
+                    <div class="bg-marsala-700 p-6 flex items-center justify-between text-white" style="background-color: #700c15;">
                         <div class="flex items-center gap-6">
                             <div class="bg-white p-2 rounded-xl">
                                 <img src="{% static 'sistema_interno/img/logo_ultramed.png' %}" alt="Ultramed" class="h-12 w-auto">
@@ -30,79 +37,199 @@
                     <div class="grid grid-cols-2 gap-x-12 gap-y-3 px-8 py-6 text-[12px] leading-tight border-t border-gray-200 bg-white">
                         <div class="flex gap-2"><span class="text-gray-400 font-bold uppercase text-[9px]">Paciente:</span><strong class="uppercase text-gray-900 text-sm">{{ paciente.nome_completo }}</strong></div>
                         <div class="flex gap-2 justify-end"><span class="text-gray-400 font-bold uppercase text-[9px]">Data:</span><strong class="text-gray-900">{% now "d/m/Y" %}</strong></div>
-                        
                         <div class="flex gap-2"><span class="text-gray-400 font-bold uppercase text-[9px]">CPF:</span><strong class="text-gray-900">{{ paciente.cpf|default:"---" }}</strong></div>
                         <div class="flex gap-2 justify-end"><span class="text-gray-400 font-bold uppercase text-[9px]">Idade:</span><strong class="text-gray-900">{{ paciente.data_nascimento|timesince }}</strong></div>
-                        
                         <div class="flex gap-4 col-span-2 border-t border-gray-100 pt-3 mt-1">
-                            <div class="flex gap-2"><span class="text-gray-400 font-bold uppercase text-[9px]">Solicitante:</span><strong class="uppercase text-gray-900 font-bold tracking-wider italic">Dr. Valdenor Lima Gomes Júnior</strong></div>
+                            <div class="flex gap-2"><span class="text-gray-400 font-bold uppercase text-[9px]">Médico:</span><strong class="uppercase text-gray-900 font-bold tracking-wider italic">Dr. {{ user.get_full_name|default:user.username }}</strong></div>
                         </div>
                     </div>
                 </div>
 
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-t-8 border-marsala-700">
-                    <div class="flex justify-between items-center mb-6">
-                        <h4 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest">Nova Evolução Clínica</h4>
-                        <button onclick="window.print()" class="text-gray-400 hover:text-marsala-700 transition-colors border-none bg-transparent cursor-pointer">
-                            <i class="fas fa-print"></i>
-                        </button>
-                    </div>
-                    
-                    <form method="POST">
+                    <form method="POST" id="form-atendimento">
                         {% csrf_token %}
-                        <textarea name="evolucao" rows="14" required 
-                            class="w-full bg-gray-50 border border-gray-100 rounded-[2rem] p-8 text-lg text-gray-700 focus:ring-4 focus:ring-marsala-100 outline-none transition-all" 
-                            placeholder="Descreva aqui o exame, sintomas e conduta..."></textarea>
-                        
-                        <button type="submit" class="w-full mt-6 bg-marsala-700 text-white font-black py-6 rounded-[2rem] uppercase italic shadow-lg shadow-marsala-900/20 hover:bg-marsala-800 transition-all border-none cursor-pointer text-base">
-                            Finalizar Atendimento e Liberar Fila
+                        <div class="mb-6">
+                            <h4 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest mb-4">1. Evolução Clínica</h4>
+                            <textarea name="evolucao" rows="8" required class="w-full bg-gray-50 border border-gray-100 rounded-[2rem] p-6 text-base text-gray-700 focus:ring-4 focus:ring-marsala-100 outline-none transition-all" placeholder="Descreva os sintomas e conduta..."></textarea>
+                        </div>
+
+                        <div class="mb-6">
+                            <div class="flex justify-between items-center mb-4">
+                                <h4 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest">2. Prescrição / Receita</h4>
+                                <div class="flex gap-2">
+                                    <button type="button" onclick="renovarUltima('{{ paciente.id|escapejs }}')" class="text-[9px] font-black uppercase bg-sky-100 text-sky-700 px-4 py-2 rounded-xl hover:bg-sky-200 transition-colors border-none cursor-pointer">
+                                        <i class="fas fa-history mr-1"></i> Puxar Última
+                                    </button>
+                                    <button type="button" onclick="abrirModalReceita()" class="text-[9px] font-black uppercase bg-marsala-100 text-marsala-800 px-4 py-2 rounded-xl hover:bg-marsala-200 transition-colors border-none cursor-pointer">
+                                        <i class="fas fa-print mr-1"></i> Gerar Receita
+                                    </button>
+                                </div>
+                            </div>
+                            <textarea name="prescricao" id="campo-prescricao" rows="6" class="w-full bg-gray-50 border border-gray-100 rounded-[2rem] p-6 text-base text-gray-700 focus:ring-4 focus:ring-marsala-100 outline-none transition-all" placeholder="Medicamentos e dosagens..."></textarea>
+                        </div>
+                        <button type="submit" class="w-full bg-marsala-700 text-white font-black py-6 rounded-[2rem] uppercase italic shadow-lg shadow-marsala-900/20 hover:bg-marsala-800 transition-all border-none cursor-pointer text-base">
+                            Finalizar Atendimento e Salvar
                         </button>
                     </form>
                 </div>
             </div>
 
             <div class="space-y-6">
-                <h4 class="text-xs font-black uppercase text-gray-400 ml-4 tracking-widest">Histórico do Prontuário</h4>
-                <div class="space-y-4 max-h-[85vh] overflow-y-auto pr-2 custom-scrollbar">
+                <div class="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
+                    <h4 class="text-[10px] font-black uppercase text-marsala-700 mb-4 tracking-widest flex items-center">
+                        <i class="fas fa-microscope mr-2"></i> Exames e Laudos
+                    </h4>
+                    <div class="space-y-3 max-h-[200px] overflow-y-auto pr-2 custom-scrollbar">
+                        {% for exame in exames %}
+                        <div class="p-3 bg-gray-50 rounded-xl border border-gray-100 hover:border-sky-300 transition-all">
+                            <div class="flex justify-between items-start">
+                                <div class="cursor-pointer flex-1" onclick="exibirLaudo(`{{ exame.nome_exame|escapejs }}`, `{{ exame.laudo|default:'Laudo pendente.'|escapejs }}`)">
+                                    <span class="text-[9px] font-black uppercase text-gray-900 block">{{ exame.nome_exame }}</span>
+                                    <p class="text-[9px] text-gray-400 mt-1 italic">{{ exame.data_solicitacao|date:"d/m/Y" }}</p>
+                                </div>
+                                <div class="flex flex-col items-end gap-1">
+                                    <span class="text-[8px] px-2 py-0.5 rounded-full font-bold {% if exame.realizado %}bg-emerald-100 text-emerald-700{% else %}bg-amber-100 text-amber-700{% endif %}">
+                                        {% if exame.realizado %}CONCLUÍDO{% else %}PENDENTE{% endif %}
+                                    </span>
+                                    {% if exame.arquivo %}
+                                    <a href="{{ exame.arquivo.url }}" target="_blank" class="bg-sky-600 text-white px-2 py-1 rounded text-[7px] font-black uppercase no-underline hover:bg-sky-700 transition-all">
+                                        <i class="fas fa-file-download mr-1"></i> Ver Anexo
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <p class="text-[10px] font-bold text-gray-300 uppercase italic text-center">Nenhum exame.</p>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <h4 class="text-xs font-black uppercase text-gray-400 ml-4 tracking-widest">Histórico de Atendimento</h4>
+                <div class="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                     {% for h in historico %}
-                    <div class="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm hover:border-marsala-300 transition-all group">
+                    <div class="bg-white p-6 rounded-[2rem] border border-gray-200 shadow-sm">
                         <div class="flex justify-between items-center mb-3">
-                            <span class="text-[9px] font-black bg-marsala-50 text-marsala-700 px-3 py-1 rounded-full uppercase italic">
-                                {{ h.data_atendimento|date:"d/m/Y H:i" }}
-                            </span>
+                            <span class="text-[9px] font-black bg-marsala-50 text-marsala-700 px-3 py-1 rounded-full uppercase italic">{{ h.data_atendimento|date:"d/m/Y H:i" }}</span>
                             <i class="fas fa-check-circle text-emerald-500 text-[10px]"></i>
                         </div>
-                        <p class="text-xs text-gray-600 leading-relaxed font-medium">
-                            {{ h.evolucao|truncatechars:300 }}
-                        </p>
-                        {% if h.evolucao|length > 300 %}
-                        <button onclick="alert('{{ h.evolucao|escapejs }}')" class="mt-3 text-[9px] font-black uppercase text-marsala-700 border-none bg-transparent cursor-pointer">Ver Mais +</button>
-                        {% endif %}
+                        <p class="text-xs text-gray-600 leading-relaxed font-medium italic whitespace-pre-wrap">{{ h.evolucao }}</p>
                     </div>
                     {% empty %}
                     <div class="bg-white p-10 rounded-[2rem] text-center border border-dashed border-gray-300">
-                        <p class="text-[10px] font-bold text-gray-300 uppercase italic">Primeiro atendimento neste sistema</p>
+                        <p class="text-[10px] font-bold text-gray-300 uppercase italic">Primeiro atendimento</p>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-
         </div>
     </div>
 </div>
 
+<div id="modalDoencas" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[110] p-4">
+    <div class="bg-white w-full max-w-md rounded-3xl overflow-hidden shadow-2xl">
+        <div class="bg-marsala-700 p-6 text-white" style="background-color: #700c15;">
+            <h3 class="text-sm font-black uppercase m-0 italic">Classificação de Patologias</h3>
+        </div>
+        <div class="p-6">
+            <form id="formDoencas" class="grid grid-cols-2 gap-3">
+                {% csrf_token %}
+                <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="doencas[]" value="Hipertensão" {% if "Hipertensão" in paciente.doencas_cronicas %}checked{% endif %}> Hipertensão
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="doencas[]" value="Diabetes" {% if "Diabetes" in paciente.doencas_cronicas %}checked{% endif %}> Diabetes
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="doencas[]" value="Asma" {% if "Asma" in paciente.doencas_cronicas %}checked{% endif %}> Asma
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="doencas[]" value="Cardiopatia" {% if "Cardiopatia" in paciente.doencas_cronicas %}checked{% endif %}> Cardiopatia
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="doencas[]" value="Oncológico" {% if "Oncológico" in paciente.doencas_cronicas %}checked{% endif %}> Oncológico
+                </label>
+                <label class="flex items-center gap-2 text-xs font-bold text-gray-700 cursor-pointer">
+                    <input type="checkbox" name="doencas[]" value="Renal Crônico" {% if "Renal Crônico" in paciente.doencas_cronicas %}checked{% endif %}> Renal Crônico
+                </label>
+            </form>
+            <div class="mt-8 flex gap-3">
+                <button onclick="salvarDoencas('{{ paciente.id|escapejs }}')" class="flex-1 bg-emerald-500 text-white py-3 rounded-xl font-black uppercase text-[10px] border-none cursor-pointer">Salvar</button>
+                <button onclick="fecharModalDoencas()" class="flex-1 bg-gray-100 text-gray-400 py-3 rounded-xl font-black uppercase text-[10px] border-none cursor-pointer">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="modalReceita" class="fixed inset-0 bg-black/60 hidden flex items-center justify-center z-[100] p-4">
+    <div class="bg-white w-full max-w-2xl rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]">
+        <div class="bg-gray-100 p-4 flex justify-between items-center border-b">
+            <h3 class="text-[10px] font-black uppercase text-gray-500 m-0">Pré-visualização</h3>
+            <div class="flex gap-2">
+                <button onclick="imprimirReceitaPopUp()" class="bg-emerald-500 text-white px-4 py-2 rounded-lg text-[10px] font-black uppercase border-none cursor-pointer">IMPRIMIR</button>
+                <button onclick="fecharModalReceita()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg text-[10px] font-black uppercase border-none cursor-pointer">FECHAR</button>
+            </div>
+        </div>
+        <div id="folha-print" class="overflow-y-auto p-8 bg-white">
+            <div id="cabecalho-print"></div> 
+            <div class="mt-10 min-h-[350px]">
+                <h2 class="text-center text-marsala-800 font-black uppercase tracking-widest text-lg mb-8 italic underline">Receituário</h2>
+                <div id="texto-receita-espelho" class="text-xl text-gray-800 leading-relaxed whitespace-pre-wrap font-serif italic px-6"></div>
+            </div>
+            <div class="mt-10 text-center border-t border-gray-100 pt-8 pb-10">
+                <div class="w-64 border-b-2 border-gray-300 mx-auto mb-2"></div>
+                <p class="text-sm font-black uppercase italic m-0">Dr. {{ user.get_full_name|default:user.username }}</p>
+                <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest m-0 italic">Médico Responsável</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function exibirLaudo(nome, conteudo) {
+    alert("Exame: " + nome + "\n\n" + conteudo);
+}
+
+function abrirModalDoencas() { document.getElementById('modalDoencas').classList.remove('hidden'); }
+function fecharModalDoencas() { document.getElementById('modalDoencas').classList.add('hidden'); }
+
+async function salvarDoencas(pacienteId) {
+    const form = document.getElementById('formDoencas');
+    const formData = new FormData(form);
+    const url = "{% url 'sistema_interno:salvar_doencas' 0 %}".replace('0', pacienteId);
+    try {
+        const response = await fetch(url, { method: 'POST', body: formData, headers: { 'X-CSRFToken': '{{ csrf_token }}' } });
+        if (response.ok) { window.location.reload(); }
+    } catch (e) { console.error(e); }
+}
+
+function abrirModalReceita() {
+    const cabOriginal = document.getElementById('area-laudo').innerHTML;
+    document.getElementById('cabecalho-print').innerHTML = cabOriginal;
+    document.getElementById('texto-receita-espelho').innerText = document.getElementById('campo-prescricao').value || "Nenhuma prescrição.";
+    document.getElementById('modalReceita').classList.remove('hidden');
+}
+function fecharModalReceita() { document.getElementById('modalReceita').classList.add('hidden'); }
+
+function imprimirReceitaPopUp() {
+    const conteudo = document.getElementById('folha-print').innerHTML;
+    const win = window.open('', '', 'height=900,width=800');
+    win.document.write(`<html><head><title>Receita</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}.bg-marsala-700{background-color:#700c15!important;}</style></head><body onload="setTimeout(() => { window.print(); window.close(); }, 600)"><div class="p-4">${conteudo}</div></body></html>`);
+    win.document.close();
+}
+
+async function renovarUltima(pacienteId) {
+    const url = "{% url 'sistema_interno:api_ultima_receita' 0 %}".replace('0', pacienteId);
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success) { document.getElementById('campo-prescricao').value = data.conteudo; }
+    } catch (e) { console.error(e); }
+}
+</script>
+
 <style>
     .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #E5E7EB; border-radius: 10px; }
-    
-    @media print {
-        body * { visibility: hidden; }
-        #area-laudo, #area-laudo * { visibility: visible; }
-        #area-laudo { position: absolute; left: 0; top: 0; width: 100%; border: none; }
-        textarea { visibility: visible; border: none !important; resize: none; font-size: 14px !important; }
-        .lg\:col-span-2 { visibility: visible; width: 100%; }
-        button, nav, .lg\:col-span-1, .mb-6 { display: none !important; }
-    }
 </style>
 {% endblock %}
