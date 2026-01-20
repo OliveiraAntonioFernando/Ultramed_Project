@@ -35,6 +35,10 @@ class Paciente(models.Model):
 
     # Hierarquia Familiar
     responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependentes')
+    
+    # Campo para KPI de Crônicos
+    is_cronico = models.BooleanField(default=False)
+    
     data_cadastro = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
@@ -42,8 +46,8 @@ class Paciente(models.Model):
 
 class Fatura(models.Model):
     STATUS_CHOICES = [('PAGO', 'Pago'), ('PENDENTE', 'Pendente'), ('ATRASADO', 'Atrasado')]
-    METODO_CHOICES = [('PIX', 'PIX'), ('CARTAO', 'Cartão de Crédito')] # Novo campo
-    
+    METODO_CHOICES = [('PIX', 'PIX'), ('CARTAO', 'Cartão de Crédito')]
+
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     data_vencimento = models.DateField(auto_now_add=True)
@@ -51,12 +55,12 @@ class Fatura(models.Model):
     metodo_pagamento = models.CharField(max_length=20, choices=METODO_CHOICES, blank=True, null=True)
     data_pagamento = models.DateField(null=True, blank=True)
 
-class Agenda(models.Model): # Nova classe para Agendamentos
+class Agenda(models.Model):
     TIPOS = [('CONSULTA', 'Consulta'), ('EXAME', 'Exame')]
     STATUS = [
-        ('AGENDADO', 'Agendado'), 
-        ('CHEGOU', 'Em Espera (Chegou)'), 
-        ('FINALIZADO', 'Finalizado'), 
+        ('AGENDADO', 'Agendado'),
+        ('CHEGOU', 'Em Espera (Chegou)'),
+        ('FINALIZADO', 'Finalizado'),
         ('CANCELADO', 'Cancelado')
     ]
 
@@ -86,6 +90,17 @@ class Prontuario(models.Model):
     data_atendimento = models.DateTimeField(auto_now_add=True)
     evolucao = models.TextField()
     prescricao = models.TextField(blank=True, null=True)
+
+class Receita(models.Model):
+    """ Novo Modelo para Gestão de Receitas e Renovação """
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='receitas')
+    medico = models.ForeignKey(User, on_delete=models.CASCADE)
+    conteudo = models.TextField()
+    data_emissao = models.DateTimeField(auto_now_add=True)
+    hash_digital = models.CharField(max_length=100, blank=True, null=True) # Para futura assinatura
+
+    def __str__(self):
+        return f"Receita de {self.paciente.nome_completo} - {self.data_emissao.strftime('%d/%m/%Y')}"
 
 class LeadSite(models.Model):
     nome = models.CharField(max_length=255)
