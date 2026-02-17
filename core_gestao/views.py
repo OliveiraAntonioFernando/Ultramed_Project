@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q
 from django.utils import timezone
@@ -109,7 +109,7 @@ def cliente_create(request):
             nome_completo=request.POST.get('nome_completo'),
             cpf=request.POST.get('cpf'),
             telefone=request.POST.get('telefone'),
-            data_nascimento=request.POST.get('data_nascimento') or None,
+            data_nascimento=request.POST.get('data_nascimento') or "1900-01-01",
             sexo=request.POST.get('sexo', 'M'),
             endereco=request.POST.get('endereco'),
             bairro=request.POST.get('bairro'),
@@ -127,6 +127,7 @@ def cliente_create(request):
                 Paciente.objects.create(
                     nome_completo=nomes_dep[i],
                     cpf=cpfs_dep[i] if i < len(cpfs_dep) else None,
+                    data_nascimento="1900-01-01",
                     responsavel=titular,
                     plano=titular.plano,
                     vencimento_plano=titular.vencimento_plano
@@ -139,11 +140,10 @@ def cliente_create(request):
 
 @login_required
 def checkout_pagamento(request, paciente_id, plano_id):
-    """ Gera a preferência de pagamento no Mercado Pago e cria a Fatura """
+    """ Gera a preferência de pagamento com tratamento de erro (Anti-KeyError) """
     paciente = get_object_or_404(Paciente, id=paciente_id)
     plano = get_object_or_404(Plano, id=plano_id)
     
-    # Cria a fatura como PENDENTE antes de enviar ao MP
     fatura = Fatura.objects.create(
         paciente=paciente,
         valor=plano.valor_anual,
@@ -176,14 +176,21 @@ def checkout_pagamento(request, paciente_id, plano_id):
         "notification_url": "https://ultramedsaudexingu.com.br/sistema/api/v1/mp/webhook/",
     }
 
-    preference = sdk.preference().create(preference_data)["response"]
-
-    return render(request, 'core_gestao/checkout.html', {
-        'preference_id': preference['id'],
-        'public_key': settings.MERCADO_PAGO_PUBLIC_KEY,
-        'paciente': paciente,
-        'plano': plano
-    })
+    pref_res = sdk.preference().create(preference_data)
+    
+    # TRATAMENTO DE ERRO: Só acessa o 'id' se a resposta for 200/201
+    if pref_res["status"] == 200 or pref_res["status"] == 201:
+        preference = pref_res["response"]
+        return render(request, 'checkout.html', {
+            'preference_id': preference['id'],
+            'public_key': settings.MERCADO_PAGO_PUBLIC_KEY,
+            'paciente': paciente,
+            'plano': plano,
+            'link_pagamento': preference.get('init_point')
+        })
+    else:
+        # Se você está sem credenciais, ele cai aqui em vez de dar KeyError
+        return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Verifique suas chaves no settings.py')}")
 
 @csrf_exempt
 def mercadopago_webhook(request):
@@ -401,19 +408,15 @@ def api_detalhes_paciente(request, paciente_id):
 
 @csrf_exempt
 def api_lead_capture(request):
-    """ Captura Lead do site, cria Paciente e retorna IDs para o Modal """
+    """ Captura Lead do site, cria Paciente e retorna sucesso """
     if request.method == 'POST':
         nome = request.POST.get('nome')
         tel = request.POST.get('telefone')
         int_ = request.POST.get('interesse', 'Geral')
-        
         LeadSite.objects.create(nome=nome, telefone=tel, interesse=int_)
-        
-        p = Paciente.objects.create(nome_completo=nome, telefone=tel, endereco="Site", cidade="SFX")
-        
-        plano = Plano.objects.filter(nome__icontains=int_.split()[-1]).first() or Plano.objects.first()
-        
-        return JsonResponse({'success': True, 'paciente_id': p.id, 'plano_id': plano.id if plano else 1})
+        # Opcional: Criar paciente pré-cadastrado
+        Paciente.objects.create(nome_completo=nome, telefone=tel, endereco="Vindo do Site", cidade="SFX", data_nascimento="1900-01-01")
+        return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
 
 @login_required
@@ -436,5 +439,40 @@ def prontuario_view(request, paciente_id):
     exames = Exame.objects.filter(paciente=p).order_by('-id')
     return render(request, 'prontuario.html', {'paciente': p, 'historico': hist, 'exames': exames})
 
-def fatura_baixar(request, fatura_id): return redirect('sistema_interno:master_dashboard')
+def fatura_baixar(request, fatura_id): 
+    f = get_object_or_404(Fatura, id=fatura_id)
+    f.status = 'PAGO'
+    f.data_pagamento = timezone.now()
+    f.save()
+    return redirect('sistema_interno:master_dashboard')
+
 def plan_create(request): return redirect('sistema_interno:master_dashboard')
+
+# =================================================================
+# 7. CADASTRO DE PLANO PELO SITE (AQUI ESTAVA O ERRO DE DATA)
+# =================================================================
+
+def cadastro_plano_completo(request, plano_nome):
+    if request.method == 'POST':
+        nome = request.POST.get('titular_nome') or request.POST.get('nome')
+        cpf = request.POST.get('titular_cpf') or request.POST.get('cpf')
+        tel = request.POST.get('titular_telefone') or request.POST.get('telefone')
+        end = request.POST.get('endereco')
+        sexo = request.POST.get('titular_sexo') or request.POST.get('sexo') or 'M'
+        nasc = request.POST.get('titular_nascimento') or request.POST.get('data_nascimento')
+        
+        # Correção do IntegrityError
+        if not nasc: nasc = "1900-01-01"
+
+        try:
+            p = Paciente.objects.create(
+                nome_completo=nome, cpf=cpf, telefone=tel,
+                data_nascimento=nasc, endereco=end, sexo=sexo, cidade="SFX"
+            )
+            plano = Plano.objects.filter(nome__icontains=plano_nome).first() or Plano.objects.first()
+            return redirect('sistema_interno:checkout_pagamento', paciente_id=p.id, plano_id=plano.id)
+        except Exception as e:
+            print(f"ERRO AO SALVAR: {e}")
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return render(request, 'cadastro_plano.html', {'plano_selecionado': plano_nome})

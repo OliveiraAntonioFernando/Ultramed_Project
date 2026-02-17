@@ -19,18 +19,8 @@
         }
     </script>
     <style>
-        /* Estilo de App */
-        .glass-input {
-            background-color: #f3f4f6 !important;
-            border: 2px solid transparent !important;
-            transition: all 0.3s ease;
-        }
-        .glass-input:focus {
-            background-color: #ffffff !important;
-            border-color: #700c15 !important;
-            box-shadow: 0 4px 12px rgba(112, 12, 21, 0.08);
-            outline: none;
-        }
+        .glass-input { background-color: #f3f4f6 !important; border: 2px solid transparent !important; transition: all 0.3s ease; }
+        .glass-input:focus { background-color: #ffffff !important; border-color: #700c15 !important; box-shadow: 0 4px 12px rgba(112, 12, 21, 0.08); outline: none; }
         .app-card { border-radius: 2.5rem; }
         .btn-tap { transition: transform 0.1s; }
         .btn-tap:active { transform: scale(0.95); }
@@ -44,7 +34,7 @@
                 <h1 class="text-2xl font-black italic uppercase tracking-tighter">Venda de Plano</h1>
                 <p class="text-[10px] font-bold uppercase opacity-80 tracking-widest">Ultramed Clínica Médica</p>
             </div>
-            <a href="{% url 'sistema_interno:dashboard' %}" class="bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all border border-white/10">
+            <a href="/" class="bg-white/10 hover:bg-white/20 p-3 rounded-2xl transition-all border border-white/10">
                 <i class="fas fa-arrow-left"></i>
             </a>
         </div>
@@ -52,7 +42,7 @@
     </div>
 
     <div class="max-w-2xl mx-auto -mt-10 px-4">
-        <form method="POST" action="{% url 'sistema_interno:plan_create' %}" class="space-y-6">
+        <form method="POST" action="." class="space-y-6">
             {% csrf_token %}
 
             <div class="bg-white p-8 app-card shadow-lg border border-marsala-50">
@@ -88,16 +78,16 @@
                         </div>
                         <div>
                             <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">WhatsApp</label>
-                            <input type="tel" name="titular_telefone" class="w-full p-4 glass-input rounded-2xl font-bold" placeholder="(00) 00000-0000">
+                            <input type="tel" name="titular_telefone" class="w-full p-4 glass-input rounded-2xl font-bold" placeholder="(94) 99999-9999">
                         </div>
                     </div>
 
                     <div>
                         <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">Plano Selecionado</label>
                         <select name="plano_tipo" class="w-full p-5 glass-input rounded-2xl font-black uppercase italic text-sm text-marsala-700">
-                            <option value="ESSENCIAL">PLANO ESSENCIAL - R$ 44,90</option>
-                            <option value="MASTER FAMILIAR">PLANO MASTER FAMILIAR - R$ 59,90</option>
-                            <option value="EMPRESARIAL">PLANO EMPRESARIAL</option>
+                            <option value="Essencial" {% if plano_selecionado == 'Essencial' %}selected{% endif %}>PLANO ESSENCIAL - R$ 44,90</option>
+                            <option value="Master" {% if plano_selecionado == 'Master' %}selected{% endif %}>PLANO MASTER FAMILIAR - R$ 59,90</option>
+                            <option value="Empresarial" {% if plano_selecionado == 'Empresarial' %}selected{% endif %}>PLANO EMPRESARIAL</option>
                         </select>
                     </div>
                 </div>
@@ -113,13 +103,11 @@
                         <i class="fas fa-plus"></i> Novo
                     </button>
                 </div>
-
-                <div id="lista-dependentes" class="space-y-4">
-                    </div>
+                <div id="lista-dependentes" class="space-y-4"></div>
             </div>
 
             <button type="submit" class="btn-tap w-full bg-marsala-700 text-white py-6 rounded-[2.5rem] font-black uppercase italic text-xl shadow-2xl hover:bg-marsala-800 transition-all flex items-center justify-center gap-4 border-b-4 border-marsala-800">
-                <i class="fas fa-check-double"></i> GRAVAR VENDA
+                <i class="fas fa-check-double"></i> FINALIZAR E PAGAR
             </button>
         </form>
     </div>
@@ -128,8 +116,7 @@
         function addDependente() {
             const container = document.getElementById('lista-dependentes');
             const div = document.createElement('div');
-            // Estilo de mini-card para o dependente
-            div.className = "bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100 relative animate-in zoom-in duration-300";
+            div.className = "bg-gray-50 p-6 rounded-[2rem] border-2 border-gray-100 relative animate-in zoom-in duration-300 mb-4";
             div.innerHTML = `
                 <button type="button" onclick="this.parentElement.remove()" class="absolute -top-2 -right-2 bg-white text-red-600 w-8 h-8 rounded-full shadow-md flex items-center justify-center hover:bg-red-600 hover:text-white transition-all">
                     <i class="fas fa-times text-xs"></i>

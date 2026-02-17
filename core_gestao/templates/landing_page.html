@@ -53,10 +53,10 @@
         #mobile-menu {
             max-height: 0;
             overflow: hidden;
-            transition: max-height 0.3s ease-out; /* Adiciona animação de deslizar */
+            transition: max-height 0.3s ease-out;
         }
         #mobile-menu.open {
-            max-height: 500px; /* Altura suficiente para mostrar todo o conteúdo */
+            max-height: 1000px;
         }
     </style>
 </head>
@@ -67,7 +67,7 @@
             <span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-marsala-200"></i> <span class="hidden sm:inline">São Félix do Xingu</span><span class="sm:hidden">SFX</span></span>
             <a href="https://wa.me/5594984496349" class="flex items-center gap-1 hover:text-green-400"><i class="fab fa-whatsapp"></i> (94) 98449-6349</a>
         </div>
-        <div id="widget-clima" class="flex items-center gap-1 font-bold text-[10px] sm:text-xs">
+        <div id="widget-clima" class="flex items-center gap-1 font-bold text-yellow-400 text-[10px] sm:text-xs animate-pulse">
             <i class="fas fa-circle-notch fa-spin"></i> Verificando clima...
         </div>
     </div>
@@ -76,11 +76,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
             <div class="flex items-center gap-2">
                 <a href="/">
-                    <img
-                        src="{% static 'sistema_interno/img/logo_ultramed.png' %}"
-                        alt="Ultramed"
-                        class="h-10 sm:h-14 w-auto object-contain"
-                    >
+                    <img src="{% static 'sistema_interno/img/logo_ultramed.png' %}" alt="Ultramed" class="h-10 sm:h-14 w-auto object-contain">
                 </a>
                 <div class="flex flex-col justify-center">
                     <span class="text-base sm:text-lg font-bold text-gray-800 block leading-tight tracking-tight">ULTRAMED</span>
@@ -170,7 +166,7 @@
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>20% off a partir da 2ª consulta/exame</span></li>
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Abrange serviços essenciais (Ultrassom, Mapa, Holter)</span></li>
                     </ul>
-                    <button onclick="window.location.href='{% url 'sistema_interno:cadastro_plano' 'Essencial' %}'" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Proposta</button>
+                    <button onclick="irParaCadastro('Essencial')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Proposta</button>
                 </div>
 
                 <div class="bg-marsala-900 p-6 rounded-2xl shadow-2xl border-t-4 border-yellow-400 hover:shadow-xl transition relative flex flex-col h-full transform md:-translate-y-2 ring-2 ring-marsala-100">
@@ -187,7 +183,7 @@
                         <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Inclui Exames Avançados (Endoscopia, Biópsias)</span></li>
                         <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Maior cobertura de procedimentos</span></li>
                     </ul>
-                    <button onclick="window.location.href='{% url 'sistema_interno:cadastro_plano' 'Master' %}'" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-3 rounded-lg font-bold transition mt-auto shadow-md">Contratar Agora</button>
+                    <button onclick="irParaCadastro('Master')" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-3 rounded-lg font-bold transition mt-auto shadow-md">Contratar Agora</button>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-gray-800 hover:shadow-xl transition relative flex flex-col h-full">
@@ -203,7 +199,7 @@
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>30% off em consultas/procedimentos/hormonais</span></li>
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Regras de todos os planos anteriores</span></li>
                     </ul>
-                    <button onclick="window.location.href='{% url 'sistema_interno:cadastro_plano' 'Empresarial' %}'" class="block w-full text-center bg-gray-800 hover:bg-black text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Orçamento</button>
+                    <button onclick="irParaCadastro('Empresarial')" class="block w-full text-center bg-gray-800 hover:bg-black text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Orçamento</button>
                 </div>
             </div>
         </div>
@@ -289,11 +285,22 @@
     </footer>
 
     <script>
-        // JS para a animação do título
+        // RESOLUÇÃO DOS ERROS DE SINTAXE DO VS CODE:
+        // Passamos as URLs para variáveis fora dos atributos HTML.
+        const urlCadastroBase = "{% url 'sistema_interno:cadastro_plano' 'TEMP_PLANO' %}";
+        const urlLeadCapture = "{% url 'sistema_interno:lead_capture' %}";
+        const csrfTokenGlobal = "{{ csrf_token }}";
+
+        function irParaCadastro(plano) {
+            // Substitui o placeholder pelo nome do plano e redireciona
+            const urlFinal = urlCadastroBase.replace('TEMP_PLANO', plano);
+            window.location.href = urlFinal;
+        }
+
+        // Lógica de Troca de Frases
         const frases = ["Referência em Medicina", "Exames de Imagem", "No Coração do Xingu"];
         let indexFrase = 0;
         const elTitulo = document.getElementById('hero-title');
-
         function trocarFrase() {
             elTitulo.classList.add('hidden-anim');
             setTimeout(() => {
@@ -304,12 +311,10 @@
                 elTitulo.classList.remove('hidden-anim');
             }, 500);
         }
-        trocarFrase();
         setInterval(trocarFrase, 4000);
 
-        function toggleMenu() {
-            document.getElementById('mobile-menu').classList.toggle('open');
-        }
+        function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
+        function fecharModal() { document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none'); }
 
         function abrirModalExame(exame) {
             document.getElementById('plano-nome-modal').innerText = exame;
@@ -319,47 +324,25 @@
             document.getElementById('sucesso-lead').classList.add('hidden');
         }
 
-        function fecharModal() {
-            document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none');
-        }
-
         async function enviarSolicitacaoLead() {
             const nome = document.getElementById('nome-modal').value.trim();
-            const telefone = document.getElementById('telefone-modal').value.trim();
-            const interesse = document.getElementById('plano-nome-modal').getAttribute('data-interesse');
-
-            if (!nome || !telefone) {
-                alert("Preencha Nome e WhatsApp.");
-                return;
-            }
-
-            const btn = document.querySelector('#form-lead button');
-            btn.disabled = true;
-            btn.innerHTML = `<i class="fas fa-spinner fa-spin mr-2"></i> Enviando...`;
+            const tel = document.getElementById('telefone-modal').value.trim();
+            const int_ = document.getElementById('plano-nome-modal').getAttribute('data-interesse');
+            if (!nome || !tel) { alert("Preencha Nome e WhatsApp."); return; }
 
             const formData = new FormData();
             formData.append('nome', nome);
-            formData.append('telefone', telefone);
-            formData.append('interesse', "Agendamento: " + interesse);
-            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+            formData.append('telefone', tel);
+            formData.append('interesse', "Agendamento: " + int_);
+            formData.append('csrfmiddlewaretoken', csrfTokenGlobal);
 
             try {
-                const response = await fetch('{% url "sistema_interno:lead_capture" %}', {
-                    method: 'POST',
-                    body: formData,
-                });
+                const response = await fetch(urlLeadCapture, { method: 'POST', body: formData });
                 if (response.ok) {
                     document.getElementById('form-lead').classList.add('hidden');
                     document.getElementById('sucesso-lead').classList.remove('hidden');
-                } else {
-                    alert("Erro ao enviar solicitação.");
                 }
-            } catch (error) {
-                alert("Erro de conexão.");
-            } finally {
-                btn.disabled = false;
-                btn.innerHTML = `Solicitar Contato`;
-            }
+            } catch (e) { alert("Erro de conexão."); }
         }
 
         async function carregarClima() {
@@ -367,35 +350,18 @@
             try {
                 const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.6447&longitude=-51.995&current_weather=true');
                 const data = await res.json();
-                
                 if(data.current_weather) {
                     const temp = Math.round(data.current_weather.temperature);
                     const code = data.current_weather.weathercode;
                     const isDay = data.current_weather.is_day;
-                    
-                    let icone = "fa-sun";
-                    let cor = "text-yellow-400";
-                    let statusTxt = "em São Félix";
-
-                    // Lógica de Ícone e Cor baseada no código WMO
-                    if (code >= 1 && code <= 3) { // Parcialmente nublado
-                        icone = isDay ? "fa-cloud-sun" : "fa-cloud-moon";
-                        cor = "text-gray-300";
-                    } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 99)) { // Chuva / Tempestade
-                        icone = "fa-cloud-showers-heavy";
-                        cor = "text-blue-400";
-                        statusTxt = "Chovendo em SFX";
-                    } else if (!isDay) { // Noite limpa
-                        icone = "fa-moon";
-                        cor = "text-indigo-200";
-                    }
-
-                    elClima.className = `flex items-center gap-1 font-bold text-[10px] sm:text-xs ${cor} transition-colors duration-500 animate-pulse`;
-                    elClima.innerHTML = `<i class="fas ${icone}"></i> ${temp}°C ${statusTxt}`;
+                    let ic = "fa-sun", co = "text-yellow-400", txt = "em São Félix";
+                    if (code >= 1 && code <= 3) { ic = isDay ? "fa-cloud-sun" : "fa-cloud-moon"; co = "text-gray-300"; }
+                    else if (code >= 51) { ic = "fa-cloud-showers-heavy"; co = "text-blue-400"; txt = "Chovendo em SFX"; }
+                    else if (!isDay) { ic = "fa-moon"; co = "text-indigo-200"; }
+                    elClima.className = `flex items-center gap-1 font-bold text-[10px] sm:text-xs ${co} transition-all duration-500 animate-pulse`;
+                    elClima.innerHTML = `<i class="fas ${ic}"></i> ${temp}°C ${txt}`;
                 }
-            } catch(e) {
-                elClima.innerHTML = `<i class="fas fa-map-marker-alt"></i> São Félix do Xingu`;
-            }
+            } catch(e) { elClima.innerHTML = `<i class="fas fa-map-marker-alt"></i> São Félix do Xingu`; }
         }
         carregarClima();
     </script>
