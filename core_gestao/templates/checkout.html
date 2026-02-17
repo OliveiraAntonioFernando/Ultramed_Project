@@ -1,0 +1,71 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finalizar Pagamento - Ultramed</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
+        <div class="bg-gradient-to-r from-[#700c15] to-[#9a111d] p-6 text-white text-center">
+            <h1 class="text-2xl font-bold">Finalizar Assinatura</h1>
+            <p class="text-sm opacity-80">Ultramed Saúde Xingu</p>
+        </div>
+
+        <div class="p-8">
+            <div class="mb-8 border-b border-dashed border-gray-200 pb-6">
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-gray-500 font-medium">Plano Selecionado:</span>
+                    <span class="font-bold text-gray-800">{{ plano.nome }}</span>
+                </div>
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-gray-500 font-medium">Paciente:</span>
+                    <span class="font-bold text-gray-800 text-right">{{ paciente.nome_completo }}</span>
+                </div>
+                <div class="flex justify-between items-center mt-6">
+                    <span class="text-gray-800 font-extrabold text-lg">Total a pagar:</span>
+                    <span class="text-2xl font-black text-[#700c15]">R$ {{ plano.valor_anual }}</span>
+                </div>
+            </div>
+
+            <div id="wallet_container" class="min-h-[48px]">
+                </div>
+
+            <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest">
+                <i class="fas fa-lock mr-1"></i> Pagamento Processado pelo Mercado Pago
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Inicializa o Mercado Pago com a sua Public Key vinda do Django
+        const mp = new MercadoPago('{{ public_key }}', {
+            locale: 'pt-BR'
+        });
+
+        const bricksBuilder = mp.bricks();
+
+        // Renderiza o botão de pagamento
+        bricksBuilder.create("wallet", "wallet_container", {
+            initialization: {
+                preferenceId: '{{ preference_id }}',
+                redirectMode: 'modal'
+            },
+            customization: {
+                texts: {
+                    valueProp: 'smart_option',
+                },
+                visual: {
+                    buttonBackground: 'default',
+                    borderRadius: '12px',
+                }
+            }
+        });
+    </script>
+</body>
+</html>

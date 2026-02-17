@@ -114,3 +114,18 @@ class LeadSite(models.Model):
     interesse = models.CharField(max_length=100)
     atendido = models.BooleanField(default=False)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
+
+class Pagamento(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
+    transacao_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="ID Transação")
+    valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
+    status = models.CharField(max_length=20, default='pendente', verbose_name="Status")
+    metodo_pagamento = models.CharField(max_length=50, null=True, blank=True, verbose_name="Método")
+    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
+
+    class Meta:
+        verbose_name = "Pagamento"
+        verbose_name_plural = "Pagamentos"
+
+    def __str__(self):
+        return f"{self.usuario.username} - {self.valor} ({self.status})"

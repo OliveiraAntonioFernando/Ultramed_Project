@@ -67,8 +67,8 @@
             <span class="flex items-center gap-1"><i class="fas fa-map-marker-alt text-marsala-200"></i> <span class="hidden sm:inline">São Félix do Xingu</span><span class="sm:hidden">SFX</span></span>
             <a href="https://wa.me/5594984496349" class="flex items-center gap-1 hover:text-green-400"><i class="fab fa-whatsapp"></i> (94) 98449-6349</a>
         </div>
-        <div id="widget-clima" class="flex items-center gap-1 font-bold text-yellow-400 text-[10px] sm:text-xs animate-pulse">
-            <i class="fas fa-cloud-sun"></i> Verificando clima...
+        <div id="widget-clima" class="flex items-center gap-1 font-bold text-[10px] sm:text-xs">
+            <i class="fas fa-circle-notch fa-spin"></i> Verificando clima...
         </div>
     </div>
 
@@ -170,7 +170,7 @@
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>20% off a partir da 2ª consulta/exame</span></li>
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Abrange serviços essenciais (Ultrassom, Mapa, Holter)</span></li>
                     </ul>
-                    <button onclick="abrirModal('', 'Plano Essencial', 'PLANO')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Proposta</button>
+                    <button onclick="window.location.href='{% url 'sistema_interno:cadastro_plano' 'Essencial' %}'" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Proposta</button>
                 </div>
 
                 <div class="bg-marsala-900 p-6 rounded-2xl shadow-2xl border-t-4 border-yellow-400 hover:shadow-xl transition relative flex flex-col h-full transform md:-translate-y-2 ring-2 ring-marsala-100">
@@ -187,7 +187,7 @@
                         <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Inclui Exames Avançados (Endoscopia, Biópsias)</span></li>
                         <li class="flex items-start gap-3"><i class="fas fa-check text-yellow-300 mt-1"></i> <span>Maior cobertura de procedimentos</span></li>
                     </ul>
-                    <button onclick="abrirModal('', 'Master Familiar', 'PLANO')" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-3 rounded-lg font-bold transition mt-auto shadow-md">Contratar Agora</button>
+                    <button onclick="window.location.href='{% url 'sistema_interno:cadastro_plano' 'Master' %}'" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-3 rounded-lg font-bold transition mt-auto shadow-md">Contratar Agora</button>
                 </div>
 
                 <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-gray-800 hover:shadow-xl transition relative flex flex-col h-full">
@@ -203,7 +203,7 @@
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>30% off em consultas/procedimentos/hormonais</span></li>
                         <li class="flex items-start gap-3"><i class="fas fa-check text-marsala-700 mt-1"></i> <span>Regras de todos os planos anteriores</span></li>
                     </ul>
-                    <button onclick="abrirModal('', 'Plano Empresarial', 'PLANO')" class="block w-full text-center bg-gray-800 hover:bg-black text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Orçamento</button>
+                    <button onclick="window.location.href='{% url 'sistema_interno:cadastro_plano' 'Empresarial' %}'" class="block w-full text-center bg-gray-800 hover:bg-black text-white py-3 rounded-lg font-bold transition mt-auto shadow-md">Solicitar Orçamento</button>
                 </div>
             </div>
         </div>
@@ -256,17 +256,27 @@
         <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-80 backdrop-blur-sm" onclick="fecharModal()"></div>
         <div class="modal-container bg-white w-full max-w-md mx-auto rounded-2xl shadow-2xl z-50 overflow-hidden transform transition-all scale-95">
             <div class="p-6">
-                <div class="flex justify-between items-center mb-6"><p class="text-xl font-bold text-marsala-700" id="modal-titulo">Solicitar Proposta</p><button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-times fa-lg"></i></button></div>
+                <div class="flex justify-between items-center mb-6"><p class="text-xl font-bold text-marsala-700" id="modal-titulo">Agendar Exame</p><button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-times fa-lg"></i></button></div>
                 <div id="form-lead" class="space-y-4">
                     <p id="plano-nome-modal" data-interesse="" class="font-bold text-gray-800 bg-marsala-50 p-3 rounded-lg text-center border border-marsala-100 text-sm"></p>
 
                     <div><label for="nome-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input id="nome-modal" type="text" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none"></div>
-                    <div><label for="telefone-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label><input id="telefone-modal" type="tel" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none" placeholder="(93) 99999-9999"></div>
+                    <div><label for="telefone-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label><input id="telefone-modal" type="tel" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none" placeholder="(94) 99999-9999"></div>
 
-                    <button onclick="enviarSolicitacao()" class="w-full bg-marsala-700 hover:bg-marsala-800 text-white font-bold py-4 rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2">Enviar Solicitação</button>
+                    <button onclick="enviarSolicitacaoLead()" class="w-full bg-marsala-700 hover:bg-marsala-800 text-white font-bold py-4 rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2">Solicitar Contato</button>
                 </div>
 
-                <div id="sucesso-lead" class="hidden text-center py-8"><div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl"><i class="fas fa-check"></i></div><h3 class="text-xl font-bold text-gray-800">Recebemos seu pedido!</h3><p class="text-gray-600 text-sm mt-2">Aguarde nosso contato.</p><button onclick="fecharModal()" class="mt-6 text-gray-500 text-sm underline">Fechar</button></div>
+                <div id="sucesso-lead" class="hidden text-center py-6">
+                    <div class="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-gray-800">Pedido Recebido!</h3>
+                    <p class="text-gray-600 text-sm mt-2">Nossa equipe entrará em contato via WhatsApp em breve.</p>
+                    
+                    <div class="mt-6">
+                        <button onclick="fecharModal()" class="text-gray-400 text-xs underline uppercase tracking-tighter">Fechar</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -297,37 +307,29 @@
         trocarFrase();
         setInterval(trocarFrase, 4000);
 
-        // JS Básico para o Menu Mobile
         function toggleMenu() {
             document.getElementById('mobile-menu').classList.toggle('open');
         }
 
-        // JS para o Modal de Contato
-        function abrirModal(id, nome, tipo) {
-            document.getElementById('plano-nome-modal').innerText = nome;
-            document.getElementById('modal-titulo').innerText = (tipo === 'EXAME') ? "Agendar Exame" : "Interesse no Plano";
-            document.getElementById('plano-nome-modal').setAttribute('data-interesse', nome);
-
-            document.body.classList.add('modal-active');
-            const modal = document.getElementById('modal-cadastro');
-            modal.classList.remove('opacity-0', 'pointer-events-none');
-
+        function abrirModalExame(exame) {
+            document.getElementById('plano-nome-modal').innerText = exame;
+            document.getElementById('plano-nome-modal').setAttribute('data-interesse', exame);
+            document.getElementById('modal-cadastro').classList.remove('opacity-0', 'pointer-events-none');
             document.getElementById('form-lead').classList.remove('hidden');
             document.getElementById('sucesso-lead').classList.add('hidden');
         }
-        function abrirModalExame(exame) { abrirModal('', exame, 'EXAME'); }
+
         function fecharModal() {
-            document.body.classList.remove('modal-active');
             document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none');
         }
 
-        async function enviarSolicitacao() {
+        async function enviarSolicitacaoLead() {
             const nome = document.getElementById('nome-modal').value.trim();
             const telefone = document.getElementById('telefone-modal').value.trim();
             const interesse = document.getElementById('plano-nome-modal').getAttribute('data-interesse');
 
             if (!nome || !telefone) {
-                alert("Por favor, preencha seu Nome e WhatsApp.");
+                alert("Preencha Nome e WhatsApp.");
                 return;
             }
 
@@ -338,27 +340,63 @@
             const formData = new FormData();
             formData.append('nome', nome);
             formData.append('telefone', telefone);
-            formData.append('interesse', interesse);
+            formData.append('interesse', "Agendamento: " + interesse);
+            formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
 
             try {
-                const response = await fetch('/sistema/api/lead-capture/', {
+                const response = await fetch('{% url "sistema_interno:lead_capture" %}', {
                     method: 'POST',
                     body: formData,
                 });
-                const result = await response.json();
-                if (result.success) {
+                if (response.ok) {
                     document.getElementById('form-lead').classList.add('hidden');
                     document.getElementById('sucesso-lead').classList.remove('hidden');
+                } else {
+                    alert("Erro ao enviar solicitação.");
                 }
             } catch (error) {
                 alert("Erro de conexão.");
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = `Enviar Solicitação`;
+                btn.innerHTML = `Solicitar Contato`;
             }
         }
 
-        async function carregarClima() { try { const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.6447&longitude=-51.995&current_weather=true'); const data = await res.json(); if(data.current_weather) { document.getElementById('widget-clima').innerHTML = `<i class="fas fa-sun text-yellow-400"></i> ${Math.round(data.current_weather.temperature)}°C em São Félix`; } } catch(e) {} }
+        async function carregarClima() {
+            const elClima = document.getElementById('widget-clima');
+            try {
+                const res = await fetch('https://api.open-meteo.com/v1/forecast?latitude=-6.6447&longitude=-51.995&current_weather=true');
+                const data = await res.json();
+                
+                if(data.current_weather) {
+                    const temp = Math.round(data.current_weather.temperature);
+                    const code = data.current_weather.weathercode;
+                    const isDay = data.current_weather.is_day;
+                    
+                    let icone = "fa-sun";
+                    let cor = "text-yellow-400";
+                    let statusTxt = "em São Félix";
+
+                    // Lógica de Ícone e Cor baseada no código WMO
+                    if (code >= 1 && code <= 3) { // Parcialmente nublado
+                        icone = isDay ? "fa-cloud-sun" : "fa-cloud-moon";
+                        cor = "text-gray-300";
+                    } else if ((code >= 51 && code <= 67) || (code >= 80 && code <= 99)) { // Chuva / Tempestade
+                        icone = "fa-cloud-showers-heavy";
+                        cor = "text-blue-400";
+                        statusTxt = "Chovendo em SFX";
+                    } else if (!isDay) { // Noite limpa
+                        icone = "fa-moon";
+                        cor = "text-indigo-200";
+                    }
+
+                    elClima.className = `flex items-center gap-1 font-bold text-[10px] sm:text-xs ${cor} transition-colors duration-500 animate-pulse`;
+                    elClima.innerHTML = `<i class="fas ${icone}"></i> ${temp}°C ${statusTxt}`;
+                }
+            } catch(e) {
+                elClima.innerHTML = `<i class="fas fa-map-marker-alt"></i> São Félix do Xingu`;
+            }
+        }
         carregarClima();
     </script>
 </body>

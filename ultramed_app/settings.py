@@ -70,8 +70,18 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_content')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# --- SEGURANÇA PARA HTTPS E DOMÍNIO (CORREÇÃO DO ERRO 403) ---
-CSRF_TRUSTED_ORIGINS = ['https://ultramedsaudexingu.com.br', 'https://www.ultramedsaudexingu.com.br']
+# =================================================================
+# SEGURANÇA, HTTPS E CORS (CORREÇÃO DEFINITIVA DO ERRO DE CONEXÃO)
+# =================================================================
+CSRF_TRUSTED_ORIGINS = [
+    'https://ultramedsaudexingu.com.br', 
+    'https://www.ultramedsaudexingu.com.br'
+]
+
+# Liberação para o JavaScript do navegador não bloquear o POST
+CORS_ALLOW_ALL_ORIGINS = True 
+CORS_ALLOW_CREDENTIALS = True
+
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
@@ -80,3 +90,9 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 LOGIN_URL = '/sistema/login/'
 LOGIN_REDIRECT_URL = '/sistema/painel/'
 LOGOUT_REDIRECT_URL = '/sistema/login/'
+
+# =================================================================
+# CONFIGURAÇÕES DO MERCADO PAGO
+# =================================================================
+MERCADO_PAGO_PUBLIC_KEY = os.getenv('MP_PUBLIC_KEY', 'AGUARDANDO_CHAVE_DO_CLIENTE')
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', 'AGUARDANDO_CHAVE_DO_CLIENTE')

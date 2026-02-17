@@ -7,10 +7,13 @@ from django.db.models import Sum, Q
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
-from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
+from django.conf import settings
+import mercadopago
+
+from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita, Pagamento
 
 # =================================================================
-# 1. REGRAS DE NEGÓCIO (LÓGICA DE DESCONTOS BLINDADA)
+# 1. REGRAS DE NEGÓCIO (LÓGICA DE DESCONTOS E FINANCEIRO)
 # =================================================================
 
 def calcular_valor_com_desconto(paciente, valor_base):
@@ -58,6 +61,7 @@ def login_view(request):
             if user.username == 'recepcao': return redirect('sistema_interno:painel_colaborador')
             if user.username == 'master' or user.is_superuser: return redirect('sistema_interno:master_dashboard')
             return redirect('sistema_interno:painel_paciente')
+        messages.error(request, "Usuário ou senha inválidos.")
     return render(request, 'login.html')
 
 def logout_view(request):
@@ -130,8 +134,82 @@ def cliente_create(request):
     return redirect('sistema_interno:cliente_list')
 
 # =================================================================
-# 4. FINANCEIRO E AGENDA
+# 4. FINANCEIRO, AGENDA E MERCADO PAGO
 # =================================================================
+
+@login_required
+def checkout_pagamento(request, paciente_id, plano_id):
+    """ Gera a preferência de pagamento no Mercado Pago e cria a Fatura """
+    paciente = get_object_or_404(Paciente, id=paciente_id)
+    plano = get_object_or_404(Plano, id=plano_id)
+    
+    # Cria a fatura como PENDENTE antes de enviar ao MP
+    fatura = Fatura.objects.create(
+        paciente=paciente,
+        valor=plano.valor_anual,
+        status='PENDENTE',
+        metodo_pagamento='PIX/CARTAO'
+    )
+
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+
+    preference_data = {
+        "items": [
+            {
+                "id": str(fatura.id),
+                "title": f"Plano {plano.nome} - {paciente.nome_completo}",
+                "quantity": 1,
+                "unit_price": float(plano.valor_anual),
+            }
+        ],
+        "payer": {
+            "name": paciente.nome_completo,
+            "email": "financeiro@ultramedsaudexingu.com.br",
+            "identification": {"type": "CPF", "number": paciente.cpf.replace(".","").replace("-","") if paciente.cpf else "00000000000"}
+        },
+        "back_urls": {
+            "success": "https://ultramedsaudexingu.com.br/sistema/painel/",
+            "failure": "https://ultramedsaudexingu.com.br/sistema/painel/",
+        },
+        "auto_return": "approved",
+        "external_reference": str(fatura.id),
+        "notification_url": "https://ultramedsaudexingu.com.br/sistema/api/v1/mp/webhook/",
+    }
+
+    preference = sdk.preference().create(preference_data)["response"]
+
+    return render(request, 'core_gestao/checkout.html', {
+        'preference_id': preference['id'],
+        'public_key': settings.MERCADO_PAGO_PUBLIC_KEY,
+        'paciente': paciente,
+        'plano': plano
+    })
+
+@csrf_exempt
+def mercadopago_webhook(request):
+    """ Webhook que dá baixa automática e renova o plano """
+    if request.method == 'POST':
+        payment_id = request.GET.get('data.id') or request.POST.get('data.id')
+        if payment_id:
+            sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+            payment_info = sdk.payment().get(payment_id)
+            if payment_info["status"] == 200:
+                resposta = payment_info["response"]
+                fatura_id = resposta.get("external_reference")
+                if resposta.get("status") == "approved":
+                    fatura = Fatura.objects.filter(id=fatura_id).first()
+                    if fatura and fatura.status != 'PAGO':
+                        fatura.status = 'PAGO'
+                        fatura.data_pagamento = timezone.now()
+                        fatura.save()
+                        p = fatura.paciente
+                        hoje = timezone.now().date()
+                        base = p.vencimento_plano if p.vencimento_plano and p.vencimento_plano > hoje else hoje
+                        p.vencimento_plano = base + timedelta(days=365)
+                        p.save()
+                        Paciente.objects.filter(responsavel=p).update(vencimento_plano=p.vencimento_plano)
+        return JsonResponse({'status': 'ok'}, status=200)
+    return JsonResponse({'status': 'erro'}, status=400)
 
 @login_required
 def fatura_create(request):
@@ -145,19 +223,23 @@ def fatura_store(request):
     if request.method == 'POST':
         paciente = get_object_or_404(Paciente, id=request.POST.get('paciente'))
         status = request.POST.get('status').upper()
-        Fatura.objects.create(
+        valor = request.POST.get('valor')
+        
+        fatura = Fatura.objects.create(
             paciente=paciente,
-            valor=request.POST.get('valor'),
+            valor=valor,
             metodo_pagamento=request.POST.get('metodo_pagamento'),
             status=status,
             data_pagamento=timezone.now() if status == 'PAGO' else None
         )
+        
         if status == 'PAGO':
             hoje = timezone.now().date()
             data_base = paciente.vencimento_plano if paciente.vencimento_plano and paciente.vencimento_plano > hoje else hoje
             paciente.vencimento_plano = data_base + timedelta(days=365)
             paciente.save()
             Paciente.objects.filter(responsavel=paciente).update(vencimento_plano=paciente.vencimento_plano)
+            
     return redirect('sistema_interno:master_dashboard')
 
 @login_required
@@ -165,6 +247,7 @@ def agenda_view(request):
     hoje = timezone.now().date()
     agendamento_id = request.GET.get('id')
     novo_status = request.GET.get('status')
+    
     if agendamento_id and novo_status:
         ag = get_object_or_404(Agenda, id=agendamento_id)
         ag.status = novo_status
@@ -243,9 +326,7 @@ def painel_medico(request):
 @login_required
 def painel_paciente(request):
     """ Painel exclusivo do Paciente com seu Histórico de Saúde """
-    # Busca o paciente pelo CPF (que é o username no sistema)
     paciente = get_object_or_404(Paciente, cpf=request.user.username)
-    
     context = {
         'paciente': paciente,
         'exames': Exame.objects.filter(paciente=paciente).order_by('-data_solicitacao'),
@@ -271,7 +352,7 @@ def salvar_doencas_cronicas(request, paciente_id):
             'is_cronico': paciente.is_cronico,
             'texto_doencas': paciente.doencas_cronicas or "Classificar Crônico"
         })
-    return JsonResponse({'success': False, 'message': 'Método inválido'}, status=400)
+    return JsonResponse({'success': False}, status=400)
 
 @login_required
 def api_ultima_receita(request, paciente_id):
@@ -310,7 +391,6 @@ def api_detalhes_paciente(request, paciente_id):
             percentual = 0.35
     else:
         plano_status = "PARTICULAR / PLANO VENCIDO"
-        percentual = 0.0
 
     return JsonResponse({
         'id': paciente.id,
@@ -321,9 +401,19 @@ def api_detalhes_paciente(request, paciente_id):
 
 @csrf_exempt
 def api_lead_capture(request):
+    """ Captura Lead do site, cria Paciente e retorna IDs para o Modal """
     if request.method == 'POST':
-        LeadSite.objects.create(nome=request.POST.get('nome'), telefone=request.POST.get('telefone'), interesse=request.POST.get('interesse', 'Geral'))
-        return JsonResponse({'success': True})
+        nome = request.POST.get('nome')
+        tel = request.POST.get('telefone')
+        int_ = request.POST.get('interesse', 'Geral')
+        
+        LeadSite.objects.create(nome=nome, telefone=tel, interesse=int_)
+        
+        p = Paciente.objects.create(nome_completo=nome, telefone=tel, endereco="Site", cidade="SFX")
+        
+        plano = Plano.objects.filter(nome__icontains=int_.split()[-1]).first() or Plano.objects.first()
+        
+        return JsonResponse({'success': True, 'paciente_id': p.id, 'plano_id': plano.id if plano else 1})
     return JsonResponse({'success': False}, status=400)
 
 @login_required
