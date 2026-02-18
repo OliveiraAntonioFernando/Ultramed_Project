@@ -3856,3 +3856,8 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    ee815e3..40ae888  main -> main
+[main ea1965e] Ponto de Recuperação Automático: 2026-02-18 18:00:02
+ 12 files changed, 234 insertions(+), 134 deletions(-)
+ create mode 100644 core_gestao/migrations/0012_fatura_mercadopago_id_paciente_is_titular_and_more.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   40ae888..ea1965e  main -> main
