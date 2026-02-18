@@ -26,7 +26,7 @@
                 <div class="relative">
                     <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 tracking-widest text-left">1. Pesquisar Paciente</label>
                     <div class="relative">
-                        <input type="text" id="input_busca" autocomplete="off" placeholder="DIGITE NOME OU CPF..."
+                        <input type="text" id="input_busca" name="busca_texto" autocomplete="off" placeholder="DIGITE NOME OU CPF..."
                             class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 transition-all uppercase pl-12 outline-none">
                         <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
                     </div>
@@ -51,7 +51,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
                     <div>
                         <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">2. Procedimento</label>
-                        <select name="tipo" id="tipo_select" onchange="toggleExameCampo()" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none">
+                        <select name="tipo" id="tipo_select" onchange="toggleExameCampo()" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none border-r-[16px] border-transparent">
                             <option value="CONSULTA">CONSULTA MÉDICA</option>
                             <option value="EXAME">REALIZAÇÃO DE EXAME</option>
                         </select>
@@ -102,7 +102,7 @@
 <script>
 const inputBusca = document.getElementById('input_busca');
 const resBusca = document.getElementById('res_busca');
-let percentualGlobal = 0; // Inicia em 0% (Particular)
+let percentualGlobal = 0;
 
 inputBusca.oninput = async () => {
     const termo = inputBusca.value;
@@ -129,7 +129,6 @@ async function selecionar(id, textoCompleto) {
     resBusca.classList.add('hidden');
 
     try {
-        // BUSCA O DESCONTO REAL NA API QUE CRIAMOS NO VIEWS.PY
         const r = await fetch(`/api/detalhes-paciente/${id}/`);
         const d = await r.json();
 
@@ -161,7 +160,6 @@ function toggleExameCampo() {
 
 function recalcularDesconto() {
     const valorCheio = parseFloat(document.getElementById('valor_tabela').value) || 0;
-    // O CALCULO AGORA USA O PERCENTUAL QUE VEIO DA API
     const valorFinal = valorCheio * (1 - percentualGlobal);
     document.getElementById('span_valor_desconto').innerText = valorFinal.toLocaleString('pt-BR', {minimumFractionDigits: 2});
 }
@@ -176,7 +174,8 @@ document.getElementById('form-agenda').onsubmit = async (e) => {
 
     const formData = new FormData(e.target);
     try {
-        const response = await fetch(window.location.href, { 
+        // AJUSTE: Usando URL absoluta para evitar erros de redirecionamento
+        const response = await fetch("{% url 'sistema_interno:agenda_view' %}", { 
             method: 'POST', 
             body: formData,
             headers: { 'X-CSRFToken': '{{ csrf_token }}' }
@@ -187,8 +186,13 @@ document.getElementById('form-agenda').onsubmit = async (e) => {
         } else {
             alert('❌ Erro ao salvar.');
             btn.disabled = false;
+            btn.innerText = "Confirmar e Gerar Fatura Paga";
         }
-    } catch (err) { alert('❌ Erro de conexão.'); btn.disabled = false; }
+    } catch (err) { 
+        alert('❌ Erro de conexão.'); 
+        btn.disabled = false;
+        btn.innerText = "Confirmar e Gerar Fatura Paga";
+    }
 };
 </script>
 {% endblock %}

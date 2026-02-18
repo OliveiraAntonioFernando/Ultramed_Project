@@ -46,7 +46,7 @@
                 </div>
 
                 <div class="bg-white p-8 rounded-[2.5rem] shadow-xl border-t-8 border-marsala-700">
-                    <form method="POST" id="form-atendimento">
+                    <form method="POST" action="{% url 'sistema_interno:prontuario_view' paciente.id %}" id="form-atendimento">
                         {% csrf_token %}
                         <div class="mb-6">
                             <h4 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest mb-4">1. Evolução Clínica</h4>
@@ -211,10 +211,26 @@ function abrirModalReceita() {
 }
 function fecharModalReceita() { document.getElementById('modalReceita').classList.add('hidden'); }
 
+// AJUSTE: Função melhorada para garantir Tailwind e cores na impressão
 function imprimirReceitaPopUp() {
     const conteudo = document.getElementById('folha-print').innerHTML;
     const win = window.open('', '', 'height=900,width=800');
-    win.document.write(`<html><head><title>Receita</title><link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet"><style>body{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}.bg-marsala-700{background-color:#700c15!important;}</style></head><body onload="setTimeout(() => { window.print(); window.close(); }, 600)"><div class="p-4">${conteudo}</div></body></html>`);
+    win.document.write(`
+        <html>
+            <head>
+                <title>Receita Ultramed</title>
+                <script src="https://cdn.tailwindcss.com"><\/script>
+                <style>
+                    body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; font-family: sans-serif; }
+                    .bg-marsala-700 { background-color: #700c15 !important; color: white !important; }
+                    @page { size: auto; margin: 10mm; }
+                </style>
+            </head>
+            <body onload="setTimeout(() => { window.print(); window.close(); }, 800)">
+                <div class="p-4">${conteudo}</div>
+            </body>
+        </html>
+    `);
     win.document.close();
 }
 

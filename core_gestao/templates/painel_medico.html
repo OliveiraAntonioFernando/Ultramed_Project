@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="bg-gray-50 min-h-screen">
-    <nav class="bg-marsala-700 p-6 shadow-lg text-white flex justify-between items-center sticky top-0 z-50">
+    <nav class="bg-marsala-700 p-6 shadow-lg text-white flex justify-between items-center sticky top-0 z-50" style="background-color: #700c15;">
         <h2 class="text-xl font-black uppercase italic tracking-tighter">
             Consultório | <span class="font-light opacity-80">Fila de Atendimento</span>
         </h2>
@@ -15,7 +15,7 @@
         </div>
     </nav>
 
-    <div class="p-8 max-w-5xl mx-auto">
+    <div class="p-8 max-w-5xl mx-auto text-left">
         <div class="mb-8 flex justify-between items-end">
             <div>
                 <h3 class="text-xs font-black uppercase text-gray-400 tracking-widest ml-2">Sala de Espera</h3>
@@ -34,14 +34,16 @@
                     <div class="flex items-center gap-6">
                         <div class="w-16 h-16 {% if ag.tipo == 'EXAME' %}bg-blue-100 text-blue-600{% else %}bg-marsala-100 text-marsala-700{% endif %} rounded-[1.5rem] flex flex-col items-center justify-center transition-transform group-hover:scale-110">
                             <span class="text-xs font-black leading-none">{{ ag.hora|time:"H:i" }}</span>
-                            <i class="fas {% if ag.tipo == 'EXAME' %}fa-ultrasound{% else %}fa-user-md{% endif %} text-sm mt-1"></i>
+                            <i class="fas {% if ag.tipo == 'EXAME' %}fa-stethoscope{% else %}fa-user-md{% endif %} text-sm mt-1"></i>
                         </div>
                         
                         <div>
                             <p class="text-base font-black text-gray-800 uppercase italic leading-none">{{ ag.paciente.nome_completo }}</p>
                             <div class="flex items-center gap-2 mt-2">
                                 <span class="text-[9px] font-black px-2 py-0.5 rounded bg-gray-100 text-gray-500 uppercase">{{ ag.get_tipo_display }}</span>
-                                <span class="text-[9px] font-black text-marsala-600 uppercase italic">{{ ag.paciente.plano.nome|default:"Particular" }}</span>
+                                <span class="text-[9px] font-black text-marsala-600 uppercase italic">
+                                    {% if ag.paciente.plano %}{{ ag.paciente.plano.nome }}{% else %}Particular{% endif %}
+                                </span>
                             </div>
                             {% if ag.observacoes %}
                             <p class="text-[10px] text-emerald-600 font-bold mt-1 uppercase tracking-tighter">

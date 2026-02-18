@@ -3,8 +3,8 @@
 {% block title %}Master Control | Ultramed{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen pb-20">
-    <nav class="bg-marsala-700 p-6 shadow-xl flex justify-between items-center text-white sticky top-0 z-50">
+<div class="bg-gray-50 min-h-screen pb-20 text-left">
+    <nav class="bg-marsala-700 p-6 shadow-xl flex justify-between items-center text-white sticky top-0 z-50" style="background-color: #700c15;">
         <h1 class="text-2xl font-black italic uppercase tracking-tighter">
             Ultramed <span class="text-marsala-100 text-sm font-light opacity-80 not-italic uppercase">| Master Control</span>
         </h1>
@@ -22,7 +22,7 @@
 
         {% if pacientes_vencendo %}
         <div class="mb-8 space-y-3">
-            <h3 class="text-[10px] font-black uppercase text-amber-600 tracking-[0.2em] ml-2">Atenção: Assinaturas Próximas ao Vencimento</h3>
+            <h3 class="text-[10px] font-black uppercase text-amber-600 tracking-[0.2em] ml-2">Atenção: Renovações de Titulares (Próximos 30 dias)</h3>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {% for p in pacientes_vencendo %}
                 <div class="bg-white border-l-4 border-amber-500 p-4 rounded-xl shadow-sm flex items-center justify-between border border-gray-100">
@@ -32,10 +32,10 @@
                         </div>
                         <div>
                             <h4 class="text-[11px] font-black text-gray-800 uppercase leading-none">{{ p.nome_completo }}</h4>
-                            <p class="text-[10px] font-bold text-amber-600 mt-1">Vence em: {{ p.vencimento_plano|date:"d/m/Y" }}</p>
+                            <p class="text-[10px] font-bold text-amber-600 mt-1 uppercase italic">Vence em: {{ p.vencimento_plano|date:"d/m/Y" }}</p>
                         </div>
                     </div>
-                    <a href="{% url 'sistema_interno:fatura_create' %}?paciente={{ p.id }}" class="bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black px-3 py-2 rounded-lg uppercase transition-all shadow-md">
+                    <a href="{% url 'sistema_interno:fatura_create' %}?paciente_id={{ p.id }}" class="bg-amber-500 hover:bg-amber-600 text-white text-[9px] font-black px-3 py-2 rounded-lg uppercase transition-all shadow-md no-underline">
                         Renovar
                     </a>
                 </div>
@@ -44,22 +44,23 @@
         </div>
         {% endif %}
 
+        
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento (PIX/Cartão)</p>
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento Mensal (PIX/Cartão)</p>
                 <h3 class="text-2xl font-black text-emerald-600 mt-2 text-center">R$ {{ faturamento_total|floatformat:2 }}</h3>
             </div>
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-amber-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Vencendo (30 dias)</p>
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Titulares à Vencer</p>
                 <h3 class="text-2xl font-black text-amber-600 mt-2 text-center">{{ pacientes_vencendo.count }}</h3>
             </div>
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-blue-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Leads Novos</p>
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Leads Novos (Site)</p>
                 <h3 class="text-2xl font-black text-blue-600 mt-2 text-center">{{ leads_recentes.count }}</h3>
             </div>
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-marsala-700 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Taxa de Adimplência</p>
-                <h3 class="text-2xl font-black text-marsala-700 mt-2 text-center">100%</h3>
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">KPI Crônicos</p>
+                <h3 class="text-2xl font-black text-marsala-700 mt-2 text-center">{{ porcentagem_cronicos }}%</h3>
             </div>
         </div>
 
@@ -94,13 +95,13 @@
                         {% for lead in leads_recentes %}
                         <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center">
                             <div>
-                                <p class="text-[10px] font-black uppercase text-gray-800">{{ lead.nome }}</p>
-                                <p class="text-[9px] text-marsala-600 font-bold">{{ lead.telefone }}</p>
+                                <p class="text-[10px] font-black uppercase text-gray-800 leading-none">{{ lead.nome }}</p>
+                                <p class="text-[9px] text-marsala-600 font-bold mt-1">{{ lead.telefone }}</p>
                             </div>
-                            <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic">{{ lead.interesse }}</span>
+                            <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic tracking-tighter">{{ lead.interesse }}</span>
                         </div>
                         {% empty %}
-                        <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-4">Nenhum lead novo</p>
+                        <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-4 italic">Nenhum lead novo</p>
                         {% endfor %}
                     </div>
                 </div>
@@ -110,27 +111,27 @@
                 <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
                     <div class="p-6 border-b border-gray-50 bg-marsala-50/50 flex justify-between items-center">
                         <h3 class="text-xs font-black uppercase italic text-marsala-800">
-                            <i class="fas fa-history mr-2"></i> Recebimentos (Confirmados)
+                            <i class="fas fa-history mr-2"></i> Recebimentos Recentes (Mês Atual)
                         </h3>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left">
+                        <table class="w-full text-left border-collapse">
                             <tbody class="divide-y divide-gray-50">
                                 {% for b in boletos_recentes %}
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="p-4 pl-8">
-                                        <div class="font-black text-sm uppercase text-gray-800">{{ b.paciente.nome_completo }}</div>
-                                        <div class="text-[9px] text-gray-400 font-bold uppercase italic">Data: {{ b.data_pagamento|date:"d/m/Y" }} | Método: {{ b.metodo_pagamento }}</div>
+                                        <div class="font-black text-sm uppercase text-gray-800 leading-none">{{ b.paciente.nome_completo }}</div>
+                                        <div class="text-[9px] text-gray-400 font-bold uppercase italic mt-1">Data: {{ b.data_pagamento|date:"d/m/Y" }} | Método: {{ b.metodo_pagamento }}</div>
                                     </td>
                                     <td class="p-4 text-center">
                                         <span class="text-sm font-black text-emerald-600">R$ {{ b.valor }}</span>
                                     </td>
                                     <td class="p-4 text-right pr-8">
-                                        <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic">Pago</span>
+                                        <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Confirmado</span>
                                     </td>
                                 </tr>
                                 {% empty %}
-                                <tr><td colspan="3" class="p-10 text-center text-gray-300 font-black uppercase italic text-[10px]">Nenhum pagamento hoje.</td></tr>
+                                <tr><td colspan="3" class="p-10 text-center text-gray-300 font-black uppercase italic text-[10px] tracking-widest">Nenhum pagamento registrado.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>

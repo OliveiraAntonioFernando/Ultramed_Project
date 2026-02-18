@@ -4,8 +4,8 @@
 {% block title %}Meu Espaço | Ultramed Clínica Médica{% endblock %}
 
 {% block content %}
-<div class="bg-gray-100 min-h-screen pb-20">
-    <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8">
+<div class="bg-gray-100 min-h-screen pb-20 text-left">
+    <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8" style="background-color: #700c15;">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div>
                 <h2 class="text-3xl font-black italic uppercase tracking-tighter">Meu Espaço</h2>
@@ -41,14 +41,16 @@
                         <p class="text-xs font-black italic uppercase">{{ paciente.plano.nome|default:"PARTICULAR" }}</p>
                     </div>
                     <div class="bg-white p-2 rounded-xl shadow-inner">
-                        <div class="w-10 h-10 bg-black"></div>
+                        <div class="w-10 h-10 bg-gray-100 flex items-center justify-center">
+                             <i class="fas fa-qrcode text-black text-2xl"></i>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100">
                 <h4 class="text-[10px] font-black uppercase text-gray-400 mb-6 tracking-widest flex items-center">
-                    <i class="fas fa-users mr-3 text-marsala-700"></i> Dependentes
+                    <i class="fas fa-users mr-3 text-marsala-700"></i> Dependentes Vinculados
                 </h4>
                 {% for dep in paciente.dependentes.all %}
                 <div class="flex items-center gap-4 mb-4 p-4 bg-gray-50 rounded-2xl border border-gray-100">
@@ -58,14 +60,14 @@
                     <span class="text-xs font-black text-gray-700 uppercase">{{ dep.nome_completo }}</span>
                 </div>
                 {% empty %}
-                <p class="text-[10px] italic text-gray-300 font-bold uppercase tracking-widest text-center">Nenhum dependente</p>
+                <p class="text-[10px] italic text-gray-300 font-bold uppercase tracking-widest text-center">Nenhum dependente cadastrado</p>
                 {% endfor %}
             </div>
         </div>
 
         <div class="lg:col-span-2 space-y-8">
             
-            <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
+            <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden text-left">
                 <div class="p-8 bg-gray-50 border-b">
                     <h3 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest">Histórico de Consultas</h3>
                 </div>
@@ -77,7 +79,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-black text-gray-800 uppercase">{{ c.tipo }}</p>
-                            <p class="text-[9px] font-bold uppercase opacity-50">{{ c.data|date:"d/m/Y" }} às {{ c.hora }}</p>
+                            <p class="text-[9px] font-bold uppercase opacity-50">{{ c.data|date:"d/m/Y" }} às {{ c.hora|time:"H:i" }}</p>
                         </div>
                     </div>
                     <div>
@@ -85,7 +87,7 @@
                             {% if c.status == 'FINALIZADO' %} bg-emerald-100 text-emerald-600 
                             {% elif c.status == 'CANCELADO' %} bg-red-100 text-red-600 
                             {% else %} bg-sky-100 text-sky-600 {% endif %}">
-                            {{ c.status }}
+                            {{ c.get_status_display|default:c.status }}
                         </span>
                     </div>
                 </div>
@@ -109,20 +111,20 @@
                             </div>
                         </div>
                         {% if e.arquivo %}
-                        <a href="{{ e.arquivo.url }}" target="_blank" class="bg-emerald-500 text-white px-3 py-2 rounded-xl text-[8px] font-black uppercase italic no-underline shadow-md hover:bg-emerald-600 transition-all">
+                        <a href="{{ e.arquivo.url }}" download class="bg-emerald-500 text-white px-3 py-2 rounded-xl text-[8px] font-black uppercase italic no-underline shadow-md hover:bg-emerald-600 transition-all">
                             <i class="fas fa-download"></i>
                         </a>
                         {% endif %}
                     </div>
                     {% empty %}
-                    <p class="col-span-2 text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhum exame localizado</p>
+                    <p class="col-span-2 text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhum resultado disponível no momento</p>
                     {% endfor %}
                 </div>
             </div>
 
             <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
                 <div class="p-8 bg-sky-50/30 border-b">
-                    <h3 class="text-xs font-black uppercase italic text-sky-700 tracking-widest">Minhas Receitas</h3>
+                    <h3 class="text-xs font-black uppercase italic text-sky-700 tracking-widest">Minhas Receitas Digitais</h3>
                 </div>
                 <div class="p-8 space-y-4">
                     {% for r in receitas %}
@@ -134,7 +136,7 @@
                                 <p class="text-[8px] font-bold text-gray-400 uppercase">{{ r.data_emissao|date:"d/m/Y - H:i" }}</p>
                             </div>
                         </div>
-                        <button onclick="alert('CONTEÚDO DA RECEITA:\n\n{{ r.conteudo|escapejs }}')" class="bg-sky-500 text-white px-5 py-2 rounded-xl text-[8px] font-black uppercase italic border-none cursor-pointer hover:bg-sky-600 transition-all">Ver</button>
+                        <button onclick="verReceita('{{ r.conteudo|escapejs }}')" class="bg-sky-500 text-white px-5 py-2 rounded-xl text-[8px] font-black uppercase italic border-none cursor-pointer hover:bg-sky-600 transition-all">Ver</button>
                     </div>
                     {% empty %}
                     <p class="text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhuma receita disponível</p>
@@ -145,4 +147,11 @@
         </div>
     </main>
 </div>
+
+<script>
+    function verReceita(texto) {
+        // Opção profissional: Criar um modal ou usar SweetAlert, aqui mantemos simples mas seguro
+        alert("PRESCRIÇÃO MÉDICA:\n\n" + texto);
+    }
+</script>
 {% endblock %}

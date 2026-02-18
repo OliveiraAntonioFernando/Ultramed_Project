@@ -19,43 +19,60 @@
         }
     </script>
 </head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
-    <div class="max-w-md w-full bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-gray-100">
-        <div class="bg-marsala-700 p-8 text-center">
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4 font-sans">
+    <div class="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
+        <div class="bg-marsala-700 p-10 text-center" style="background-color: #700c15;">
+            <div class="inline-block bg-white p-3 rounded-2xl mb-4 shadow-lg">
+                <i class="fas fa-plus-square text-marsala-700 text-2xl"></i>
+            </div>
             <h1 class="text-white text-2xl font-black italic tracking-tighter uppercase">Ultramed <span class="font-light opacity-80">Acesso</span></h1>
+            <p class="text-marsala-100 text-[9px] uppercase tracking-[0.3em] mt-2 font-bold opacity-60">Sistema de Gestão de Saúde</p>
         </div>
 
         {% if messages %}
-            <div class="px-8 pt-4">
+            <div class="px-8 pt-6">
                 {% for message in messages %}
-                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-xl text-xs font-bold text-center">
+                    <div class="bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-xl text-xs font-bold flex items-center gap-3">
+                        <i class="fas fa-exclamation-circle"></i>
                         {{ message }}
                     </div>
                 {% endfor %}
             </div>
         {% endif %}
 
-        <form method="post" action="{% url 'sistema_interno:login' %}" class="p-8 space-y-6">
+        <form method="post" action="{% url 'sistema_interno:login' %}" class="p-8 space-y-5 text-left">
             {% csrf_token %}
             <div>
-                <label class="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Usuário</label>
-                <div class="relative mt-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest block mb-2">Identificação (Usuário ou CPF)</label>
+                <div class="relative">
                     <i class="fas fa-user absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="text" name="username" class="w-full bg-gray-50 border-0 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-marsala-700 outline-none font-bold text-sm" placeholder="Seu usuário" required>
+                    <input type="text" name="username" autofocus
+                        class="w-full bg-gray-50 border-2 border-gray-50 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-marsala-700 focus:bg-white outline-none font-bold text-sm transition-all" 
+                        placeholder="Digite seu usuário ou CPF" required>
                 </div>
             </div>
 
             <div>
-                <label class="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest">Senha</label>
-                <div class="relative mt-1">
+                <label class="text-[10px] font-black text-gray-400 uppercase ml-2 tracking-widest block mb-2">Senha de Acesso</label>
+                <div class="relative">
                     <i class="fas fa-lock absolute left-4 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                    <input type="password" name="password" class="w-full bg-gray-50 border-0 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-marsala-700 outline-none font-bold text-sm" placeholder="••••••••" required>
+                    <input type="password" name="password" 
+                        class="w-full bg-gray-50 border-2 border-gray-50 p-4 pl-12 rounded-2xl focus:ring-2 focus:ring-marsala-700 focus:bg-white outline-none font-bold text-sm transition-all" 
+                        placeholder="••••••••" required>
                 </div>
             </div>
 
-            <button type="submit" class="w-full bg-marsala-700 text-white py-4 rounded-2xl font-black uppercase italic text-sm shadow-xl hover:bg-marsala-800 transition-all transform hover:-translate-y-1">
-                Entrar no Sistema
-            </button>
+            <div class="pt-2">
+                <button type="submit" class="w-full bg-marsala-700 text-white py-5 rounded-[1.5rem] font-black uppercase italic text-sm shadow-xl shadow-marsala-900/20 hover:bg-marsala-800 transition-all transform hover:-translate-y-1 active:scale-95 border-none cursor-pointer">
+                    Entrar no Sistema
+                </button>
+            </div>
+            
+            <div class="text-center pt-4">
+                <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest">
+                    &copy; 2026 Ultramed Saúde Xingu
+                </p>
+            </div>
         </form>
     </div>
 </body>

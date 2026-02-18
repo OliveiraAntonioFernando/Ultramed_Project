@@ -1,27 +1,29 @@
 {% extends 'base.html' %}
 {% block content %}
-<div class="p-8 bg-gray-50 min-h-screen">
+<div class="p-8 bg-gray-50 min-h-screen text-left">
     <div class="max-w-2xl mx-auto bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-gray-100">
-        <div class="bg-marsala-700 p-8 text-white">
+        <div class="bg-marsala-700 p-8 text-white" style="background-color: #700c15;">
             <h2 class="text-2xl font-black italic uppercase">Registrar Pagamento</h2>
             <p class="text-xs opacity-70">Lançamento de anuidade via PIX ou Cartão de Crédito</p>
         </div>
 
-        <form method="POST" class="p-8 space-y-5">
+        <form method="POST" action="{% url 'sistema_interno:fatura_store' %}" class="p-8 space-y-5">
             {% csrf_token %}
 
             <div>
-                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Selecionar Paciente</label>
-                <select name="paciente" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold" required>
+                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2">Selecionar Paciente</label>
+                <select name="paciente" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold outline-none" required>
                     <option value="">Escolha o paciente...</option>
                     {% for p in pacientes %}
-                    <option value="{{ p.id }}">{{ p.nome_completo }} (CPF: {{ p.cpf }})</option>
+                    <option value="{{ p.id }}" {% if request.GET.paciente_id|add:0 == p.id %}selected{% endif %}>
+                        {{ p.nome_completo }} (CPF: {{ p.cpf|default:"---" }})
+                    </option>
                     {% endfor %}
                 </select>
             </div>
 
             <div>
-                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Método de Pagamento</label>
+                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2">Método de Pagamento</label>
                 <div class="grid grid-cols-2 gap-4">
                     <label class="relative flex items-center p-4 bg-gray-50 rounded-2xl cursor-pointer hover:bg-gray-100 border-2 border-transparent has-[:checked]:border-marsala-700 transition-all">
                         <input type="radio" name="metodo_pagamento" value="PIX" class="hidden" required checked>
@@ -34,30 +36,32 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Valor (R$)</label>
-                    <input type="number" step="0.01" name="valor" placeholder="598.80" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold" required>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2">Valor (R$)</label>
+                    <input type="number" step="0.01" name="valor" placeholder="598.80" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-black text-lg outline-none" required>
                 </div>
                 <div>
-                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Data da Transação</label>
-                    <input type="date" name="data_pagamento" value="{% now 'Y-m-d' %}" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700" required>
+                    <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2">Data da Transação</label>
+                    <input type="date" name="data_pagamento" value="{% now 'Y-m-d' %}" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 outline-none" required>
                 </div>
             </div>
 
             <div>
-                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2">Status</label>
-                <select name="status" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold uppercase text-xs text-green-600">
-                    <option value="pago">Confirmado / Pago</option>
-                    <option value="pendente">Pendente / Aguardando</option>
+                <label class="block text-[10px] font-black text-gray-400 uppercase mb-2 ml-2">Status do Lançamento</label>
+                <select name="status" class="w-full p-4 bg-gray-50 rounded-2xl border-none focus:ring-2 focus:ring-marsala-700 font-bold uppercase text-xs text-emerald-600 outline-none">
+                    <option value="PAGO">Confirmado / Pago</option>
+                    <option value="PENDENTE">Pendente / Aguardando</option>
                 </select>
             </div>
 
-            <button type="submit" class="w-full bg-marsala-700 text-white font-black py-5 rounded-3xl uppercase italic shadow-lg hover:bg-marsala-800 transition-all">
-                Confirmar e Ativar Plano
-            </button>
+            <div class="pt-4">
+                <button type="submit" class="w-full bg-marsala-700 text-white font-black py-5 rounded-3xl uppercase italic shadow-xl shadow-marsala-900/20 hover:bg-marsala-800 transition-all active:scale-95 border-none cursor-pointer">
+                    Confirmar e Ativar Plano
+                </button>
+            </div>
 
-            <a href="{% url 'sistema_interno:master_dashboard' %}" class="block text-center text-[10px] font-black text-gray-400 uppercase hover:text-marsala-700 transition-all">Cancelar e Voltar</a>
+            <a href="{% url 'sistema_interno:master_dashboard' %}" class="block text-center text-[10px] font-black text-gray-400 uppercase hover:text-marsala-700 transition-all no-underline mt-2">Cancelar e Voltar</a>
         </form>
     </div>
 </div>

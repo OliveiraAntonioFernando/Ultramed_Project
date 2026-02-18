@@ -19,6 +19,7 @@ class Paciente(models.Model):
     nome_completo = models.CharField(max_length=255)
     cpf = models.CharField(max_length=14, unique=True)
     possui_dependentes = models.BooleanField(default=False)
+    is_titular = models.BooleanField(default=True) # AJUSTE: Identifica se é o pagador
     telefone = models.CharField(max_length=20)
     data_nascimento = models.DateField()
     sexo = models.CharField(max_length=1, choices=[('M', 'Masculino'), ('F', 'Feminino')], default='M')
@@ -51,10 +52,13 @@ class Fatura(models.Model):
 
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
     valor = models.DecimalField(max_digits=10, decimal_places=2)
-    data_vencimento = models.DateField(auto_now_add=True)
+    # AJUSTE: Removido auto_now_add para permitir vencimentos manuais/futuros
+    data_vencimento = models.DateField() 
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     metodo_pagamento = models.CharField(max_length=20, choices=METODO_CHOICES, blank=True, null=True)
     data_pagamento = models.DateField(null=True, blank=True)
+    # AJUSTE: Campo para guardar o ID do Mercado Pago (antigo transacao_id de Pagamento)
+    mercadopago_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
 
 class Agenda(models.Model):
     TIPOS = [('CONSULTA', 'Consulta'), ('EXAME', 'Exame')]
@@ -76,7 +80,6 @@ class Agenda(models.Model):
     def __str__(self):
         return f"{self.data} {self.hora} - {self.paciente.nome_completo}"
 
-# CLASSE EXAME CORRIGIDA E UNIFICADA
 class Exame(models.Model):
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='exames_paciente')
     nome_exame = models.CharField(max_length=255)
@@ -85,7 +88,6 @@ class Exame(models.Model):
     laudo = models.TextField(blank=True, null=True)
     valor_tabela = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     valor_pago = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
-    # CAMPO ARQUIVO PARA ANEXOS PDF/IMG
     arquivo = models.FileField(upload_to='exames/%Y/%m/%d/', blank=True, null=True)
 
     def __str__(self):
@@ -115,17 +117,4 @@ class LeadSite(models.Model):
     atendido = models.BooleanField(default=False)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
 
-class Pagamento(models.Model):
-    usuario = models.ForeignKey(User, on_delete=models.CASCADE, verbose_name="Usuário")
-    transacao_id = models.CharField(max_length=100, unique=True, null=True, blank=True, verbose_name="ID Transação")
-    valor = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Valor")
-    status = models.CharField(max_length=20, default='pendente', verbose_name="Status")
-    metodo_pagamento = models.CharField(max_length=50, null=True, blank=True, verbose_name="Método")
-    data_criacao = models.DateTimeField(auto_now_add=True, verbose_name="Data de Criação")
-
-    class Meta:
-        verbose_name = "Pagamento"
-        verbose_name_plural = "Pagamentos"
-
-    def __str__(self):
-        return f"{self.usuario.username} - {self.valor} ({self.status})"
+# A CLASSE Pagamento FOI REMOVIDA POIS FOI UNIFICADA À CLASSE Fatura

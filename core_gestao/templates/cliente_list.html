@@ -187,8 +187,12 @@
                 <p><strong>CONTRATADA:</strong><br>ULTRAMED CLÍNICA MÉDICA, CNPJ nº 00.000.000/0000-00, com sede à Rua [endereço], doravante denominada CLÍNICA.</p>
                 <p><strong>ASSINANTE:</strong><br><span id="c_nome" class="font-bold border-b border-black uppercase"></span>, CPF nº <span id="c_cpf" class="font-bold border-b border-black"></span>, residente em <span id="c_end" class="font-bold border-b border-black uppercase"></span>, Bairro <span id="c_bairro" class="font-bold border-b border-black uppercase"></span>, <span id="c_cidade" class="font-bold border-b border-black uppercase"></span>, doravante denominado ASSINANTE.</p>
 
-                <p><strong>CLÁUSULA 1 – DO OBJETO</strong><br>1.1. O presente Termo tem por objeto a adesão ao PLANO DE ASSINATURA EM SAÚDE <span id="c_plano_termo" class="font-black text-marsala-700"></span>...</p>
-                </div>
+                <p><strong>CLÁUSULA 1 – DO OBJETO</strong><br>1.1. O presente Termo tem por objeto a adesão ao PLANO DE ASSINATURA EM SAÚDE <span id="c_plano_termo" class="font-black text-marsala-700"></span>.</p>
+                
+                <p><strong>DEPENDENTES VINCULADOS:</strong></p>
+                <ul id="c_deps" class="list-none p-0 ml-4 font-bold uppercase">
+                    </ul>
+            </div>
 
             <div class="mt-20 grid grid-cols-2 gap-12 text-center">
                 <div><div class="border-t border-black pt-2"><p class="font-black uppercase" id="s_nome"></p><p>CPF: <span id="s_cpf"></span></p></div></div>
@@ -220,7 +224,7 @@
         div.className = "flex gap-2 bg-gray-50 p-3 rounded-xl items-end border border-gray-200 text-left";
         div.innerHTML = `
             <div class="flex-1 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Nome</label><input type="text" name="dep_nome[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs uppercase d-nome"></div>
-            <div class="w-32 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">CPF</label><input type="text" name="dep_cpf[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs d-cpf"></div>
+            <div class="w-32 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">CPF</label><input type="text" name="dep_cpf[]" class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs d-cpf"></div>
             <div class="w-32 text-left"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Nascimento</label><input type="date" name="dep_nascimento[]" required class="w-full p-2 rounded-lg border-2 border-white text-xs d-nasc"></div>
             <div class="w-32 text-left">
                 <label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Grau</label>
