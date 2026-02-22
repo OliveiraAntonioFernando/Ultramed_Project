@@ -92,9 +92,16 @@ def upload_exame(request):
 
 @login_required
 def cliente_list(request):
+    q = request.GET.get('q', '')
+    pacientes = Paciente.objects.filter(responsavel__isnull=True).order_by('-data_cadastro')
+    
+    if q:
+        pacientes = pacientes.filter(Q(nome_completo__icontains=q) | Q(cpf__icontains=q))
+
     context = {
-        'pacientes': Paciente.objects.filter(responsavel__isnull=True).order_by('-data_cadastro'),
-        'planos': Plano.objects.all()
+        'pacientes': pacientes,
+        'planos': Plano.objects.all(),
+        'query': q
     }
     return render(request, 'cliente_list.html', context)
 
@@ -232,7 +239,12 @@ def fatura_create(request):
 @login_required
 def fatura_store(request):
     if request.method == 'POST':
-        paciente = get_object_or_404(Paciente, id=request.POST.get('paciente'))
+        pac_id = request.POST.get('paciente')
+        if not pac_id:
+            messages.error(request, "Selecione um paciente.")
+            return redirect('sistema_interno:fatura_create')
+            
+        paciente = get_object_or_404(Paciente, id=pac_id)
         status = request.POST.get('status').upper()
         valor = request.POST.get('valor').replace(',', '.')
         
@@ -304,16 +316,18 @@ def agenda_view(request):
     return render(request, 'agenda.html', {'agendamentos': agendamentos})
 
 # =================================================================
-# 5. PAINÉIS (MASTER DASHBOARD ATUALIZADO COM BI E CRM)
+# 5. PAINÉIS (MASTER DASHBOARD INTEGRAL)
 # =================================================================
 
 @login_required
 def master_dashboard(request):
     hoje = timezone.now().date()
     
-    # 1. Filtros de CRM e Doenças Crônicas
+    # 1. Filtros de CRM e Busca
     doenca_filtro = request.GET.get('doenca')
     q_busca = request.GET.get('q', '')
+    mes_ref = request.GET.get('mes_referencia')
+    ano_ref = request.GET.get('ano_referencia', hoje.year)
     
     pacientes_lista = Paciente.objects.filter(is_titular=True)
     
@@ -325,43 +339,32 @@ def master_dashboard(request):
             Q(nome_completo__icontains=q_busca) | Q(cpf__icontains=q_busca)
         )
     
-    # 2. Dados Financeiros do Mês
-    pago = Fatura.objects.filter(
-        status='PAGO', 
-        data_pagamento__month=timezone.now().month,
-        data_pagamento__year=timezone.now().year
-    ).aggregate(Sum('valor'))['valor__sum'] or 0
+    # 2. Lógica de Faturamento Mensal (KPI Dinâmico)
+    faturas_pago = Fatura.objects.filter(status='PAGO')
+    if mes_ref:
+        faturas_pago = faturas_pago.filter(data_pagamento__month=mes_ref, data_pagamento__year=ano_ref)
+    else:
+        faturas_pago = faturas_pago.filter(data_pagamento__month=hoje.month, data_pagamento__year=hoje.year)
+
+    pago_total = faturas_pago.aggregate(Sum('valor'))['valor__sum'] or 0
     
-    # 3. Alertas e Leads
+    # 3. Alertas (Renovação nos próximos 30 dias)
     alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
     leads = LeadSite.objects.filter(atendido=False).order_by('-id')
     
-    # 4. Estatísticas Gerais e BI
+    # 4. Estatísticas Gerais
     total_pacientes = Paciente.objects.count()
     total_cronicos = Paciente.objects.filter(is_cronico=True).count()
     porcentagem_cronicos = round((total_cronicos / total_pacientes * 100), 1) if total_pacientes > 0 else 0
 
-    stats_doencas = {
-        'Diabetes': Paciente.objects.filter(doencas_cronicas__icontains='DIABETES').count(),
-        'Hipertensão': Paciente.objects.filter(doencas_cronicas__icontains='HIPERTENSAO').count(),
-        'Asma': Paciente.objects.filter(doencas_cronicas__icontains='ASMA').count(),
-        'Outros': Paciente.objects.filter(is_cronico=True).exclude(
-            Q(doencas_cronicas__icontains='DIABETES') | 
-            Q(doencas_cronicas__icontains='HIPERTENSAO') | 
-            Q(doencas_cronicas__icontains='ASMA')
-        ).count()
-    }
-
     return render(request, 'master_dashboard.html', {
         'pacientes_lista': pacientes_lista,
         'doenca_selecionada': doenca_filtro,
-        'faturamento_total': pago, 
+        'faturamento_total': pago_total, 
         'leads_recentes': leads, 
         'pacientes_vencendo': alertas,
         'boletos_recentes': Fatura.objects.filter(status='PAGO').order_by('-id')[:10],
-        'total_cronicos': total_cronicos,
         'porcentagem_cronicos': porcentagem_cronicos,
-        'stats_doencas': stats_doencas
     })
 
 @login_required
@@ -384,7 +387,6 @@ def painel_paciente(request):
     paciente = get_object_or_404(Paciente, cpf=request.user.username)
     hoje = timezone.now().date()
     
-    # Lógica de gatilho visual para o cartão (vencimento próximo < 10 dias)
     is_vencendo_ou_vencido = False
     if paciente.vencimento_plano:
         is_vencendo_ou_vencido = paciente.vencimento_plano <= (hoje + timedelta(days=10))
