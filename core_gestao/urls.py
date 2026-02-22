@@ -21,23 +21,26 @@ urlpatterns = [
     path('paciente/salvar-doencas/<int:paciente_id>/', views.salvar_doencas_cronicas, name='salvar_doencas'),
     path('paciente/upload-exame/', views.upload_exame, name='upload_exame'),
     
-    # ROTA QUE ESTÁ CAUSANDO O ERRO (Garantir o nome 'cadastro_plano')
+    # Contratação e Planos
     path('contratar-plano/<str:plano_nome>/', views.cadastro_plano_completo, name='cadastro_plano'),
-
-    # Agenda e Planos
-    path('agenda/', views.agenda_view, name='agenda_view'),
     path('plano/venda/', views.plan_create, name='plan_create'),
+
+    # Agenda e Atendimento
+    path('agenda/', views.agenda_view, name='agenda_view'),
+    
+    # GESTÃO DE LEADS E RENOVAÇÕES (AS ROTAS QUE FALTAVAM)
+    path('leads/baixar/<int:lead_id>/', views.baixar_lead, name='baixar_lead'),
+    path('api/solicitar-renovacao/', views.solicitar_renovacao_api, name='solicitar_renovacao_api'),
 
     # Financeiro e Mercado Pago
     path('financeiro/novo-pagamento/', views.fatura_create, name='fatura_create'),
     path('financeiro/salvar/', views.fatura_store, name='fatura_store'),
     path('financeiro/baixar/<int:fatura_id>/', views.fatura_baixar, name='fatura_baixar'),
-    
-    # Fluxo de Pagamento Online
     path('pagamento/<int:paciente_id>/<int:plano_id>/', views.checkout_pagamento, name='checkout_pagamento'),
     path('api/v1/mp/webhook/', views.mercadopago_webhook, name='mp_webhook'),
 
-    # APIs
+    # APIs de Apoio
+    path('api/ultima-receita/<int:paciente_id>/', views.api_ultima_receita, name='api_ultima_receita'),
     path('api/lead-capture/', views.api_lead_capture, name='lead_capture'),
     path('api/buscar-paciente/', views.api_buscar_paciente, name='api_buscar_paciente'),
     path('api/detalhes-paciente/<int:paciente_id>/', views.api_detalhes_paciente, name='api_detalhes_paciente'),

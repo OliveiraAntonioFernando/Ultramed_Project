@@ -117,14 +117,17 @@
                         {% endif %}
                     </div>
                     {% empty %}
-                    <p class="col-span-2 text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhum resultado disponível no momento</p>
+                    <p class="col-span-2 text-center py-10 text-gray-300 font-black uppercase italic text-xs">Nenhum resultado disponível</p>
                     {% endfor %}
                 </div>
             </div>
 
             <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
-                <div class="p-8 bg-sky-50/30 border-b">
+                <div class="p-8 bg-sky-50/30 border-b flex justify-between items-center">
                     <h3 class="text-xs font-black uppercase italic text-sky-700 tracking-widest">Minhas Receitas Digitais</h3>
+                    <button onclick="solicitarRenovacao()" class="bg-marsala-700 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase italic hover:bg-marsala-800 transition-all border-none cursor-pointer">
+                        <i class="fas fa-sync-alt mr-1"></i> Solicitar Renovação
+                    </button>
                 </div>
                 <div class="p-8 space-y-4">
                     {% for r in receitas %}
@@ -150,8 +153,13 @@
 
 <script>
     function verReceita(texto) {
-        // Opção profissional: Criar um modal ou usar SweetAlert, aqui mantemos simples mas seguro
         alert("PRESCRIÇÃO MÉDICA:\n\n" + texto);
+    }
+
+    function solicitarRenovacao() {
+        // Redireciona para o WhatsApp da clínica com mensagem automática
+        const msg = encodeURIComponent("Olá Ultramed! Sou {{ paciente.nome_completo }} e gostaria de solicitar a renovação da minha última receita digital através do painel.");
+        window.open(`https://wa.me/5594984496349?text=${msg}`, '_blank');
     }
 </script>
 {% endblock %}

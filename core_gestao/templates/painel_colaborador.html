@@ -1,10 +1,10 @@
 {% extends 'base.html' %}
 {% block content %}
 <div class="bg-gray-100 min-h-screen pb-20">
-    <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8">
+    <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8" style="background-color: #700c15;">
         <div class="max-w-7xl mx-auto flex justify-between items-center">
             <div>
-                <h2 class="text-2xl font-black italic uppercase italic">Painel Operacional</h2>
+                <h2 class="text-2xl font-black italic uppercase">Painel Operacional</h2>
                 <p class="text-[10px] font-bold uppercase tracking-widest opacity-80">Ultramed Clínica Médica</p>
             </div>
             <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-2xl hover:bg-white/30 transition-all text-white">
@@ -51,11 +51,23 @@
                                 <tr class="hover:bg-gray-50 transition-colors">
                                     <td class="p-6">
                                         <div class="font-black text-sm uppercase text-gray-800 italic leading-none">{{ lead.nome }}</div>
-                                        <div class="text-[10px] text-marsala-600 font-bold mt-2 uppercase tracking-tighter">{{ lead.interesse }}</div>
+                                        <div class="inline-block text-[9px] font-black mt-2 uppercase px-2 py-0.5 rounded
+                                            {% if 'RENOVAÇÃO' in lead.interesse %} bg-amber-100 text-amber-700 {% else %} bg-sky-100 text-sky-700 {% endif %}">
+                                            {{ lead.interesse }}
+                                        </div>
                                     </td>
-                                    <td class="p-6 text-right">
-                                        <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" target="_blank" class="bg-emerald-500 text-white p-3 rounded-xl hover:bg-emerald-600 transition-all inline-block">
+                                    <td class="p-6 text-right flex items-center justify-end gap-2">
+                                        <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" 
+                                           target="_blank" 
+                                           onclick="atenderLead('{{ lead.id }}')"
+                                           class="bg-emerald-500 text-white px-4 py-2 rounded-xl hover:bg-emerald-600 transition-all flex items-center gap-2 no-underline shadow-md">
                                             <i class="fab fa-whatsapp"></i>
+                                            <span class="text-[9px] font-black uppercase">Atender</span>
+                                        </a>
+
+                                        <a href="{% url 'sistema_interno:baixar_lead' lead.id %}" 
+                                           class="bg-gray-100 text-gray-400 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-red-100 hover:text-red-600 transition-all">
+                                            <i class="fas fa-trash-alt text-xs"></i>
                                         </a>
                                     </td>
                                 </tr>
@@ -105,4 +117,18 @@
         </div>
     </main>
 </div>
+
+<script>
+function atenderLead(leadId) {
+    // Dispara a baixa silenciosa no servidor
+    fetch(`/leads/baixar/${leadId}/`)
+        .then(() => {
+            // Recarrega a página após 1 segundo para atualizar a lista
+            setTimeout(() => { 
+                window.location.reload(); 
+            }, 1000);
+        })
+        .catch(err => console.error("Erro ao processar baixa:", err));
+}
+</script>
 {% endblock %}

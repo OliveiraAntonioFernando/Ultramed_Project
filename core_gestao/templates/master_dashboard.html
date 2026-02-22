@@ -93,12 +93,15 @@
                     <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest mb-4">Leads do Site</h4>
                     <div class="bg-white rounded-[2rem] border border-gray-100 p-4 space-y-3 shadow-sm">
                         {% for lead in leads_recentes %}
-                        <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center">
+                        <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center group/item">
                             <div>
                                 <p class="text-[10px] font-black uppercase text-gray-800 leading-none">{{ lead.nome }}</p>
                                 <p class="text-[9px] text-marsala-600 font-bold mt-1">{{ lead.telefone }}</p>
+                                <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic tracking-tighter mt-1 inline-block">{{ lead.interesse }}</span>
                             </div>
-                            <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic tracking-tighter">{{ lead.interesse }}</span>
+                            <a href="{% url 'sistema_interno:baixar_lead' lead.id %}" class="bg-emerald-500 hover:bg-emerald-600 text-white w-8 h-8 flex items-center justify-center rounded-full shadow-md transition-all">
+                                <i class="fas fa-check text-xs"></i>
+                            </a>
                         </div>
                         {% empty %}
                         <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-4 italic">Nenhum lead novo</p>

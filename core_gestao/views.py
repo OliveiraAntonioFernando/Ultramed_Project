@@ -3,7 +3,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.db.models import Sum, Q
+from django.db.models import Sum, Q, Avg, Count
 from django.utils import timezone
 from datetime import timedelta
 from django.contrib import messages
@@ -20,6 +20,9 @@ def calcular_valor_com_desconto(paciente, valor_base):
     """ Calcula o valor final garantindo que Particulares paguem 100% """
     hoje = timezone.now().date()
     try:
+        # Converte para float tratando vírgulas vindas do formulário
+        if isinstance(valor_base, str):
+            valor_base = valor_base.replace(',', '.')
         valor_base = float(valor_base)
     except:
         valor_base = 0.0
@@ -74,7 +77,6 @@ def logout_view(request):
 
 @login_required
 def upload_exame(request):
-    """ API para a recepção anexar exames ao paciente sem entrar no prontuário """
     if request.method == 'POST' and request.FILES.get('arquivo_exame'):
         paciente_id = request.POST.get('paciente_id')
         paciente = get_object_or_404(Paciente, id=paciente_id)
@@ -123,7 +125,6 @@ def cliente_create(request):
 
         nomes_dep = request.POST.getlist('dep_nome[]')
         cpfs_dep = request.POST.getlist('dep_cpf[]')
-        # Ajuste para capturar data de nascimento do dependente se vier do HTML
         nasc_dep = request.POST.getlist('dep_nascimento[]') 
 
         for i in range(len(nomes_dep)):
@@ -146,7 +147,6 @@ def cliente_create(request):
 
 @login_required
 def checkout_pagamento(request, paciente_id, plano_id):
-    """ Gera a preferência de pagamento com tratamento de erro """
     paciente = get_object_or_404(Paciente, id=paciente_id)
     plano = get_object_or_404(Plano, id=plano_id)
     
@@ -198,7 +198,6 @@ def checkout_pagamento(request, paciente_id, plano_id):
 
 @csrf_exempt
 def mercadopago_webhook(request):
-    """ Webhook que dá baixa automática e renova o plano familiar """
     if request.method == 'POST':
         payment_id = request.GET.get('data.id') or request.POST.get('data.id')
         if payment_id:
@@ -219,11 +218,8 @@ def mercadopago_webhook(request):
                         hoje = timezone.now().date()
                         base = p.vencimento_plano if p.vencimento_plano and p.vencimento_plano > hoje else hoje
                         novo_vencimento = base + timedelta(days=365)
-                        
                         p.vencimento_plano = novo_vencimento
                         p.save()
-                        
-                        # Atualiza dependentes
                         Paciente.objects.filter(responsavel=p).update(vencimento_plano=novo_vencimento)
                         
         return JsonResponse({'status': 'ok'}, status=200)
@@ -241,7 +237,7 @@ def fatura_store(request):
     if request.method == 'POST':
         paciente = get_object_or_404(Paciente, id=request.POST.get('paciente'))
         status = request.POST.get('status').upper()
-        valor = request.POST.get('valor')
+        valor = request.POST.get('valor').replace(',', '.')
         
         fatura = Fatura.objects.create(
             paciente=paciente,
@@ -275,32 +271,38 @@ def agenda_view(request):
         return redirect('sistema_interno:painel_colaborador')
 
     if request.method == 'POST':
-        paciente_id = request.POST.get('paciente_id')
-        paciente = get_object_or_404(Paciente, id=paciente_id)
-        tipo = request.POST.get('tipo')
-        exame_nome = request.POST.get('exame_nome', 'Consulta')
-        valor_cheio = request.POST.get('valor_cheio', 0)
-        comprovante = request.POST.get('comprovante', 'N/A')
-        valor_final = calcular_valor_com_desconto(paciente, valor_cheio)
+        try:
+            paciente_id = request.POST.get('paciente_id')
+            paciente = get_object_or_404(Paciente, id=paciente_id)
+            tipo = request.POST.get('tipo')
+            exame_nome = request.POST.get('exame_nome', 'Consulta')
+            valor_cheio = request.POST.get('valor_cheio', '0').replace(',', '.')
+            comprovante = request.POST.get('comprovante', 'N/A')
+            
+            valor_final = calcular_valor_com_desconto(paciente, valor_cheio)
 
-        Agenda.objects.create(
-            paciente=paciente,
-            data=request.POST.get('data'),
-            hora=request.POST.get('hora'),
-            tipo=tipo,
-            status='AGENDADO',
-            observacoes=f"Procedimento: {exame_nome} | Ref: {comprovante} | V.Tabela: {valor_cheio} | V.Final: {valor_final}"
-        )
+            Agenda.objects.create(
+                paciente=paciente,
+                data=request.POST.get('data'),
+                hora=request.POST.get('hora'),
+                tipo=tipo,
+                status='AGENDADO',
+                observacoes=f"Procedimento: {exame_nome} | Ref: {comprovante} | V.Tabela: {valor_cheio} | V.Final: {valor_final}"
+            )
 
-        Fatura.objects.create(
-            paciente=paciente,
-            valor=valor_final,
-            data_vencimento=timezone.now().date(),
-            metodo_pagamento='PIX/CARTAO',
-            status='PAGO',
-            data_pagamento=timezone.now().date()
-        )
-        return redirect('sistema_interno:painel_colaborador')
+            Fatura.objects.create(
+                paciente=paciente,
+                valor=valor_final,
+                data_vencimento=timezone.now().date(),
+                metodo_pagamento='PIX/CARTAO',
+                status='PAGO',
+                data_pagamento=timezone.now().date()
+            )
+            messages.success(request, "Agendamento realizado com sucesso!")
+            return redirect('sistema_interno:painel_colaborador')
+        except Exception as e:
+            messages.error(request, f"Erro ao salvar: {e}")
+            return redirect('sistema_interno:painel_colaborador')
 
     agendamentos = Agenda.objects.filter(data=hoje).order_by('hora')
     return render(request, 'agenda.html', {'agendamentos': agendamentos})
@@ -313,7 +315,7 @@ def agenda_view(request):
 def master_dashboard(request):
     hoje = timezone.now().date()
     alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
-    # Soma faturamento apenas do mês atual
+    
     pago = Fatura.objects.filter(
         status='PAGO', 
         data_pagamento__month=timezone.now().month,
@@ -363,6 +365,27 @@ def painel_paciente(request):
 # =================================================================
 # 6. APIs E GESTÃO MÉDICA
 # =================================================================
+
+@login_required
+def baixar_lead(request, lead_id):
+    """ Marca o lead como atendido e retorna para onde o usuário estava """
+    lead = get_object_or_404(LeadSite, id=lead_id)
+    lead.atendido = True
+    lead.save()
+    # Se for uma chamada comum (link), volta para a página anterior
+    return redirect(request.META.get('HTTP_REFERER', 'sistema_interno:painel_colaborador'))
+
+@login_required
+def solicitar_renovacao_api(request):
+    """ Cria um alerta de renovação para a recepção """
+    paciente = get_object_or_404(Paciente, cpf=request.user.username)
+    LeadSite.objects.create(
+        nome=paciente.nome_completo,
+        telefone=paciente.telefone,
+        interesse=f"RENOVAÇÃO DE RECEITA - ID: {paciente.id}",
+        atendido=False
+    )
+    return JsonResponse({'success': True})
 
 @login_required
 def salvar_doencas_cronicas(request, paciente_id):
@@ -431,14 +454,6 @@ def api_lead_capture(request):
         tel = request.POST.get('telefone')
         int_ = request.POST.get('interesse', 'Geral')
         LeadSite.objects.create(nome=nome, telefone=tel, interesse=int_)
-        Paciente.objects.create(
-            nome_completo=nome, 
-            telefone=tel, 
-            endereco="Vindo do Site", 
-            cidade="SFX", 
-            data_nascimento="1900-01-01",
-            is_titular=True
-        )
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
 
@@ -491,7 +506,6 @@ def cadastro_plano_completo(request, plano_nome):
             plano = Plano.objects.filter(nome__icontains=plano_nome).first() or Plano.objects.first()
             return redirect('sistema_interno:checkout_pagamento', paciente_id=p.id, plano_id=plano.id)
         except Exception as e:
-            print(f"ERRO AO SALVAR: {e}")
             return JsonResponse({'success': False, 'error': str(e)})
 
     return render(request, 'cadastro_plano.html', {'plano_selecionado': plano_nome})
