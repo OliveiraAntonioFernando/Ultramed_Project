@@ -20,7 +20,6 @@ def calcular_valor_com_desconto(paciente, valor_base):
     """ Calcula o valor final garantindo que Particulares paguem 100% """
     hoje = timezone.now().date()
     try:
-        # Converte para float tratando vírgulas vindas do formulário
         if isinstance(valor_base, str):
             valor_base = valor_base.replace(',', '.')
         valor_base = float(valor_base)
@@ -89,7 +88,6 @@ def upload_exame(request):
             data_solicitacao=timezone.now().date()
         )
         messages.success(request, f"Exame anexado com sucesso para {paciente.nome_completo}")
-        return redirect('sistema_interno:cliente_list')
     return redirect('sistema_interno:cliente_list')
 
 @login_required
@@ -193,8 +191,7 @@ def checkout_pagamento(request, paciente_id, plano_id):
             'plano': plano,
             'link_pagamento': preference.get('init_point')
         })
-    else:
-        return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Verifique suas chaves no settings.py')}")
+    return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Erro desconhecido')}")
 
 @csrf_exempt
 def mercadopago_webhook(request):
@@ -302,7 +299,6 @@ def agenda_view(request):
             return redirect('sistema_interno:painel_colaborador')
         except Exception as e:
             messages.error(request, f"Erro ao salvar: {e}")
-            return redirect('sistema_interno:painel_colaborador')
 
     agendamentos = Agenda.objects.filter(data=hoje).order_by('hora')
     return render(request, 'agenda.html', {'agendamentos': agendamentos})
@@ -322,7 +318,9 @@ def master_dashboard(request):
         data_pagamento__year=timezone.now().year
     ).aggregate(Sum('valor'))['valor__sum'] or 0
     
-    leads = LeadSite.objects.filter(atendido=False).order_by('-data_solicitacao')
+    # Busca todos os leads pendentes (incluindo renovações)
+    leads = LeadSite.objects.filter(atendido=False).order_by('-id')
+    
     total_pacientes = Paciente.objects.count()
     total_cronicos = Paciente.objects.filter(is_cronico=True).count()
     porcentagem_cronicos = round((total_cronicos / total_pacientes * 100), 1) if total_pacientes > 0 else 0
@@ -339,7 +337,7 @@ def master_dashboard(request):
 @login_required
 def painel_colaborador(request):
     hoje = timezone.now().date()
-    leads = LeadSite.objects.filter(atendido=False).order_by('-data_solicitacao')
+    leads = LeadSite.objects.filter(atendido=False).order_by('-id')
     agendamentos_hoje = Agenda.objects.filter(data=hoje).order_by('hora')
     return render(request, 'painel_colaborador.html', {
         'leads_recentes': leads,
@@ -368,24 +366,26 @@ def painel_paciente(request):
 
 @login_required
 def baixar_lead(request, lead_id):
-    """ Marca o lead como atendido e retorna para onde o usuário estava """
     lead = get_object_or_404(LeadSite, id=lead_id)
     lead.atendido = True
     lead.save()
-    # Se for uma chamada comum (link), volta para a página anterior
     return redirect(request.META.get('HTTP_REFERER', 'sistema_interno:painel_colaborador'))
 
 @login_required
+@csrf_exempt
 def solicitar_renovacao_api(request):
-    """ Cria um alerta de renovação para a recepção """
-    paciente = get_object_or_404(Paciente, cpf=request.user.username)
-    LeadSite.objects.create(
-        nome=paciente.nome_completo,
-        telefone=paciente.telefone,
-        interesse=f"RENOVAÇÃO DE RECEITA - ID: {paciente.id}",
-        atendido=False
-    )
-    return JsonResponse({'success': True})
+    """ Cria um lead de renovação. Vincula pelo CPF do login. """
+    try:
+        paciente = Paciente.objects.get(cpf=request.user.username)
+        LeadSite.objects.create(
+            nome=paciente.nome_completo,
+            telefone=paciente.telefone,
+            interesse=f"RENOVAÇÃO DE RECEITA - ID: {paciente.id}",
+            atendido=False
+        )
+        return JsonResponse({'success': True})
+    except:
+        return JsonResponse({'success': False}, status=400)
 
 @login_required
 def salvar_doencas_cronicas(request, paciente_id):
@@ -453,7 +453,7 @@ def api_lead_capture(request):
         nome = request.POST.get('nome')
         tel = request.POST.get('telefone')
         int_ = request.POST.get('interesse', 'Geral')
-        LeadSite.objects.create(nome=nome, telefone=tel, interesse=int_)
+        LeadSite.objects.create(nome=nome, telefone=tel, interesse=int_, atendido=False)
         return JsonResponse({'success': True})
     return JsonResponse({'success': False}, status=400)
 
@@ -473,6 +473,7 @@ def prontuario_view(request, paciente_id):
         Agenda.objects.filter(paciente=p, data=timezone.now().date(), status='CHEGOU').update(status='FINALIZADO')
         return redirect('sistema_interno:painel_medico')
         
+    # CORREÇÃO AQUI: faltava referenciar o paciente no filtro de histórico
     hist = Prontuario.objects.filter(paciente=p).order_by('-data_atendimento')
     exames = Exame.objects.filter(paciente=p).order_by('-id')
     return render(request, 'prontuario.html', {'paciente': p, 'historico': hist, 'exames': exames})

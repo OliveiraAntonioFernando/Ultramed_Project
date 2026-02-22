@@ -47,7 +47,7 @@
         
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento Mensal (PIX/Cartão)</p>
+                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento Mensal</p>
                 <h3 class="text-2xl font-black text-emerald-600 mt-2 text-center">R$ {{ faturamento_total|floatformat:2 }}</h3>
             </div>
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-amber-500 shadow-sm transition-transform hover:scale-105">
@@ -94,14 +94,29 @@
                     <div class="bg-white rounded-[2rem] border border-gray-100 p-4 space-y-3 shadow-sm">
                         {% for lead in leads_recentes %}
                         <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center group/item">
-                            <div>
+                            <div class="flex-1">
                                 <p class="text-[10px] font-black uppercase text-gray-800 leading-none">{{ lead.nome }}</p>
                                 <p class="text-[9px] text-marsala-600 font-bold mt-1">{{ lead.telefone }}</p>
-                                <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic tracking-tighter mt-1 inline-block">{{ lead.interesse }}</span>
+                                <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic tracking-tighter mt-1 inline-block">
+                                    {{ lead.interesse }}
+                                </span>
                             </div>
-                            <a href="{% url 'sistema_interno:baixar_lead' lead.id %}" class="bg-emerald-500 hover:bg-emerald-600 text-white w-8 h-8 flex items-center justify-center rounded-full shadow-md transition-all">
-                                <i class="fas fa-check text-xs"></i>
-                            </a>
+                            
+                            <div class="flex items-center gap-2">
+                                <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" 
+                                   target="_blank" 
+                                   onclick="atenderLead('{{ lead.id }}')"
+                                   class="bg-emerald-500 hover:bg-emerald-600 text-white w-9 h-9 flex items-center justify-center rounded-xl shadow-md transition-all no-underline"
+                                   title="Atender no WhatsApp">
+                                    <i class="fab fa-whatsapp text-lg"></i>
+                                </a>
+
+                                <a href="{% url 'sistema_interno:baixar_lead' lead.id %}" 
+                                   class="bg-gray-200 hover:bg-red-100 hover:text-red-600 text-gray-500 w-9 h-9 flex items-center justify-center rounded-xl transition-all"
+                                   title="Retirar da lista">
+                                    <i class="fas fa-trash-alt text-xs"></i>
+                                </a>
+                            </div>
                         </div>
                         {% empty %}
                         <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-4 italic">Nenhum lead novo</p>
@@ -144,4 +159,18 @@
         </div>
     </main>
 </div>
+
+<script>
+function atenderLead(leadId) {
+    // Dispara a baixa do lead no banco em segundo plano
+    fetch(`/leads/baixar/${leadId}/`)
+        .then(() => {
+            // Recarrega a página após 1 segundo para atualizar a lista visual
+            setTimeout(() => { 
+                window.location.reload(); 
+            }, 1000);
+        })
+        .catch(err => console.error("Erro ao processar baixa:", err));
+}
+</script>
 {% endblock %}
