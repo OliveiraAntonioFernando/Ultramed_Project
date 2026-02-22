@@ -44,7 +44,6 @@
         </div>
         {% endif %}
 
-        
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
             <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-sm transition-transform hover:scale-105">
                 <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento Mensal</p>
@@ -64,7 +63,23 @@
             </div>
         </div>
 
+        <div class="mb-8">
+            <h3 class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] ml-2 mb-4">Filtrar para Disparos Farmácia</h3>
+            <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-wrap items-center gap-4">
+                <a href="?doenca=" class="px-5 py-2 rounded-xl text-[10px] font-black uppercase italic {% if not doenca_selecionada %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Todos</a>
+                <a href="?doenca=DIABETES" class="px-5 py-2 rounded-xl text-[10px] font-black uppercase italic {% if doenca_selecionada == 'DIABETES' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Diabéticos</a>
+                <a href="?doenca=HIPERTENSAO" class="px-5 py-2 rounded-xl text-[10px] font-black uppercase italic {% if doenca_selecionada == 'HIPERTENSAO' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Hipertensos</a>
+                <a href="?doenca=ASMA" class="px-5 py-2 rounded-xl text-[10px] font-black uppercase italic {% if doenca_selecionada == 'ASMA' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Asmáticos</a>
+                
+                <form method="GET" class="flex-1 min-w-[200px] flex gap-2">
+                    <input type="text" name="q" placeholder="Buscar por Nome ou CPF..." class="w-full bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold" value="{{ request.GET.q }}">
+                    <button type="submit" class="bg-gray-800 text-white p-2 rounded-xl"><i class="fas fa-search"></i></button>
+                </form>
+            </div>
+        </div>
+
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
             <div class="lg:col-span-1 space-y-4">
                 <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest">Ações Rápidas</h4>
 
@@ -82,13 +97,6 @@
                     <span class="text-xs font-bold uppercase italic text-marsala-700">Lançar Novo Pagamento</span>
                 </a>
 
-                <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-marsala-700 transition-all group no-underline">
-                    <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <span class="text-xs font-bold uppercase italic text-gray-700 group-hover:text-marsala-700">Gerenciar Pacientes</span>
-                </a>
-
                 <div class="mt-8">
                     <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest mb-4">Leads do Site</h4>
                     <div class="bg-white rounded-[2rem] border border-gray-100 p-4 space-y-3 shadow-sm">
@@ -101,19 +109,14 @@
                                     {{ lead.interesse }}
                                 </span>
                             </div>
-                            
                             <div class="flex items-center gap-2">
                                 <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}" 
                                    target="_blank" 
                                    onclick="atenderLead('{{ lead.id }}')"
-                                   class="bg-emerald-500 hover:bg-emerald-600 text-white w-9 h-9 flex items-center justify-center rounded-xl shadow-md transition-all no-underline"
-                                   title="Atender no WhatsApp">
+                                   class="bg-emerald-500 hover:bg-emerald-600 text-white w-9 h-9 flex items-center justify-center rounded-xl shadow-md transition-all no-underline">
                                     <i class="fab fa-whatsapp text-lg"></i>
                                 </a>
-
-                                <a href="{% url 'sistema_interno:baixar_lead' lead.id %}" 
-                                   class="bg-gray-200 hover:bg-red-100 hover:text-red-600 text-gray-500 w-9 h-9 flex items-center justify-center rounded-xl transition-all"
-                                   title="Retirar da lista">
+                                <a href="{% url 'sistema_interno:baixar_lead' lead.id %}" class="bg-gray-200 hover:bg-red-100 hover:text-red-600 text-gray-500 w-9 h-9 flex items-center justify-center rounded-xl transition-all">
                                     <i class="fas fa-trash-alt text-xs"></i>
                                 </a>
                             </div>
@@ -126,6 +129,37 @@
             </div>
 
             <div class="lg:col-span-2 space-y-8">
+                
+                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="p-6 border-b border-gray-50 bg-emerald-50/50 flex justify-between items-center">
+                        <h3 class="text-xs font-black uppercase italic text-emerald-800">
+                            <i class="fas fa-bullhorn mr-2"></i> Disparo de Promoções ({{ pacientes_lista.count }})
+                        </h3>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left">
+                            <tbody class="divide-y divide-gray-50">
+                                {% for p in pacientes_lista %}
+                                <tr class="hover:bg-gray-50">
+                                    <td class="p-4 pl-8">
+                                        <div class="font-black text-sm uppercase text-gray-800">{{ p.nome_completo }}</div>
+                                        <div class="text-[9px] text-gray-400 font-bold uppercase">{{ p.doencas_cronicas|default:"Titular em Dia" }}</div>
+                                    </td>
+                                    <td class="p-4 text-right pr-8">
+                                        <button onclick="enviarPromocaoFarmacia('{{ p.nome_completo }}', '{{ p.telefone }}', '{{ doenca_selecionada }}')" 
+                                                class="bg-emerald-500 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase italic hover:bg-emerald-600 shadow-md">
+                                            <i class="fab fa-whatsapp mr-1"></i> Enviar Oferta
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr><td class="p-10 text-center text-gray-300 font-black uppercase italic text-[10px]">Nenhum paciente no filtro selecionado.</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
                 <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
                     <div class="p-6 border-b border-gray-50 bg-marsala-50/50 flex justify-between items-center">
                         <h3 class="text-xs font-black uppercase italic text-marsala-800">
@@ -133,23 +167,21 @@
                         </h3>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="w-full text-left border-collapse">
+                        <table class="w-full text-left">
                             <tbody class="divide-y divide-gray-50">
                                 {% for b in boletos_recentes %}
-                                <tr class="hover:bg-gray-50 transition-colors">
+                                <tr class="hover:bg-gray-50">
                                     <td class="p-4 pl-8">
-                                        <div class="font-black text-sm uppercase text-gray-800 leading-none">{{ b.paciente.nome_completo }}</div>
-                                        <div class="text-[9px] text-gray-400 font-bold uppercase italic mt-1">Data: {{ b.data_pagamento|date:"d/m/Y" }} | Método: {{ b.metodo_pagamento }}</div>
+                                        <div class="font-black text-sm uppercase text-gray-800">{{ b.paciente.nome_completo }}</div>
+                                        <div class="text-[9px] text-gray-400 font-bold uppercase">{{ b.data_pagamento|date:"d/m/Y" }} | {{ b.metodo_pagamento }}</div>
                                     </td>
                                     <td class="p-4 text-center">
                                         <span class="text-sm font-black text-emerald-600">R$ {{ b.valor }}</span>
                                     </td>
                                     <td class="p-4 text-right pr-8">
-                                        <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Confirmado</span>
+                                        <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic">Pago</span>
                                     </td>
                                 </tr>
-                                {% empty %}
-                                <tr><td colspan="3" class="p-10 text-center text-gray-300 font-black uppercase italic text-[10px] tracking-widest">Nenhum pagamento registrado.</td></tr>
                                 {% endfor %}
                             </tbody>
                         </table>
@@ -162,15 +194,22 @@
 
 <script>
 function atenderLead(leadId) {
-    // Dispara a baixa do lead no banco em segundo plano
     fetch(`/leads/baixar/${leadId}/`)
-        .then(() => {
-            // Recarrega a página após 1 segundo para atualizar a lista visual
-            setTimeout(() => { 
-                window.location.reload(); 
-            }, 1000);
-        })
-        .catch(err => console.error("Erro ao processar baixa:", err));
+        .then(() => { setTimeout(() => { window.location.reload(); }, 1000); });
+}
+
+function enviarPromocaoFarmacia(nome, telefone, doenca) {
+    let saudacao = `Olá ${nome}! Vimos que você faz parte do nosso grupo de cuidados especializados na Ultramed.`;
+    let oferta = "A Farmácia Ultramed está com descontos de até 30% em toda a linha de medicamentos hoje!";
+    
+    if (doenca === 'DIABETES') {
+        oferta = "Temos ofertas exclusivas em Insulinas e medidores de glicose na Farmácia Ultramed para você esta semana!";
+    } else if (doenca === 'HIPERTENSAO') {
+        oferta = "Sua saúde cardiovascular é prioridade! Confira os descontos em anti-hipertensivos na Farmácia Ultramed.";
+    }
+
+    const mensagem = encodeURIComponent(`${saudacao}\n\n${oferta}\n\nBasta apresentar sua carteirinha digital do painel!`);
+    window.open(`https://wa.me/55${telefone.replace(/\D/g,'')}?text=${mensagem}`, '_blank');
 }
 </script>
 {% endblock %}

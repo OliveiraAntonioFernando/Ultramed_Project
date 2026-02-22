@@ -5,7 +5,7 @@ from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q, Avg, Count
 from django.utils import timezone
-from datetime import timedelta
+from datetime import timedelta, date
 from django.contrib import messages
 from django.conf import settings
 import mercadopago
@@ -304,34 +304,64 @@ def agenda_view(request):
     return render(request, 'agenda.html', {'agendamentos': agendamentos})
 
 # =================================================================
-# 5. PAINÉIS
+# 5. PAINÉIS (MASTER DASHBOARD ATUALIZADO COM BI E CRM)
 # =================================================================
 
 @login_required
 def master_dashboard(request):
     hoje = timezone.now().date()
-    alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
     
+    # 1. Filtros de CRM e Doenças Crônicas
+    doenca_filtro = request.GET.get('doenca')
+    q_busca = request.GET.get('q', '')
+    
+    pacientes_lista = Paciente.objects.filter(is_titular=True)
+    
+    if doenca_filtro:
+        pacientes_lista = pacientes_lista.filter(doencas_cronicas__icontains=doenca_filtro)
+    
+    if q_busca:
+        pacientes_lista = pacientes_lista.filter(
+            Q(nome_completo__icontains=q_busca) | Q(cpf__icontains=q_busca)
+        )
+    
+    # 2. Dados Financeiros do Mês
     pago = Fatura.objects.filter(
         status='PAGO', 
         data_pagamento__month=timezone.now().month,
         data_pagamento__year=timezone.now().year
     ).aggregate(Sum('valor'))['valor__sum'] or 0
     
-    # Busca todos os leads pendentes (incluindo renovações)
+    # 3. Alertas e Leads
+    alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
     leads = LeadSite.objects.filter(atendido=False).order_by('-id')
     
+    # 4. Estatísticas Gerais e BI
     total_pacientes = Paciente.objects.count()
     total_cronicos = Paciente.objects.filter(is_cronico=True).count()
     porcentagem_cronicos = round((total_cronicos / total_pacientes * 100), 1) if total_pacientes > 0 else 0
 
+    stats_doencas = {
+        'Diabetes': Paciente.objects.filter(doencas_cronicas__icontains='DIABETES').count(),
+        'Hipertensão': Paciente.objects.filter(doencas_cronicas__icontains='HIPERTENSAO').count(),
+        'Asma': Paciente.objects.filter(doencas_cronicas__icontains='ASMA').count(),
+        'Outros': Paciente.objects.filter(is_cronico=True).exclude(
+            Q(doencas_cronicas__icontains='DIABETES') | 
+            Q(doencas_cronicas__icontains='HIPERTENSAO') | 
+            Q(doencas_cronicas__icontains='ASMA')
+        ).count()
+    }
+
     return render(request, 'master_dashboard.html', {
+        'pacientes_lista': pacientes_lista,
+        'doenca_selecionada': doenca_filtro,
         'faturamento_total': pago, 
         'leads_recentes': leads, 
         'pacientes_vencendo': alertas,
         'boletos_recentes': Fatura.objects.filter(status='PAGO').order_by('-id')[:10],
         'total_cronicos': total_cronicos,
-        'porcentagem_cronicos': porcentagem_cronicos
+        'porcentagem_cronicos': porcentagem_cronicos,
+        'stats_doencas': stats_doencas
     })
 
 @login_required
@@ -352,8 +382,16 @@ def painel_medico(request):
 @login_required
 def painel_paciente(request):
     paciente = get_object_or_404(Paciente, cpf=request.user.username)
+    hoje = timezone.now().date()
+    
+    # Lógica de gatilho visual para o cartão (vencimento próximo < 10 dias)
+    is_vencendo_ou_vencido = False
+    if paciente.vencimento_plano:
+        is_vencendo_ou_vencido = paciente.vencimento_plano <= (hoje + timedelta(days=10))
+
     context = {
         'paciente': paciente,
+        'is_vencendo_ou_vencido': is_vencendo_ou_vencido,
         'exames': Exame.objects.filter(paciente=paciente).order_by('-data_solicitacao'),
         'receitas': Receita.objects.filter(paciente=paciente).order_by('-data_emissao'),
         'consultas': Agenda.objects.filter(paciente=paciente).order_by('-data', '-hora'),
@@ -374,7 +412,6 @@ def baixar_lead(request, lead_id):
 @login_required
 @csrf_exempt
 def solicitar_renovacao_api(request):
-    """ Cria um lead de renovação. Vincula pelo CPF do login. """
     try:
         paciente = Paciente.objects.get(cpf=request.user.username)
         LeadSite.objects.create(
@@ -473,7 +510,6 @@ def prontuario_view(request, paciente_id):
         Agenda.objects.filter(paciente=p, data=timezone.now().date(), status='CHEGOU').update(status='FINALIZADO')
         return redirect('sistema_interno:painel_medico')
         
-    # CORREÇÃO AQUI: faltava referenciar o paciente no filtro de histórico
     hist = Prontuario.objects.filter(paciente=p).order_by('-data_atendimento')
     exames = Exame.objects.filter(paciente=p).order_by('-id')
     return render(request, 'prontuario.html', {'paciente': p, 'historico': hist, 'exames': exames})
