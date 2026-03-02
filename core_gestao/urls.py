@@ -28,7 +28,7 @@ urlpatterns = [
     # Agenda e Atendimento
     path('agenda/', views.agenda_view, name='agenda_view'),
     
-    # GESTÃO DE LEADS E RENOVAÇÕES (AS ROTAS QUE FALTAVAM)
+    # GESTÃO DE LEADS E RENOVAÇÕES
     path('leads/baixar/<int:lead_id>/', views.baixar_lead, name='baixar_lead'),
     path('api/solicitar-renovacao/', views.solicitar_renovacao_api, name='solicitar_renovacao_api'),
 
@@ -37,6 +37,10 @@ urlpatterns = [
     path('financeiro/salvar/', views.fatura_store, name='fatura_store'),
     path('financeiro/baixar/<int:fatura_id>/', views.fatura_baixar, name='fatura_baixar'),
     path('pagamento/<int:paciente_id>/<int:plano_id>/', views.checkout_pagamento, name='checkout_pagamento'),
+    
+    # ROTA CRUCIAL PARA O CHECKOUT TRANSPARENTE (BRICKS)
+    path('api/v1/processar-pagamento/', views.processar_pagamento_brick, name='processar_pagamento_brick'),
+    
     path('api/v1/mp/webhook/', views.mercadopago_webhook, name='mp_webhook'),
 
     # APIs de Apoio
@@ -46,7 +50,5 @@ urlpatterns = [
     path('api/detalhes-paciente/<int:paciente_id>/', views.api_detalhes_paciente, name='api_detalhes_paciente'),
 ]
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-else:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Configuração de Mídia (Upload de Exames)
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

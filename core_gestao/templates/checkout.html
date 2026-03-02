@@ -13,19 +13,19 @@
 
     <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
         <div class="bg-gradient-to-r from-[#700c15] to-[#9a111d] p-6 text-white text-center">
-            <h1 class="text-2xl font-bold">Finalizar Assinatura</h1>
-            <p class="text-sm opacity-80">Ultramed Saúde Xingu</p>
+            <h1 class="text-2xl font-bold uppercase italic tracking-tighter">Finalizar Assinatura</h1>
+            <p class="text-xs opacity-80 uppercase font-bold">Ultramed Clinica Médica</p>
         </div>
 
         <div class="p-8">
             <div class="mb-8 border-b border-dashed border-gray-200 pb-6">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-gray-500 font-medium">Plano Selecionado:</span>
-                    <span class="font-bold text-gray-800">{{ plano.nome }}</span>
+                    <span class="text-[10px] font-black uppercase text-gray-400">Plano Selecionado:</span>
+                    <span class="font-bold text-gray-800 uppercase italic">{{ plano.nome }}</span>
                 </div>
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-gray-500 font-medium">Paciente:</span>
-                    <span class="font-bold text-gray-800 text-right">{{ paciente.nome_completo }}</span>
+                    <span class="text-[10px] font-black uppercase text-gray-400">Paciente:</span>
+                    <span class="font-bold text-gray-800 text-right uppercase">{{ paciente.nome_completo }}</span>
                 </div>
                 <div class="flex justify-between items-center mt-6">
                     <span class="text-gray-800 font-extrabold text-lg">Total a pagar:</span>
@@ -33,39 +33,88 @@
                 </div>
             </div>
 
-            <div id="wallet_container" class="min-h-[48px]">
-                </div>
+            <div id="paymentBrick_container"></div>
 
-            <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest">
+            <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest italic">
                 <i class="fas fa-lock mr-1"></i> Pagamento Processado pelo Mercado Pago
             </p>
         </div>
     </div>
 
     <script>
-        // Inicializa o Mercado Pago com a sua Public Key vinda do Django
         const mp = new MercadoPago('{{ public_key }}', {
             locale: 'pt-BR'
         });
 
         const bricksBuilder = mp.bricks();
 
-        // Renderiza o botão de pagamento
-        bricksBuilder.create("wallet", "wallet_container", {
-            initialization: {
-                preferenceId: '{{ preference_id }}',
-                redirectMode: 'modal'
-            },
-            customization: {
-                texts: {
-                    valueProp: 'smart_option',
+        const renderPaymentBrick = async (bricksBuilder) => {
+            const settings = {
+                initialization: {
+                    amount: parseFloat("{{ plano.valor_anual }}"),
+                    preferenceId: '{{ preference_id }}',
+                    payer: {
+                        firstName: "{{ paciente.nome_completo }}",
+                        // Ajustado para e-mail de teste para evitar bloqueio no Sandbox
+                        email: "test_user_ultramed@testuser.com", 
+                    },
                 },
-                visual: {
-                    buttonBackground: 'default',
-                    borderRadius: '12px',
-                }
-            }
-        });
+                customization: {
+                    paymentMethods: {
+                        bankTransfer: "all", // PIX
+                        creditCard: "all",   // CARTÃO
+                        maxInstallments: 12
+                    },
+                    visual: {
+                        style: {
+                            theme: "default",
+                        },
+                    },
+                },
+                callbacks: {
+                    onReady: () => {
+                        console.log("Checkout Transparente Pronto");
+                    },
+                    onSubmit: ({ selectedPaymentMethod, formData }) => {
+                        formData.external_reference = "{{ fatura.id }}";
+
+                        return new Promise((resolve, reject) => {
+                            fetch("/api/v1/processar-pagamento/", {
+                                method: "POST",
+                                headers: {
+                                    "Content-Type": "application/json",
+                                },
+                                body: JSON.stringify(formData),
+                            })
+                            .then((response) => response.json())
+                            .then((result) => {
+                                if (result.status === 'approved' || result.status === 'pending') {
+                                    // No PIX ele fica como 'pending' (aguardando pagamento)
+                                    window.location.href = "/sistema/painel/?status=pago";
+                                } else {
+                                    alert("Pagamento não aprovado ou recusado. Tente novamente.");
+                                    resolve();
+                                }
+                            })
+                            .catch((error) => {
+                                console.error("Erro no processamento:", error);
+                                reject();
+                            });
+                        });
+                    },
+                    onError: (error) => {
+                        console.error("Erro no Brick:", error);
+                    },
+                },
+            };
+            window.paymentBrickController = await bricksBuilder.create(
+                "payment",
+                "paymentBrick_container",
+                settings
+            );
+        };
+
+        renderPaymentBrick(bricksBuilder);
     </script>
 </body>
 </html>

@@ -9,6 +9,7 @@ from datetime import timedelta, date
 from django.contrib import messages
 from django.conf import settings
 import mercadopago
+import json
 
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
 
@@ -17,7 +18,6 @@ from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda
 # =================================================================
 
 def calcular_valor_com_desconto(paciente, valor_base):
-    """ Calcula o valor final garantindo que Particulares paguem 100% """
     hoje = timezone.now().date()
     try:
         if isinstance(valor_base, str):
@@ -147,7 +147,7 @@ def cliente_create(request):
     return redirect('sistema_interno:cliente_list')
 
 # =================================================================
-# 4. FINANCEIRO, AGENDA E MERCADO PAGO
+# 4. FINANCEIRO E MERCADO PAGO (CHECKOUT TRANSPARENTE)
 # =================================================================
 
 @login_required
@@ -179,8 +179,8 @@ def checkout_pagamento(request, paciente_id, plano_id):
             "identification": {"type": "CPF", "number": paciente.cpf.replace(".","").replace("-","") if paciente.cpf else "00000000000"}
         },
         "back_urls": {
-            "success": "https://ultramedsaudexingu.com.br/sistema/painel/",
-            "failure": "https://ultramedsaudexingu.com.br/sistema/painel/",
+            "success": request.build_absolute_uri('/sistema/painel/'),
+            "failure": request.build_absolute_uri('/sistema/painel/'),
         },
         "auto_return": "approved",
         "external_reference": str(fatura.id),
@@ -189,21 +189,65 @@ def checkout_pagamento(request, paciente_id, plano_id):
 
     pref_res = sdk.preference().create(preference_data)
     
-    if pref_res["status"] == 200 or pref_res["status"] == 201:
+    if pref_res["status"] in [200, 201]:
         preference = pref_res["response"]
         return render(request, 'checkout.html', {
             'preference_id': preference['id'],
             'public_key': settings.MERCADO_PAGO_PUBLIC_KEY,
             'paciente': paciente,
             'plano': plano,
-            'link_pagamento': preference.get('init_point')
+            'fatura': fatura
         })
     return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Erro desconhecido')}")
 
 @csrf_exempt
+@login_required
+def processar_pagamento_brick(request):
+    """ Processa o pagamento enviado via AJAX pelo Checkout Transparente """
+    if request.method == 'POST':
+        try:
+            # Captura o corpo da requisição enviada pelo Bricks
+            data = json.loads(request.body)
+            sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+
+            # Prepara os dados para a API de Pagamentos (Mercado Pago Bricks)
+            payment_data = {
+                "transaction_amount": float(data.get('transaction_amount')),
+                "token": data.get('token'),
+                "description": data.get('description', 'Plano Ultramed'),
+                "installments": int(data.get('installments', 1)),
+                "payment_method_id": data.get('payment_method_id'),
+                "payer": data.get('payer'),
+                "external_reference": str(data.get('external_reference')),
+            }
+
+            payment_response = sdk.payment().create(payment_data)
+            payment = payment_response["response"]
+
+            # Se aprovado, já damos baixa para o usuário não esperar o Webhook
+            if payment.get("status") == "approved":
+                fatura_id = data.get('external_reference')
+                fatura = Fatura.objects.filter(id=fatura_id).first()
+                if fatura:
+                    fatura.status = 'PAGO'
+                    fatura.data_pagamento = timezone.now().date()
+                    fatura.mercadopago_id = str(payment.get("id"))
+                    fatura.save()
+                    
+                    p = fatura.paciente
+                    p.vencimento_plano = timezone.now().date() + timedelta(days=365)
+                    p.save()
+                    Paciente.objects.filter(responsavel=p).update(vencimento_plano=p.vencimento_plano)
+
+            return JsonResponse({"status": payment.get("status"), "id": payment.get("id")})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+    return JsonResponse({"status": "error"}, status=405)
+
+@csrf_exempt
 def mercadopago_webhook(request):
     if request.method == 'POST':
-        payment_id = request.GET.get('data.id') or request.POST.get('data.id')
+        payment_id = request.GET.get('data.id') or request.POST.get('data.id') or request.GET.get('id')
         if payment_id:
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
             payment_info = sdk.payment().get(payment_id)
@@ -228,6 +272,10 @@ def mercadopago_webhook(request):
                         
         return JsonResponse({'status': 'ok'}, status=200)
     return JsonResponse({'status': 'erro'}, status=400)
+
+# =================================================================
+# 5. DEMAIS FUNÇÕES (FINANCEIRO, AGENDA, PAINÉIS)
+# =================================================================
 
 @login_required
 def fatura_create(request):
@@ -315,15 +363,9 @@ def agenda_view(request):
     agendamentos = Agenda.objects.filter(data=hoje).order_by('hora')
     return render(request, 'agenda.html', {'agendamentos': agendamentos})
 
-# =================================================================
-# 5. PAINÉIS (MASTER DASHBOARD INTEGRAL)
-# =================================================================
-
 @login_required
 def master_dashboard(request):
     hoje = timezone.now().date()
-    
-    # 1. Filtros de CRM e Busca
     doenca_filtro = request.GET.get('doenca')
     q_busca = request.GET.get('q', '')
     mes_ref = request.GET.get('mes_referencia')
@@ -339,7 +381,6 @@ def master_dashboard(request):
             Q(nome_completo__icontains=q_busca) | Q(cpf__icontains=q_busca)
         )
     
-    # 2. Lógica de Faturamento Mensal (KPI Dinâmico)
     faturas_pago = Fatura.objects.filter(status='PAGO')
     if mes_ref:
         faturas_pago = faturas_pago.filter(data_pagamento__month=mes_ref, data_pagamento__year=ano_ref)
@@ -347,12 +388,8 @@ def master_dashboard(request):
         faturas_pago = faturas_pago.filter(data_pagamento__month=hoje.month, data_pagamento__year=hoje.year)
 
     pago_total = faturas_pago.aggregate(Sum('valor'))['valor__sum'] or 0
-    
-    # 3. Alertas (Renovação nos próximos 30 dias)
     alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
     leads = LeadSite.objects.filter(atendido=False).order_by('-id')
-    
-    # 4. Estatísticas Gerais
     total_pacientes = Paciente.objects.count()
     total_cronicos = Paciente.objects.filter(is_cronico=True).count()
     porcentagem_cronicos = round((total_cronicos / total_pacientes * 100), 1) if total_pacientes > 0 else 0
@@ -386,7 +423,6 @@ def painel_medico(request):
 def painel_paciente(request):
     paciente = get_object_or_404(Paciente, cpf=request.user.username)
     hoje = timezone.now().date()
-    
     is_vencendo_ou_vencido = False
     if paciente.vencimento_plano:
         is_vencendo_ou_vencido = paciente.vencimento_plano <= (hoje + timedelta(days=10))
@@ -401,7 +437,7 @@ def painel_paciente(request):
     return render(request, 'painel_paciente.html', context)
 
 # =================================================================
-# 6. APIs E GESTÃO MÉDICA
+# 6. APIs DE APOIO E GESTÃO MÉDICA
 # =================================================================
 
 @login_required

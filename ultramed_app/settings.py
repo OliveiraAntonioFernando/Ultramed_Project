@@ -6,7 +6,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'f!#o4kk(_+=@oiwl1e-gr#en#pg8rmizv3$#+w-^u69y@m0g=k')
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-# 1. AJUSTE DE DOMÍNIOS (Adicionado o IP que apareceu no erro do Log)
+# 1. AJUSTE DE DOMÍNIOS
 ALLOWED_HOSTS = [
     'ultramedsaudexingu.com.br', 
     'www.ultramedsaudexingu.com.br', 
@@ -80,7 +80,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # SEGURANÇA, HTTPS E CSRF (CORREÇÃO DEFINITIVA DO ERRO DE TOKEN)
 # =================================================================
 
-# 2. ORIGENS CONFIÁVEIS (Adicionado variações para evitar conflito com Nginx)
+# 2. ORIGENS CONFIÁVEIS
 CSRF_TRUSTED_ORIGINS = [
     'https://ultramedsaudexingu.com.br', 
     'https://www.ultramedsaudexingu.com.br',
@@ -94,7 +94,7 @@ SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-# Cookies de Segurança
+# Cookies de Segurança (Necessário para Checkout Transparente em Produção)
 CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_SECURE = True
 CSRF_COOKIE_HTTPONLY = True
@@ -116,7 +116,7 @@ LOGIN_REDIRECT_URL = '/painel/'
 LOGOUT_REDIRECT_URL = '/login/'
 
 # =================================================================
-# MERCADO PAGO
+# MERCADO PAGO - CREDENCIAIS DE TESTE (SANDBOX)
 # =================================================================
-MERCADO_PAGO_PUBLIC_KEY = os.getenv('MP_PUBLIC_KEY', 'AGUARDANDO_CHAVE_DO_CLIENTE')
-MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', 'AGUARDANDO_CHAVE_DO_CLIENTE')
+MERCADO_PAGO_PUBLIC_KEY = os.getenv('MP_PUBLIC_KEY', 'TEST-820749df-8dd8-471e-bf11-93e09709a0e0')
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', 'TEST-6753419192975396-030114-c38ea8b2f4fa6e920634c1d8ee8ce124-3235550241')
