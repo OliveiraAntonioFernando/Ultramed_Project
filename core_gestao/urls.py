@@ -16,6 +16,7 @@ urlpatterns = [
 
     # Gestão de Pacientes
     path('paciente/novo/', views.cliente_create, name='cliente_create'),
+    path('paciente/editar/<int:paciente_id>/', views.cliente_edit, name='cliente_edit'),
     path('pacientes/lista/', views.cliente_list, name='cliente_list'),
     path('prontuario/<int:paciente_id>/', views.prontuario_view, name='prontuario_view'),
     path('paciente/salvar-doencas/<int:paciente_id>/', views.salvar_doencas_cronicas, name='salvar_doencas'),
