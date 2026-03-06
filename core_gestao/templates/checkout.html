@@ -27,16 +27,25 @@
                     <span class="text-[10px] font-black uppercase text-gray-400">Paciente:</span>
                     <span class="font-bold text-gray-800 text-right uppercase">{{ paciente.nome_completo }}</span>
                 </div>
+                
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Ciclo de Cobrança:</span>
+                    <span class="bg-green-100 text-green-700 text-[9px] px-2 py-0.5 rounded font-black uppercase italic">Anuidade (12 Meses)</span>
+                </div>
+
                 <div class="flex justify-between items-center mt-6">
                     <span class="text-gray-800 font-extrabold text-lg">Total a pagar:</span>
-                    <span class="text-2xl font-black text-[#700c15]">R$ {{ plano.valor_anual }}</span>
+                    <div class="text-right">
+                        <span class="text-2xl font-black text-[#700c15]">R$ {{ fatura.valor|floatformat:2 }}</span>
+                        <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Valor integral do plano</p>
+                    </div>
                 </div>
             </div>
 
             <div id="paymentBrick_container"></div>
 
             <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest italic">
-                <i class="fas fa-lock mr-1"></i> Pagamento Processado pelo Mercado Pago
+                <i class="fas fa-lock mr-1"></i> Pagamento Seguro via Mercado Pago
             </p>
         </div>
     </div>
@@ -51,18 +60,18 @@
         const renderPaymentBrick = async (bricksBuilder) => {
             const settings = {
                 initialization: {
-                    amount: parseFloat("{{ plano.valor_anual }}"),
+                    // GARANTE QUE O MERCADO PAGO RECEBA O VALOR DA FATURA (ANUAL)
+                    amount: parseFloat("{{ fatura.valor }}".replace(',', '.')),
                     preferenceId: '{{ preference_id }}',
                     payer: {
                         firstName: "{{ paciente.nome_completo }}",
-                        // Ajustado para e-mail de teste para evitar bloqueio no Sandbox
                         email: "test_user_ultramed@testuser.com", 
                     },
                 },
                 customization: {
                     paymentMethods: {
-                        bankTransfer: "all", // PIX
-                        creditCard: "all",   // CARTÃO
+                        bankTransfer: "all", 
+                        creditCard: "all",  
                         maxInstallments: 12
                     },
                     visual: {
@@ -77,22 +86,24 @@
                     },
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
                         formData.external_reference = "{{ fatura.id }}";
+                        // Descrição clara para o log do Mercado Pago
+                        formData.description = "Assinatura Anual Ultramed - {{ plano.nome }}";
 
                         return new Promise((resolve, reject) => {
                             fetch("/api/v1/processar-pagamento/", {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
+                                    "X-CSRFToken": "{{ csrf_token }}"
                                 },
                                 body: JSON.stringify(formData),
                             })
                             .then((response) => response.json())
                             .then((result) => {
                                 if (result.status === 'approved' || result.status === 'pending') {
-                                    // No PIX ele fica como 'pending' (aguardando pagamento)
                                     window.location.href = "/sistema/painel/?status=pago";
                                 } else {
-                                    alert("Pagamento não aprovado ou recusado. Tente novamente.");
+                                    alert("Pagamento não aprovado: " + (result.message || "Tente novamente."));
                                     resolve();
                                 }
                             })

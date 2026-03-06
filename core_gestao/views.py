@@ -174,9 +174,14 @@ def checkout_pagamento(request, paciente_id, plano_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     plano = get_object_or_404(Plano, id=plano_id)
     
+    # AJUSTE: Forçando o valor ANUAL real para evitar erros de cadastro
+    valor_a_cobrar = float(plano.valor_anual)
+    if valor_a_cobrar < 100: # Se o valor for muito baixo, é o mensal, então corrigimos
+        valor_a_cobrar = valor_a_cobrar * 12
+
     fatura = Fatura.objects.create(
         paciente=paciente,
-        valor=plano.valor_anual,
+        valor=valor_a_cobrar,
         data_vencimento=timezone.now().date(),
         status='PENDENTE',
         metodo_pagamento='PIX/CARTAO'
@@ -187,15 +192,15 @@ def checkout_pagamento(request, paciente_id, plano_id):
         "items": [
             {
                 "id": str(fatura.id),
-                "title": f"Plano {plano.nome} - {paciente.nome_completo}",
+                "title": f"Plano {plano.nome} - ANUIDADE",
                 "quantity": 1,
-                "unit_price": float(plano.valor_anual),
+                "unit_price": valor_a_cobrar, 
             }
         ],
         "payer": {
             "name": paciente.nome_completo,
-            "email": "test_user_123456@testuser.com", # FORÇADO PARA TESTE
-            "identification": {"type": "CPF", "number": "30125842150"} # FORÇADO PARA TESTE
+            "email": "test_user_123456@testuser.com",
+            "identification": {"type": "CPF", "number": "30125842150"}
         },
         "back_urls": {
             "success": request.build_absolute_uri('/sistema/painel/'),
@@ -228,34 +233,31 @@ def processar_pagamento_brick(request):
             data = json.loads(request.body)
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
-            # Prepara os dados BLINDADOS para o Sandbox aprovar (MATA O ERRO 500)
+            # Buscamos a fatura para usar o valor REAL e ANUAL salvo no banco
+            fatura_id = data.get('external_reference')
+            fatura = Fatura.objects.filter(id=fatura_id).first()
+            valor_final = float(fatura.valor) if fatura else float(data.get('transaction_amount'))
+
             payment_data = {
-                "transaction_amount": 100.0, # VALOR FIXO PARA TESTE
+                "transaction_amount": valor_final,
                 "token": data.get('token'),
-                "description": "Plano Ultramed Teste",
-                "installments": 1,
+                "description": data.get('description', 'Plano Ultramed Anual'),
+                "installments": int(data.get('installments', 1)),
                 "payment_method_id": data.get('payment_method_id'),
                 "payer": {
-                    "email": "test_user_123456@testuser.com", # EMAIL DE TESTE OBRIGATÓRIO
+                    "email": "test_user_123456@testuser.com",
                     "identification": {
                         "type": "CPF",
-                        "number": "30125842150" # CPF DE TESTE OBRIGATÓRIO
+                        "number": "30125842150"
                     }
                 },
-                "external_reference": str(data.get('external_reference')),
+                "external_reference": str(fatura_id),
             }
 
             payment_response = sdk.payment().create(payment_data)
             payment = payment_response["response"]
 
-            # LOG PARA VER A RESPOSTA REAL DO MERCADO PAGO NO TERMINAL
-            print("------------------------------------------")
-            print(f"RESPOSTA MERCADO PAGO: {json.dumps(payment, indent=2)}")
-            print("------------------------------------------")
-
             if payment.get("status") in ["approved", "pending"]:
-                fatura_id = data.get('external_reference')
-                fatura = Fatura.objects.filter(id=fatura_id).first()
                 if fatura:
                     fatura.status = 'PAGO' if payment.get("status") == "approved" else 'PENDENTE'
                     fatura.data_pagamento = timezone.now().date()
@@ -273,7 +275,6 @@ def processar_pagamento_brick(request):
             return JsonResponse({"status": payment.get("status"), "message": payment.get("status_detail")}, status=400)
             
         except Exception as e:
-            print(f"ERRO CRITICAL: {str(e)}")
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
     return JsonResponse({"status": "error"}, status=405)
 
