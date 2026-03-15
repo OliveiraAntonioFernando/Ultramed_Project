@@ -56,6 +56,7 @@ services:
       - ./static_content:/usr/share/nginx/html/static:ro
       - ./media_content:/usr/share/nginx/html/media:ro
       - ./nginx/certs:/etc/nginx/ssl:ro
+      - /etc/letsencrypt:/etc/letsencrypt:ro
     depends_on:
       - web
 
