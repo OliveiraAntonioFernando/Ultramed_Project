@@ -48,6 +48,7 @@ services:
     image: nginx:1.24-alpine
     container_name: ultramed-nginx
     restart: always
+    # Este Nginx gerencia as portas 80/443 para toda a VPS agora
     ports:
       - "80:80"
       - "443:443"
@@ -57,6 +58,9 @@ services:
       - ./media_content:/usr/share/nginx/html/media:ro
       - ./nginx/certs:/etc/nginx/ssl:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+    # ESSENCIAL: Permite que o Nginx fale com o host (VPS) via host.docker.internal
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     depends_on:
       - web
 
