@@ -4,19 +4,19 @@
 {% block title %}Meu Espaço | Ultramed Clínica Médica{% endblock %}
 
 {% block content %}
-<div class="bg-gray-100 min-h-screen pb-20 text-left">
+<div class="bg-gray-100 min-h-screen pb-20 text-left text-gray-800">
     <nav class="bg-marsala-700 p-8 rounded-b-[3rem] shadow-xl text-white mb-8" style="background-color: #700c15;">
         <div class="max-w-5xl mx-auto flex justify-between items-center">
             <div>
-                <h2 class="text-3xl font-black italic uppercase tracking-tighter">Meu Espaço</h2>
-                <p class="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80 italic">Ultramed Clínica Médica</p>
+                <h2 class="text-3xl font-black italic uppercase tracking-tighter text-white">Meu Espaço</h2>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80 italic text-white/80">Ultramed Clínica Médica</p>
             </div>
             <div class="flex items-center gap-4">
                 <div class="text-right hidden md:block">
-                    <p class="text-[8px] font-black uppercase opacity-60">Paciente logado</p>
-                    <p class="text-xs font-bold">{{ paciente.nome_completo }}</p>
+                    <p class="text-[8px] font-black uppercase opacity-60 text-white/60">Paciente logado</p>
+                    <p class="text-xs font-bold text-white">{{ paciente.nome_completo }}</p>
                 </div>
-                <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-3xl hover:bg-white/30 transition-all">
+                <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-3xl hover:bg-white/30 transition-all text-white no-underline">
                     <i class="fas fa-power-off text-sm"></i>
                 </a>
             </div>
@@ -32,13 +32,13 @@
                     <i class="fas fa-id-card text-3xl opacity-20"></i>
                 </div>
                 <div>
-                    <p class="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1">Beneficiário Titular</p>
-                    <h3 class="text-lg font-bold uppercase tracking-tight leading-tight">{{ paciente.nome_completo }}</h3>
+                    <p class="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1 text-white/60">Beneficiário Titular</p>
+                    <h3 class="text-lg font-bold uppercase tracking-tight leading-tight text-white">{{ paciente.nome_completo }}</h3>
                 </div>
                 <div class="flex justify-between items-end">
                     <div>
-                        <p class="text-[8px] font-black uppercase opacity-60 tracking-widest">Plano Ativo</p>
-                        <p class="text-xs font-black italic uppercase">{{ paciente.plano.nome|default:"PARTICULAR" }}</p>
+                        <p class="text-[8px] font-black uppercase opacity-60 tracking-widest text-white/60">Plano Ativo</p>
+                        <p class="text-xs font-black italic uppercase text-white">{{ paciente.plano.nome|default:"PARTICULAR" }}</p>
                     </div>
                     <div class="bg-white p-2 rounded-xl shadow-inner">
                         <div class="w-10 h-10 bg-gray-100 flex items-center justify-center">
@@ -61,7 +61,7 @@
 
                     <a href="{% url 'sistema_interno:checkout_pagamento' paciente.id paciente.plano.id %}" 
                        class="block w-full bg-amber-500 hover:bg-amber-600 text-white text-center py-4 rounded-2xl text-[10px] font-black uppercase italic no-underline shadow-lg shadow-amber-200 transition-all transform hover:scale-105">
-                        <i class="fas fa-credit-card mr-2"></i> Renovar Plano Agora
+                        <i class="fas fa-credit-card mr-2 text-white"></i> Renovar Plano Agora
                     </a>
                     <p class="text-[8px] text-center text-gray-400 mt-3 uppercase font-bold italic">Liberação imediata via PIX ou Cartão</p>
                 </div>
@@ -97,7 +97,7 @@
                         </div>
                         <div>
                             <p class="text-xs font-black text-gray-800 uppercase">{{ c.tipo }}</p>
-                            <p class="text-[9px] font-bold uppercase opacity-50">{{ c.data|date:"d/m/Y" }} às {{ c.hora|time:"H:i" }}</p>
+                            <p class="text-[9px] font-bold uppercase opacity-50 text-gray-400">{{ c.data|date:"d/m/Y" }} às {{ c.hora|time:"H:i" }}</p>
                         </div>
                     </div>
                     <div>
@@ -121,7 +121,7 @@
                 <div class="p-8 grid grid-cols-1 md:grid-cols-2 gap-4">
                     {% for e in exames %}
                     <div class="border border-gray-100 p-5 rounded-3xl flex items-center justify-between bg-gray-50/30">
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 text-left">
                             <i class="fas fa-file-medical text-emerald-500 text-xl"></i>
                             <div>
                                 <p class="text-[10px] font-black text-gray-800 uppercase">{{ e.nome_exame }}</p>
@@ -130,7 +130,7 @@
                         </div>
                         {% if e.arquivo %}
                         <a href="{{ e.arquivo.url }}" download class="bg-emerald-500 text-white px-3 py-2 rounded-xl text-[8px] font-black uppercase italic no-underline shadow-md hover:bg-emerald-600 transition-all">
-                            <i class="fas fa-download"></i>
+                            <i class="fas fa-download text-white"></i>
                         </a>
                         {% endif %}
                     </div>
@@ -144,25 +144,23 @@
                 <div class="p-8 bg-sky-50/30 border-b flex justify-between items-center">
                     <h3 class="text-xs font-black uppercase italic text-sky-700 tracking-widest">Minhas Receitas Digitais</h3>
                     <button onclick="solicitarRenovacao()" class="bg-marsala-700 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase italic hover:bg-marsala-800 transition-all border-none cursor-pointer shadow-md">
-                        <i class="fas fa-sync-alt mr-1"></i> Solicitar Renovação
+                        <i class="fas fa-sync-alt mr-1 text-white"></i> Solicitar Renovação
                     </button>
                 </div>
                 <div class="p-8 space-y-4">
                     {% for r in receitas %}
                     <div class="flex justify-between items-center p-5 bg-gray-50/50 rounded-3xl border border-gray-100">
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-4 text-left">
                             <div class="bg-white p-3 rounded-2xl shadow-sm text-sky-500"><i class="fas fa-pills"></i></div>
                             <div>
                                 <p class="text-[10px] font-black text-gray-800 uppercase">Receituário Digital</p>
                                 <p class="text-[8px] font-bold text-gray-400 uppercase">{{ r.data_emissao|date:"d/m/Y - H:i" }}</p>
                             </div>
                         </div>
-                        
                         <div id="data-rec-{{ r.id }}" class="hidden" 
                              data-medico="Dr(a). {{ r.medico.get_full_name|default:r.medico.username }}" 
                              data-data="{{ r.data_emissao|date:'d/m/Y' }}"
                              data-conteudo="{{ r.conteudo }}"></div>
-
                         <button onclick="abrirReceitaModal('{{ r.id }}')" 
                                 class="bg-sky-500 text-white px-5 py-2 rounded-xl text-[8px] font-black uppercase italic border-none cursor-pointer hover:bg-sky-600 transition-all shadow-sm">
                             Ver Receita
@@ -180,7 +178,7 @@
 <div id="modalReceita" class="fixed inset-0 bg-black/60 z-[999] hidden flex items-center justify-center p-4 backdrop-blur-sm">
     <div class="bg-white w-full max-w-2xl rounded-[2rem] overflow-hidden shadow-2xl">
         <div class="p-8 border-b-4 border-marsala-700 flex justify-between items-center bg-gray-50">
-            <div>
+            <div class="text-left">
                 <h2 class="text-2xl font-black italic uppercase text-marsala-700 leading-none">Ultramed</h2>
                 <p class="text-[9px] font-bold uppercase tracking-widest text-gray-400">Saúde e Diagnóstico</p>
             </div>
@@ -189,17 +187,16 @@
                 <p class="text-[8px] font-bold text-gray-400 uppercase" id="modalData"></p>
             </div>
         </div>
-        <div class="p-10 min-h-[300px] bg-white text-gray-700 italic font-medium whitespace-pre-wrap leading-relaxed border-b border-gray-100" id="modalConteudo"></div>
+        <div class="p-10 min-h-[300px] bg-white text-gray-700 italic font-medium whitespace-pre-wrap leading-relaxed border-b border-gray-100 text-left" id="modalConteudo"></div>
         <div class="p-6 bg-gray-50 flex justify-between items-center">
             <p class="text-[8px] text-gray-400 uppercase font-bold italic">Documento digital gerado via Sistema Ultramed</p>
-            <button onclick="fecharReceita()" class="bg-gray-800 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic hover:bg-black transition-all">Fechar</button>
+            <button onclick="fecharReceita()" class="bg-gray-800 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic hover:bg-black transition-all border-none cursor-pointer">Fechar</button>
         </div>
     </div>
 </div>
 
 <script>
     function abrirReceitaModal(id) {
-        // Busca os dados da div oculta para evitar conflitos de aspas no JS
         const div = document.getElementById('data-rec-' + id);
         const medico = div.getAttribute('data-medico');
         const data = div.getAttribute('data-data');
@@ -216,6 +213,7 @@
     }
 
     function solicitarRenovacao() {
+        // AJUSTE: URL Correta com Namespace
         fetch("{% url 'sistema_interno:solicitar_renovacao_api' %}", {
             method: 'POST',
             headers: {
@@ -226,7 +224,6 @@
         .finally(() => {
             const msg = encodeURIComponent("Olá Ultramed! Sou {{ paciente.nome_completo }} e solicitei a renovação da minha receita pelo painel.");
             window.open(`https://wa.me/5594984496349?text=${msg}`, '_blank');
-            alert("Solicitação enviada!");
         });
     }
 </script>

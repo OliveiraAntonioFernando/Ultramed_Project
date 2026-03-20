@@ -11,14 +11,16 @@
 </head>
 <body class="bg-gray-50 flex items-center justify-center min-h-screen p-4">
 
+    {% csrf_token %}
+
     <div class="max-w-md w-full bg-white rounded-3xl shadow-2xl overflow-hidden border border-gray-100">
         <div class="bg-gradient-to-r from-[#700c15] to-[#9a111d] p-6 text-white text-center">
-            <h1 class="text-2xl font-bold uppercase italic tracking-tighter">Finalizar Assinatura</h1>
-            <p class="text-xs opacity-80 uppercase font-bold">Ultramed Clinica Médica</p>
+            <h1 class="text-2xl font-bold uppercase italic tracking-tighter text-white">Finalizar Assinatura</h1>
+            <p class="text-xs opacity-80 uppercase font-bold text-white/80">Ultramed Clinica Médica</p>
         </div>
 
         <div class="p-8">
-            <div class="mb-8 border-b border-dashed border-gray-200 pb-6">
+            <div class="mb-8 border-b border-dashed border-gray-200 pb-6 text-left">
                 <div class="flex justify-between items-center mb-4">
                     <span class="text-[10px] font-black uppercase text-gray-400">Plano Selecionado:</span>
                     <span class="font-bold text-gray-800 uppercase italic">{{ plano.nome }}</span>
@@ -35,7 +37,7 @@
 
                 <div class="flex justify-between items-center mt-6">
                     <span class="text-gray-800 font-extrabold text-lg">Total a pagar:</span>
-                    <div class="text-right">
+                    <div class="text-right text-gray-800">
                         <span class="text-2xl font-black text-[#700c15]">R$ {{ fatura.valor|floatformat:2 }}</span>
                         <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Valor integral do plano</p>
                     </div>
@@ -44,7 +46,7 @@
 
             <div id="paymentBrick_container"></div>
 
-            <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest italic">
+            <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest italic font-bold">
                 <i class="fas fa-lock mr-1"></i> Pagamento Seguro via Mercado Pago
             </p>
         </div>
@@ -58,14 +60,15 @@
         const bricksBuilder = mp.bricks();
 
         const renderPaymentBrick = async (bricksBuilder) => {
+            const cleanAmount = parseFloat("{{ fatura.valor }}".replace(',', '.'));
+
             const settings = {
                 initialization: {
-                    // GARANTE QUE O MERCADO PAGO RECEBA O VALOR DA FATURA (ANUAL)
-                    amount: parseFloat("{{ fatura.valor }}".replace(',', '.')),
+                    amount: cleanAmount,
                     preferenceId: '{{ preference_id }}',
                     payer: {
                         firstName: "{{ paciente.nome_completo }}",
-                        email: "test_user_ultramed@testuser.com", 
+                        email: "test_user_123456@testuser.com", 
                     },
                 },
                 customization: {
@@ -75,47 +78,48 @@
                         maxInstallments: 12
                     },
                     visual: {
-                        style: {
-                            theme: "default",
-                        },
+                        style: { theme: "default" },
                     },
                 },
                 callbacks: {
-                    onReady: () => {
-                        console.log("Checkout Transparente Pronto");
-                    },
+                    onReady: () => { console.log("Checkout Pronto"); },
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
                         formData.external_reference = "{{ fatura.id }}";
-                        // Descrição clara para o log do Mercado Pago
-                        formData.description = "Assinatura Anual Ultramed - {{ plano.nome }}";
+                        formData.transaction_amount = cleanAmount;
+                        formData.description = "Plano {{ plano.nome }} - {{ paciente.nome_completo }}";
 
                         return new Promise((resolve, reject) => {
-                            fetch("/api/v1/processar-pagamento/", {
+                            // AJUSTE 1: Usando URL Dinâmica do Django (Evita erro de rota no Docker)
+                            fetch("{% url 'sistema_interno:processar_pagamento_brick' %}", {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
+                                    // AJUSTE 2: Garantindo o Token CSRF correto
                                     "X-CSRFToken": "{{ csrf_token }}"
                                 },
                                 body: JSON.stringify(formData),
                             })
-                            .then((response) => response.json())
+                            .then((response) => {
+                                if (!response.ok) throw new Error('Erro no servidor');
+                                return response.json();
+                            })
                             .then((result) => {
                                 if (result.status === 'approved' || result.status === 'pending') {
-                                    window.location.href = "/sistema/painel/?status=pago";
+                                    // AJUSTE 3: Redirecionamento para a URL absoluta correta
+                                    window.location.href = "{% url 'sistema_interno:painel_paciente' %}?status=pago";
                                 } else {
-                                    alert("Pagamento não aprovado: " + (result.message || "Tente novamente."));
+                                    alert("Pagamento não aprovado: " + (result.detail || "Verifique os dados do cartão."));
                                     resolve();
                                 }
                             })
                             .catch((error) => {
-                                console.error("Erro no processamento:", error);
+                                console.error("Erro:", error);
+                                alert("Erro de comunicação com o servidor.");
                                 reject();
                             });
                         });
                     },
-                    onError: (error) => {
-                        console.error("Erro no Brick:", error);
-                    },
+                    onError: (error) => { console.error("Erro no Brick:", error); },
                 },
             };
             window.paymentBrickController = await bricksBuilder.create(

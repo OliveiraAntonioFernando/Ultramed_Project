@@ -104,10 +104,7 @@ def cliente_edit(request, paciente_id):
             messages.success(request, f"Paciente {paciente.nome_completo} atualizado com sucesso!")
         except Exception as e:
             messages.error(request, f"Erro ao atualizar: {e}")
-        return redirect('sistema_interno:cliente_list')
-    
-    planos = Plano.objects.all()
-    return render(request, 'cliente_list.html', {'paciente': paciente, 'planos': planos})
+    return redirect('sistema_interno:cliente_list')
 
 @login_required
 def cliente_list(request):
@@ -127,13 +124,22 @@ def cliente_list(request):
 @login_required
 def cliente_create(request):
     if request.method == 'POST':
+        from django.contrib.auth.models import User
         plano_id = request.POST.get('plano')
+        cpf = request.POST.get('cpf')
+        email_form = request.POST.get('email')
         venc_input = request.POST.get('vencimento_plano')
         vencimento = venc_input if venc_input else (timezone.now().date() + timedelta(days=365))
 
+        user, _ = User.objects.get_or_create(username=cpf)
+        if email_form:
+            user.email = email_form
+            user.save()
+
         titular = Paciente.objects.create(
+            user=user,
             nome_completo=request.POST.get('nome_completo'),
-            cpf=request.POST.get('cpf'),
+            cpf=cpf,
             telefone=request.POST.get('telefone'),
             data_nascimento=request.POST.get('data_nascimento') or "1900-01-01",
             sexo=request.POST.get('sexo', 'M'),
@@ -169,14 +175,13 @@ def cliente_create(request):
 # 4. FINANCEIRO E MERCADO PAGO (CHECKOUT TRANSPARENTE)
 # =================================================================
 
-@login_required
+# AJUSTE: Removido @login_required para novos clientes poderem pagar
 def checkout_pagamento(request, paciente_id, plano_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     plano = get_object_or_404(Plano, id=plano_id)
     
-    # AJUSTE: Forçando o valor ANUAL real para evitar erros de cadastro
     valor_a_cobrar = float(plano.valor_anual)
-    if valor_a_cobrar < 100: # Se o valor for muito baixo, é o mensal, então corrigimos
+    if valor_a_cobrar < 100:
         valor_a_cobrar = valor_a_cobrar * 12
 
     fatura = Fatura.objects.create(
@@ -186,6 +191,10 @@ def checkout_pagamento(request, paciente_id, plano_id):
         status='PENDENTE',
         metodo_pagamento='PIX/CARTAO'
     )
+
+    email_pagador = "test_user_123456@testuser.com"
+    if hasattr(paciente, 'user') and paciente.user and paciente.user.email:
+        email_pagador = paciente.user.email
 
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
     preference_data = {
@@ -199,12 +208,12 @@ def checkout_pagamento(request, paciente_id, plano_id):
         ],
         "payer": {
             "name": paciente.nome_completo,
-            "email": "test_user_123456@testuser.com",
-            "identification": {"type": "CPF", "number": "30125842150"}
+            "email": email_pagador,
+            "identification": {"type": "CPF", "number": "".join(filter(str.isdigit, paciente.cpf)) if paciente.cpf else "30125842150"}
         },
         "back_urls": {
-            "success": request.build_absolute_uri('/sistema/painel/'),
-            "failure": request.build_absolute_uri('/sistema/painel/'),
+            "success": request.build_absolute_uri('/sistema/paciente/painel/'),
+            "failure": request.build_absolute_uri('/sistema/paciente/painel/'),
         },
         "auto_return": "approved",
         "external_reference": str(fatura.id),
@@ -225,30 +234,34 @@ def checkout_pagamento(request, paciente_id, plano_id):
     return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Erro desconhecido')}")
 
 @csrf_exempt
-@login_required
+# AJUSTE: Removido @login_required para processar pagamentos de novos clientes
 def processar_pagamento_brick(request):
-    """ Processa o pagamento enviado via AJAX pelo Checkout Transparente """
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
-            # Buscamos a fatura para usar o valor REAL e ANUAL salvo no banco
             fatura_id = data.get('external_reference')
-            fatura = Fatura.objects.filter(id=fatura_id).first()
-            valor_final = float(fatura.valor) if fatura else float(data.get('transaction_amount'))
+            fatura = get_object_or_404(Fatura, id=fatura_id)
+            paciente = fatura.paciente
+            
+            email_pagador = "test_user_123456@testuser.com"
+            if hasattr(paciente, 'user') and paciente.user and paciente.user.email:
+                email_pagador = paciente.user.email
+
+            cpf_num = "".join(filter(str.isdigit, paciente.cpf)) if paciente.cpf else "30125842150"
 
             payment_data = {
-                "transaction_amount": valor_final,
+                "transaction_amount": float(fatura.valor),
                 "token": data.get('token'),
-                "description": data.get('description', 'Plano Ultramed Anual'),
+                "description": f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}",
                 "installments": int(data.get('installments', 1)),
                 "payment_method_id": data.get('payment_method_id'),
                 "payer": {
-                    "email": "test_user_123456@testuser.com",
+                    "email": email_pagador,
                     "identification": {
                         "type": "CPF",
-                        "number": "30125842150"
+                        "number": cpf_num
                     }
                 },
                 "external_reference": str(fatura_id),
@@ -257,22 +270,24 @@ def processar_pagamento_brick(request):
             payment_response = sdk.payment().create(payment_data)
             payment = payment_response["response"]
 
-            if payment.get("status") in ["approved", "pending"]:
-                if fatura:
-                    fatura.status = 'PAGO' if payment.get("status") == "approved" else 'PENDENTE'
-                    fatura.data_pagamento = timezone.now().date()
-                    fatura.mercadopago_id = str(payment.get("id"))
-                    fatura.save()
-                    
-                    if payment.get("status") == "approved":
-                        p = fatura.paciente
-                        p.vencimento_plano = timezone.now().date() + timedelta(days=365)
-                        p.save()
-                        Paciente.objects.filter(responsavel=p).update(vencimento_plano=p.vencimento_plano)
+            if payment_response["status"] in [200, 201]:
+                status_mp = payment.get("status")
+                fatura.status = 'PAGO' if status_mp == "approved" else 'PENDENTE'
+                fatura.data_pagamento = timezone.now().date() if status_mp == "approved" else None
+                fatura.mercadopago_id = str(payment.get("id"))
+                fatura.save()
+                
+                if status_mp == "approved":
+                    hoje = timezone.now().date()
+                    base = paciente.vencimento_plano if paciente.vencimento_plano and paciente.vencimento_plano > hoje else hoje
+                    novo_vencimento = base + timedelta(days=365)
+                    paciente.vencimento_plano = novo_vencimento
+                    paciente.save()
+                    Paciente.objects.filter(responsavel=paciente).update(vencimento_plano=novo_vencimento)
 
-                return JsonResponse({"status": payment.get("status"), "id": payment.get("id")})
+                return JsonResponse({"status": status_mp, "id": payment.get("id")})
             
-            return JsonResponse({"status": payment.get("status"), "message": payment.get("status_detail")}, status=400)
+            return JsonResponse({"status": "rejected", "detail": payment.get("message", "Dados Inválidos")}, status=200)
             
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
@@ -341,8 +356,8 @@ def fatura_store(request):
         
         if status == 'PAGO':
             hoje = timezone.now().date()
-            data_base = paciente.vencimento_plano if paciente.vencimento_plano and paciente.vencimento_plano > hoje else hoje
-            novo_vencimento = data_base + timedelta(days=365)
+            base = paciente.vencimento_plano if paciente.vencimento_plano and paciente.vencimento_plano > hoje else hoje
+            novo_vencimento = base + timedelta(days=365)
             paciente.vencimento_plano = novo_vencimento
             paciente.save()
             Paciente.objects.filter(responsavel=paciente).update(vencimento_plano=novo_vencimento)
@@ -595,6 +610,7 @@ def fatura_baixar(request, fatura_id):
 
 def plan_create(request): return redirect('sistema_interno:master_dashboard')
 
+# AJUSTE: Removido @login_required para novos clientes poderem se cadastrar e pagar
 def cadastro_plano_completo(request, plano_nome):
     if request.method == 'POST':
         nome = request.POST.get('titular_nome') or request.POST.get('nome')

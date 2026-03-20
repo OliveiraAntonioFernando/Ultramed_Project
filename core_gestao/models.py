@@ -2,6 +2,10 @@ from django.db import models
 from django.utils import timezone
 from django.contrib.auth.models import User
 
+# =================================================================
+# 1. GESTÃO DE PLANOS
+# =================================================================
+
 class Plano(models.Model):
     NOME_CHOICES = [
         ('ESSENCIAL', 'Ultramed Essencial'),
@@ -10,16 +14,21 @@ class Plano(models.Model):
     ]
     nome = models.CharField(max_length=50, choices=NOME_CHOICES)
     descricao = models.TextField(blank=True, null=True)
+    # Valor anual utilizado para gerar as faturas no checkout
     valor_anual = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
 
     def __str__(self):
         return self.get_nome_display()
 
+# =================================================================
+# 2. GESTÃO DE PACIENTES E FAMÍLIA
+# =================================================================
+
 class Paciente(models.Model):
     nome_completo = models.CharField(max_length=255)
     cpf = models.CharField(max_length=14, unique=True)
     possui_dependentes = models.BooleanField(default=False)
-    is_titular = models.BooleanField(default=True) # AJUSTE: Identifica se é o pagador
+    is_titular = models.BooleanField(default=True) 
     telefone = models.CharField(max_length=20)
     data_nascimento = models.DateField()
     sexo = models.CharField(max_length=1, choices=[('M', 'Masculino'), ('F', 'Feminino')], default='M')
@@ -29,15 +38,16 @@ class Paciente(models.Model):
     bairro = models.CharField(max_length=100, blank=True, null=True)
     cidade = models.CharField(max_length=100, default="São Félix do Xingu")
 
-    # Detalhes do Plano Anual
+    # Detalhes do Plano e Vencimento
     plano = models.ForeignKey(Plano, on_delete=models.SET_NULL, null=True, blank=True)
     modalidade_plano = models.CharField(max_length=100, blank=True, null=True)
     vencimento_plano = models.DateField(null=True, blank=True)
 
-    # Hierarquia Familiar
+    # Hierarquia Familiar (Auto-relacionamento)
+    # related_name='dependentes' permite: titular.dependentes.all()
     responsavel = models.ForeignKey('self', on_delete=models.SET_NULL, null=True, blank=True, related_name='dependentes')
     
-    # Campo para KPI de Crônicos e Patologias
+    # Campo para KPI de Crônicos
     is_cronico = models.BooleanField(default=False)
     doencas_cronicas = models.CharField(max_length=500, blank=True, null=True)
     
@@ -46,19 +56,31 @@ class Paciente(models.Model):
     def __str__(self):
         return self.nome_completo
 
+# =================================================================
+# 3. FINANCEIRO (UNIFICADO COM MERCADO PAGO)
+# =================================================================
+
 class Fatura(models.Model):
     STATUS_CHOICES = [('PAGO', 'Pago'), ('PENDENTE', 'Pendente'), ('ATRASADO', 'Atrasado')]
-    METODO_CHOICES = [('PIX', 'PIX'), ('CARTAO', 'Cartão de Crédito')]
+    METODO_CHOICES = [('PIX', 'PIX'), ('CARTAO', 'Cartão de Crédito'), ('PIX/CARTAO', 'PIX ou Cartão')]
 
-    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE)
+    # related_name='faturas' permite: paciente.faturas.all()
+    paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='faturas')
     valor = models.DecimalField(max_digits=10, decimal_places=2)
-    # AJUSTE: Removido auto_now_add para permitir vencimentos manuais/futuros
     data_vencimento = models.DateField() 
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')
     metodo_pagamento = models.CharField(max_length=20, choices=METODO_CHOICES, blank=True, null=True)
     data_pagamento = models.DateField(null=True, blank=True)
-    # AJUSTE: Campo para guardar o ID do Mercado Pago (antigo transacao_id de Pagamento)
-    mercadopago_id = models.CharField(max_length=100, unique=True, null=True, blank=True)
+    
+    # Ajustado: removido unique=True para evitar travamentos em reprocessamentos
+    mercadopago_id = models.CharField(max_length=100, null=True, blank=True)
+
+    def __str__(self):
+        return f"Fatura {self.id} - {self.paciente.nome_completo} ({self.status})"
+
+# =================================================================
+# 4. AGENDAMENTO E ATENDIMENTO
+# =================================================================
 
 class Agenda(models.Model):
     TIPOS = [('CONSULTA', 'Consulta'), ('EXAME', 'Exame')]
@@ -107,8 +129,9 @@ class Receita(models.Model):
     data_emissao = models.DateTimeField(auto_now_add=True)
     hash_digital = models.CharField(max_length=100, blank=True, null=True)
 
-    def __str__(self):
-        return f"Receita de {self.paciente.nome_completo} - {self.data_emissao.strftime('%d/%m/%Y')}"
+# =================================================================
+# 5. CRM E LEADS
+# =================================================================
 
 class LeadSite(models.Model):
     nome = models.CharField(max_length=255)
@@ -116,5 +139,3 @@ class LeadSite(models.Model):
     interesse = models.CharField(max_length=100)
     atendido = models.BooleanField(default=False)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
-
-# A CLASSE Pagamento FOI REMOVIDA POIS FOI UNIFICADA À CLASSE Fatura

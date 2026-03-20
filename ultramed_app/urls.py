@@ -8,5 +8,6 @@ def landing_page(request):
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', landing_page, name='home'),
-    path('', include('core_gestao.urls')),
+    # CENTRALIZAÇÃO: Tudo que vem do app core_gestao agora exige o prefixo sistema/
+    path('sistema/', include('core_gestao.urls')), 
 ]

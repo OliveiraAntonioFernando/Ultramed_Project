@@ -90,49 +90,49 @@
         </div>
         <form id="formCadastro" method="POST" action="{% url 'sistema_interno:cliente_create' %}" class="p-10 space-y-6 overflow-y-auto text-left text-gray-800">
             {% csrf_token %}
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 text-gray-800">
-                <div class="md:col-span-2 text-gray-800">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-2">
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Nome Completo</label>
                     <input type="text" id="input_nome" name="nome_completo" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold uppercase text-xs outline-none text-gray-800">
                 </div>
-                <div class="text-gray-800">
+                <div>
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">CPF</label>
                     <input type="text" id="input_cpf" name="cpf" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-mono font-bold text-xs outline-none text-gray-800">
                 </div>
-                <div class="text-gray-800">
+                <div>
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">WhatsApp</label>
                     <input type="text" id="input_tel" name="telefone" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                 </div>
-                <div class="text-gray-800">
+                <div>
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Nascimento</label>
                     <input type="date" id="input_nasc" name="data_nascimento" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                 </div>
-                <div class="text-gray-800">
+                <div>
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Plano</label>
-                    <select name="plano" id="input_plano" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800 text-gray-800">
+                    <select name="plano" id="input_plano" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                         <option value="">Particular</option>
                         {% for pl in planos %}
                         <option value="{{ pl.id }}">{{ pl.nome }}</option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="md:col-span-2 text-gray-800">
+                <div class="md:col-span-2">
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Endereço (Rua e Nº)</label>
                     <input type="text" id="input_end" name="endereco" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                 </div>
-                <div class="text-gray-800">
+                <div>
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Bairro</label>
                     <input type="text" id="input_bairro" name="bairro" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                 </div>
-                <div class="text-gray-800">
+                <div>
                     <label class="text-[10px] font-black uppercase text-marsala-700 block mb-1">Cidade</label>
                     <input type="text" id="input_cidade" name="cidade" value="São Félix do Xingu" class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                 </div>
             </div>
 
-            <div class="border-t pt-6 text-gray-800">
+            <div class="border-t pt-6">
                 <div class="flex justify-between items-center mb-4">
-                    <h4 class="text-xs font-black uppercase text-marsala-700 italic text-gray-800">Dependentes</h4>
+                    <h4 class="text-xs font-black uppercase text-marsala-700 italic">Dependentes</h4>
                     <button type="button" onclick="addDep()" class="bg-gray-100 px-4 py-2 rounded-lg text-[9px] font-black uppercase border-none cursor-pointer text-gray-600">+ Adicionar</button>
                 </div>
                 <div id="container-deps" class="space-y-3"></div>
@@ -145,21 +145,21 @@
     </div>
 </div>
 
-<div id="modalEdicao" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] hidden items-center justify-center p-4 text-gray-800">
+<div id="modalEdicao" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[999] hidden items-center justify-center p-4">
     <div class="bg-white w-full max-w-2xl rounded-[2.5rem] shadow-2xl overflow-hidden text-gray-800">
         <div class="bg-gray-800 p-6 text-white flex justify-between items-center">
-            <h3 class="text-lg font-black uppercase italic tracking-tighter">Editar Registro</h3>
+            <h3 class="text-lg font-black uppercase italic tracking-tighter text-white">Editar Registro</h3>
             <button type="button" onclick="fecharModalEdicao()" class="text-white border-none bg-transparent cursor-pointer text-xl">×</button>
         </div>
-        <form id="formEdicao" method="POST" action="" class="p-8 space-y-4 text-left text-gray-800">
+        <form id="formEdicao" method="POST" action="" class="p-8 space-y-4">
             {% csrf_token %}
-            <div class="grid grid-cols-2 gap-4 text-gray-800">
+            <div class="grid grid-cols-2 gap-4">
                 <div class="col-span-2">
                     <label class="text-[9px] font-black uppercase text-gray-400 block mb-1">Nome Completo</label>
                     <input type="text" id="edit_nome" name="nome_completo" required class="w-full border-2 border-gray-100 bg-gray-50 p-3 rounded-xl font-bold text-xs outline-none text-gray-800">
                 </div>
                 <div>
-                    <label class="text-[9px] font-black uppercase text-red-600 block mb-1">CPF (Ajuste para Teste)</label>
+                    <label class="text-[9px] font-black uppercase text-red-600 block mb-1">CPF</label>
                     <input type="text" id="edit_cpf" name="cpf" required class="w-full border-2 border-red-100 bg-red-50 p-3 rounded-xl font-mono font-bold text-xs outline-none text-gray-800">
                 </div>
                 <div>
@@ -177,53 +177,31 @@
 </div>
 
 <div id="modalUpload" class="fixed inset-0 bg-black/60 backdrop-blur-sm z-[1000] hidden items-center justify-center p-4">
-    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden">
+    <div class="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden text-gray-800">
         <div class="bg-sky-600 p-6 text-white text-center">
-            <h3 class="text-sm font-black uppercase italic">Anexar Documento</h3>
+            <h3 class="text-sm font-black uppercase italic text-white">Anexar Documento</h3>
             <p id="uploadNomePaciente" class="text-[9px] font-bold text-white"></p>
         </div>
-        <form action="{% url 'sistema_interno:upload_exame' %}" method="POST" enctype="multipart/form-data" class="p-8 text-gray-800">
+        <form action="{% url 'sistema_interno:upload_exame' %}" method="POST" enctype="multipart/form-data" class="p-8">
             {% csrf_token %}
             <input type="hidden" name="paciente_id" id="uploadIdPaciente">
             <input type="text" name="nome_exame" placeholder="Título do Exame" required class="w-full mb-4 p-3 border-2 border-gray-100 rounded-xl text-gray-800">
             <input type="file" name="arquivo_exame" required class="w-full mb-4 text-gray-800">
             <div class="flex gap-2">
-                <button type="submit" class="flex-1 bg-marsala-700 text-white py-4 rounded-xl font-black uppercase">Enviar</button>
-                <button type="button" onclick="fecharModalUpload()" class="flex-1 bg-gray-100 text-gray-400 py-4 rounded-xl font-black uppercase">Sair</button>
+                <button type="submit" class="flex-1 bg-marsala-700 text-white py-4 rounded-xl font-black uppercase border-none cursor-pointer">Enviar</button>
+                <button type="button" onclick="fecharModalUpload()" class="flex-1 bg-gray-100 text-gray-400 py-4 rounded-xl font-black uppercase border-none cursor-pointer">Sair</button>
             </div>
         </form>
     </div>
 </div>
 
-<div id="modalContrato" class="fixed inset-0 bg-black/80 backdrop-blur-md z-[999] hidden items-center justify-center p-4 text-gray-800">
-    <div class="bg-white w-full max-w-4xl rounded-[2rem] shadow-2xl flex flex-col max-h-[95vh] text-gray-800">
-        <div id="printArea" class="p-10 md:p-16 overflow-y-auto text-gray-800 text-[11px] text-justify font-sans leading-relaxed">
-            <h1 class="text-center text-lg font-black uppercase mb-1 text-gray-800">TERMO DE ADESÃO</h1>
-            <p class="text-center font-bold mb-8 text-gray-800">ULTRAMED SAÚDE XINGU</p>
-            <div class="space-y-4 text-gray-800">
-                <p><strong>ASSINANTE:</strong> <span id="c_nome" class="font-bold border-b border-black uppercase text-gray-800"></span></p>
-                <p><strong>CPF:</strong> <span id="c_cpf" class="font-bold border-b border-black text-gray-800"></span></p>
-                <p><strong>ENDEREÇO:</strong> <span id="c_end" class="font-bold border-b border-black text-gray-800"></span></p>
-                <p><strong>DEPENDENTES:</strong></p>
-                <ul id="c_deps" class="list-none p-0 ml-4 font-bold uppercase text-gray-800"></ul>
-            </div>
-        </div>
-        <div class="p-6 bg-gray-50 flex gap-4 border-t">
-            <button type="button" onclick="confirmarVenda()" class="flex-1 bg-green-600 text-white font-black py-4 rounded-xl uppercase border-none cursor-pointer">Confirmar e Salvar</button>
-            <button type="button" onclick="fecharContrato()" class="bg-gray-300 text-gray-700 px-8 py-4 rounded-xl font-black uppercase border-none cursor-pointer">Corrigir Dados</button>
-        </div>
-    </div>
-</div>
-
 <script>
-    // Gerenciamento dos Modais
     function abrirModal() { document.getElementById('modalPaciente').classList.remove('hidden'); document.getElementById('modalPaciente').classList.add('flex'); }
     function fecharModal() { document.getElementById('modalPaciente').classList.add('hidden'); document.getElementById('modalPaciente').classList.remove('flex'); }
     function fecharModalEdicao() { document.getElementById('modalEdicao').classList.add('hidden'); document.getElementById('modalEdicao').classList.remove('flex'); }
     function fecharModalUpload() { document.getElementById('modalUpload').classList.add('hidden'); document.getElementById('modalUpload').classList.remove('flex'); }
-    function fecharContrato() { document.getElementById('modalContrato').classList.add('hidden'); document.getElementById('modalContrato').classList.remove('flex'); }
 
-    // NOVA FUNÇÃO DE EDIÇÃO (RESOLVE OS ERROS DO VS CODE)
+    // CORREÇÃO DEFINITIVA PARA DOCKER
     document.querySelectorAll('.btn-editar').forEach(button => {
         button.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
@@ -237,8 +215,13 @@
             document.getElementById('edit_tel').value = tel;
             document.getElementById('edit_end').value = end;
             
-            // Define a URL de destino
-            document.getElementById('formEdicao').action = "/paciente/editar/" + id + "/";
+            // AJUSTE DOCKER: Montamos a URL relativa ao local atual.
+            // Se você está em /sistema/paciente/lista/, subir um nível e entrar em editar.
+            let currentPath = window.location.pathname;
+            if (!currentPath.endsWith('/')) currentPath += '/';
+            
+            // Define a action de forma que funcione tanto local quanto no container
+            document.getElementById('formEdicao').action = "../editar/" + id + "/";
             
             document.getElementById('modalEdicao').classList.remove('hidden');
             document.getElementById('modalEdicao').classList.add('flex');
@@ -255,32 +238,16 @@
     function addDep() {
         const container = document.getElementById('container-deps');
         const div = document.createElement('div');
-        div.className = "flex gap-2 bg-gray-50 p-3 rounded-xl items-end border border-gray-200 text-left text-gray-800";
+        div.className = "flex gap-2 bg-gray-50 p-3 rounded-xl items-end border border-gray-200";
         div.innerHTML = `
-            <div class="flex-1 text-left text-gray-800"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Nome</label><input type="text" name="dep_nome[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs uppercase d-nome text-gray-800"></div>
-            <div class="w-32 text-left text-gray-800"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">CPF</label><input type="text" name="dep_cpf[]" class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs d-cpf text-gray-800"></div>
+            <div class="flex-1"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">Nome</label><input type="text" name="dep_nome[]" required class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs uppercase d-nome text-gray-800"></div>
+            <div class="w-32"><label class="text-[8px] font-black uppercase text-gray-400 block ml-2">CPF</label><input type="text" name="dep_cpf[]" class="w-full p-2 rounded-lg border-2 border-white font-bold text-xs d-cpf text-gray-800"></div>
             <button type="button" onclick="this.parentElement.remove()" class="text-red-500 border-none bg-transparent cursor-pointer p-2"><i class="fas fa-trash"></i></button>
         `;
         container.appendChild(div);
     }
-
+    
     function abrirContrato() {
-        document.getElementById('c_nome').innerText = document.getElementById('input_nome').value;
-        document.getElementById('c_cpf').innerText = document.getElementById('input_cpf').value;
-        document.getElementById('c_end').innerText = document.getElementById('input_end').value;
-        
-        const lista = document.getElementById('c_deps');
-        lista.innerHTML = "";
-        document.querySelectorAll('#container-deps > div').forEach(row => {
-            const nome = row.querySelector('.d-nome').value;
-            if(nome) lista.innerHTML += `<li>• ${nome}</li>`;
-        });
-
-        document.getElementById('modalContrato').classList.remove('hidden');
-        document.getElementById('modalContrato').classList.add('flex');
-    }
-
-    function confirmarVenda() {
         document.getElementById('formCadastro').submit();
     }
 </script>

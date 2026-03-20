@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Ultramed | Sistema Interno</title>
+    <title>{% block title %}Ultramed | Sistema Interno{% endblock %}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
@@ -31,14 +31,33 @@
         ::-webkit-scrollbar { display: none; }
     </style>
     {% endif %}
+
+    {% block extra_head %}{% endblock %}
 </head>
 
 <body class="{% if request.GET.app %}bg-white{% else %}bg-gray-50{% endif %} text-gray-800 font-sans antialiased min-h-screen">
     
+    {% if messages %}
+    <div class="fixed top-4 right-4 z-50 space-y-2">
+        {% for message in messages %}
+        <div class="p-4 rounded-lg shadow-lg text-white font-bold {% if message.tags == 'success' %}bg-green-600{% else %}bg-red-600{% endif %} transition-all duration-500">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    <script>
+        // Auto-fechar as mensagens após 4 segundos
+        setTimeout(() => {
+            document.querySelectorAll('.fixed.top-4 > div').forEach(el => el.style.display = 'none');
+        }, 4000);
+    </script>
+    {% endif %}
+
     {% block content %}{% endblock %}
 
     {% if request.GET.app %}
     <script>
+        // Mantém o parâmetro ?app=true em todos os links para não "sair" da visualização de app
         document.addEventListener('DOMContentLoaded', function() {
             const links = document.querySelectorAll('a');
             links.forEach(link => {
@@ -48,12 +67,12 @@
                         url.searchParams.set('app', 'true');
                         link.href = url.toString();
                     }
-                } catch (e) {
-                    // Ignora links inválidos ou mailto/tel
-                }
+                } catch (e) {}
             });
         });
     </script>
     {% endif %}
+
+    {% block extra_scripts %}{% endblock %}
 </body>
 </html>
