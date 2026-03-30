@@ -14,6 +14,12 @@ import json
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
 
 # =================================================================
+# DADOS DE TESTE OFICIAIS (BINÁRIO - CONFORME SEUS PRINTS)
+# =================================================================
+EMAIL_TESTE_OFICIAL = "TESTUSER3650679277076229617@testuser.com"
+CPF_TESTE_OFICIAL = "12345678909"
+
+# =================================================================
 # 1. REGRAS DE NEGÓCIO (LÓGICA DE DESCONTOS E FINANCEIRO)
 # =================================================================
 
@@ -175,7 +181,6 @@ def cliente_create(request):
 # 4. FINANCEIRO E MERCADO PAGO (CHECKOUT TRANSPARENTE)
 # =================================================================
 
-# AJUSTE: Removido @login_required para novos clientes poderem pagar
 def checkout_pagamento(request, paciente_id, plano_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     plano = get_object_or_404(Plano, id=plano_id)
@@ -192,9 +197,6 @@ def checkout_pagamento(request, paciente_id, plano_id):
         metodo_pagamento='PIX/CARTAO'
     )
 
-    # AJUSTE CORINGA: Email fixo para Sandbox aceitar o teste externo (IP diferente)
-    email_pagador = "test_user_123456@testuser.com"
-
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
     preference_data = {
         "items": [
@@ -207,8 +209,8 @@ def checkout_pagamento(request, paciente_id, plano_id):
         ],
         "payer": {
             "name": paciente.nome_completo,
-            "email": email_pagador,
-            "identification": {"type": "CPF", "number": "30125842150"}
+            "email": EMAIL_TESTE_OFICIAL,
+            "identification": {"type": "CPF", "number": CPF_TESTE_OFICIAL}
         },
         "back_urls": {
             "success": request.build_absolute_uri('/sistema/paciente/painel/'),
@@ -243,9 +245,6 @@ def processar_pagamento_brick(request):
             fatura = get_object_or_404(Fatura, id=fatura_id)
             paciente = fatura.paciente
             
-            # AJUSTE CORINGA: Evita o erro "invalid_user_involved" no Sandbox
-            email_pagador = "test_user_123456@testuser.com"
-
             payment_data = {
                 "transaction_amount": float(fatura.valor),
                 "token": data.get('token'),
@@ -253,10 +252,10 @@ def processar_pagamento_brick(request):
                 "installments": int(data.get('installments', 1)),
                 "payment_method_id": data.get('payment_method_id'),
                 "payer": {
-                    "email": email_pagador,
+                    "email": EMAIL_TESTE_OFICIAL,
                     "identification": {
                         "type": "CPF",
-                        "number": "30125842150"
+                        "number": CPF_TESTE_OFICIAL
                     }
                 },
                 "external_reference": str(fatura_id),
@@ -605,7 +604,6 @@ def fatura_baixar(request, fatura_id):
 
 def plan_create(request): return redirect('sistema_interno:master_dashboard')
 
-# AJUSTE: Removido @login_required para novos clientes poderem se cadastrar e pagar
 def cadastro_plano_completo(request, plano_nome):
     if request.method == 'POST':
         nome = request.POST.get('titular_nome') or request.POST.get('nome')
