@@ -1,12 +1,18 @@
 import os
 from pathlib import Path
+from dotenv import load_dotenv
+
+# 1. Carrega as variáveis do arquivo .env (Obrigatório para ler suas chaves)
+load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Pega do .env, se não existir usa a padrão (Seguro para dev)
 SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'f!#o4kk(_+=@oiwl1e-gr#en#pg8rmizv3$#+w-^u69y@m0g=k')
+
+# Mantemos True para você ver os erros enquanto desenvolve
 DEBUG = True 
 
-# 1. AJUSTE DE DOMÍNIOS
 ALLOWED_HOSTS = [
     'ultramedsaudexingu.com.br', 
     'www.ultramedsaudexingu.com.br', 
@@ -77,9 +83,10 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'static_content')
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # =================================================================
-# SEGURANÇA, HTTPS E CSRF (CORREÇÃO PARA AMBIENTE DOCKER)
+# SEGURANÇA E CSRF (AJUSTADO PARA FUNCIONAR COM MERCADO PAGO)
 # =================================================================
 
+# Removi o "*" (wildcard) que o Django não aceita bem
 CSRF_TRUSTED_ORIGINS = [
     'https://ultramedsaudexingu.com.br', 
     'https://www.ultramedsaudexingu.com.br',
@@ -89,32 +96,28 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000'
 ]
 
-# Configurações de Proxy e SSL (Vital para Nginx/Docker entender HTTPS)
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 USE_X_FORWARDED_HOST = True
 USE_X_FORWARDED_PORT = True
 
-# AJUSTE: Mantido False para evitar erro de comunicação até o SSL estar 100% no Nginx
 CSRF_COOKIE_SECURE = False  
 SESSION_COOKIE_SECURE = False 
 
-CSRF_COOKIE_HTTPONLY = True
+# MUDANÇA VITAL: False permite que o JavaScript do Mercado Pago envie o pagamento
+CSRF_COOKIE_HTTPONLY = False 
+
 CSRF_COOKIE_SAMESITE = 'Lax'
 SESSION_COOKIE_SAMESITE = 'Lax'
 
-SECURE_BROWSER_XSS_FILTER = True
-SECURE_CONTENT_TYPE_NOSNIFF = True
-
 # =================================================================
-# REDIRECIONAMENTOS (CORREÇÃO DO 404)
+# REDIRECIONAMENTOS
 # =================================================================
-# Usamos o namespace para garantir que o Django ache a rota correta no Docker
 LOGIN_URL = 'sistema_interno:login' 
 LOGIN_REDIRECT_URL = 'sistema_interno:painel_paciente'
 LOGOUT_REDIRECT_URL = 'sistema_interno:login'
 
 # =================================================================
-# MERCADO PAGO - CREDENCIAIS
+# MERCADO PAGO - CREDENCIAIS (SINCRONIZADO COM .ENV)
 # =================================================================
-MERCADO_PAGO_PUBLIC_KEY = os.getenv('MP_PUBLIC_KEY', 'TEST-820749df-8dd8-471e-bf11-93e09709a0e0')
-MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MP_ACCESS_TOKEN', 'TEST-6753419192975396-030114-c38ea8b2f4fa6e920634c1d8ee8ce124-3235550241')
+MERCADO_PAGO_PUBLIC_KEY = os.getenv('MERCADO_PAGO_PUBLIC_KEY', 'TEST-820749df-8dd8-471e-bf11-93e09709a0e0')
+MERCADO_PAGO_ACCESS_TOKEN = os.getenv('MERCADO_PAGO_ACCESS_TOKEN', 'TEST-6753419192975396-030114-c38ea8b2f4fa6e920634c1d8ee8ce124-3235550241')

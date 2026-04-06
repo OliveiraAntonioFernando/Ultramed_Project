@@ -14,7 +14,7 @@ import json
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
 
 # =================================================================
-# DADOS DE TESTE OFICIAIS (BINÁRIO - CONFORME SEUS PRINTS)
+# DADOS DE TESTE OFICIAIS (CONFORME SEU AMBIENTE SANDBOX)
 # =================================================================
 EMAIL_TESTE_OFICIAL = "TESTUSER3650679277076229617@testuser.com"
 CPF_TESTE_OFICIAL = "12345678909"
@@ -236,9 +236,12 @@ def checkout_pagamento(request, paciente_id, plano_id):
 
 @csrf_exempt
 def processar_pagamento_brick(request):
+    print("\n--- [LOG] INÍCIO DO PROCESSAMENTO BRICK ---")
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
+            print(f"--- [LOG] DADOS RECEBIDOS: {data.get('payment_method_id')} ---")
+            
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
             fatura_id = data.get('external_reference')
@@ -261,11 +264,15 @@ def processar_pagamento_brick(request):
                 "external_reference": str(fatura_id),
             }
 
+            print("--- [LOG] ENVIANDO PARA MERCADO PAGO... ---")
             payment_response = sdk.payment().create(payment_data)
             payment = payment_response["response"]
+            
+            print(f"--- [LOG] STATUS RESPOSTA MP: {payment_response['status']} ---")
 
             if payment_response["status"] in [200, 201]:
                 status_mp = payment.get("status")
+                print(f"--- [LOG] PAGAMENTO FINALIZADO COMO: {status_mp} ---")
                 fatura.status = 'PAGO' if status_mp == "approved" else 'PENDENTE'
                 fatura.data_pagamento = timezone.now().date() if status_mp == "approved" else None
                 fatura.mercadopago_id = str(payment.get("id"))
@@ -281,10 +288,17 @@ def processar_pagamento_brick(request):
 
                 return JsonResponse({"status": status_mp, "id": payment.get("id")})
             
+            print(f"--- [LOG] REJEITADO PELO MP: {payment.get('message')} ---")
             return JsonResponse({"status": "rejected", "detail": payment.get("message", "Dados Inválidos")}, status=200)
             
         except Exception as e:
+            print("\n" + "!"*50)
+            print(f"🚨 CRASH NO BACKEND: {str(e)}")
+            if hasattr(e, 'response'):
+                print(f"🔍 DETALHE TÉCNICO: {e.response}")
+            print("!"*50 + "\n")
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
+            
     return JsonResponse({"status": "error"}, status=405)
 
 @csrf_exempt
@@ -315,10 +329,6 @@ def mercadopago_webhook(request):
                         
         return JsonResponse({'status': 'ok'}, status=200)
     return JsonResponse({'status': 'erro'}, status=400)
-
-# =================================================================
-# 5. DEMAIS FUNÇÕES (FINANCEIRO, AGENDA, PAINÉIS)
-# =================================================================
 
 @login_required
 def fatura_create(request):
@@ -478,10 +488,6 @@ def painel_paciente(request):
         'consultas': Agenda.objects.filter(paciente=paciente).order_by('-data', '-hora'),
     }
     return render(request, 'painel_paciente.html', context)
-
-# =================================================================
-# 6. APIs DE APOIO E GESTÃO MÉDICA
-# =================================================================
 
 @login_required
 def baixar_lead(request, lead_id):
