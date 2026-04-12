@@ -130,7 +130,10 @@ def _mp_limpar_cpf(valor, fallback=CPF_TESTE_OFICIAL):
 
 
 def _mp_credencial_teste():
-    return (getattr(settings, "MERCADO_PAGO_ACCESS_TOKEN", "") or "").startswith("TEST-")
+    """Sandbox: token ou public key de teste (TEST-). Public key TEST com token vazio no Docker quebrava antes."""
+    token = (getattr(settings, "MERCADO_PAGO_ACCESS_TOKEN", "") or "").strip()
+    pub = (getattr(settings, "MERCADO_PAGO_PUBLIC_KEY", "") or "").strip()
+    return token.startswith("TEST-") or pub.startswith("TEST-")
 
 
 def _mp_email_comprador_sandbox():
@@ -138,18 +141,31 @@ def _mp_email_comprador_sandbox():
 
 
 def _mp_payer_do_payload(data, paciente):
-    """Monta payer para a API MP. Em sandbox, e-mail é sempre @testuser.com (Brick pode enviar e-mail real)."""
+    """Monta payer para a API MP. Retorna (payer_dict, None) ou (None, mensagem_erro)."""
     payer_in = data.get("payer") or {}
     if _mp_credencial_teste():
         email = _mp_email_comprador_sandbox()
+        if not email.lower().endswith("@testuser.com"):
+            return None, (
+                "Configure MERCADO_PAGO_TEST_PAYER_EMAIL com o e-mail @testuser.com "
+                "da conta de teste comprador (painel Mercado Pago → Suas integrações → Contas de teste)."
+            )
     else:
         email = (payer_in.get("email") or "").strip() or EMAIL_TESTE_OFICIAL
+        if email.lower().endswith("@testuser.com"):
+            return None, (
+                "Chaves de produção do Mercado Pago não aceitam e-mail @testuser.com "
+                '(erro "Payer email forbidden"). Use um e-mail real ou credenciais TEST- só em homologação.'
+            )
     ident = payer_in.get("identification") or {}
     cpf = _mp_limpar_cpf(ident.get("number") or paciente.cpf)
-    return {
-        "email": email,
-        "identification": {"type": "CPF", "number": cpf},
-    }
+    return (
+        {
+            "email": email,
+            "identification": {"type": "CPF", "number": cpf},
+        },
+        None,
+    )
 
 
 def _mp_installments(val):
@@ -409,7 +425,12 @@ def processar_pagamento_brick(request):
             fatura_id = data.get("external_reference")
             fatura = get_object_or_404(Fatura, id=fatura_id)
             paciente = fatura.paciente
-            payer = _mp_payer_do_payload(data, paciente)
+            payer, payer_err = _mp_payer_do_payload(data, paciente)
+            if payer_err:
+                return JsonResponse(
+                    {"status": "error", "detail": payer_err},
+                    status=400,
+                )
             pm_id = data.get("payment_method_id")
             token = data.get("token")
             descricao = f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}"
@@ -478,6 +499,12 @@ def processar_pagamento_brick(request):
                 or "Dados inválidos"
             )
             print(f"--- [LOG] REJEITADO PELO MP: {detalhe} ---")
+            dlow = str(detalhe).lower()
+            if "email" in dlow and "forbidden" in dlow and _mp_credencial_teste():
+                detalhe = (
+                    f"{detalhe}. O e-mail @testuser.com precisa ser o da SUA conta no painel MP "
+                    "(Contas de teste → comprador). Defina MERCADO_PAGO_TEST_PAYER_EMAIL com esse e-mail."
+                )
             return JsonResponse(
                 {"status": "rejected", "detail": detalhe},
                 status=200,

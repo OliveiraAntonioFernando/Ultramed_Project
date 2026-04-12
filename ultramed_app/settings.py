@@ -135,11 +135,20 @@ LOGOUT_REDIRECT_URL = "sistema_interno:login"
 # =================================================================
 # MERCADO PAGO (credenciais apenas via ambiente em produção)
 # =================================================================
-MERCADO_PAGO_PUBLIC_KEY = os.getenv(
+def _mp_env(key: str, default: str) -> str:
+    """Docker/.env costumam definir variável vazia; tratar como 'não definida' e usar default."""
+    raw = os.getenv(key)
+    if raw is None:
+        return default
+    raw = raw.strip()
+    return raw if raw else default
+
+
+MERCADO_PAGO_PUBLIC_KEY = _mp_env(
     "MERCADO_PAGO_PUBLIC_KEY",
     "TEST-820749df-8dd8-471e-bf11-93e09709a0e0" if DEBUG else "",
 )
-MERCADO_PAGO_ACCESS_TOKEN = os.getenv(
+MERCADO_PAGO_ACCESS_TOKEN = _mp_env(
     "MERCADO_PAGO_ACCESS_TOKEN",
     "TEST-6753419192975396-030114-c38ea8b2f4fa6e920634c1d8ee8ce124-3235550241"
     if DEBUG
