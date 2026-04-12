@@ -67,8 +67,8 @@
                     amount: cleanAmount,
                     preferenceId: '{{ preference_id }}',
                     payer: {
-                        firstName: "{{ paciente.nome_completo }}",
-                        email: "TESTUSER3650679277076229617@testuser.com", 
+                        firstName: "{{ paciente.nome_completo|escapejs }}".trim().split(/\s+/)[0] || "Cliente",
+                        email: "TESTUSER3650679277076229617@testuser.com",
                     },
                 },
                 customization: {
@@ -86,35 +86,38 @@
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
                         formData.external_reference = "{{ fatura.id }}";
                         formData.transaction_amount = cleanAmount;
-                        formData.description = "Plano {{ plano.nome }} - {{ paciente.nome_completo }}";
+                        formData.description = "Plano {{ plano.nome|escapejs }} - {{ paciente.nome_completo|escapejs }}";
 
                         return new Promise((resolve, reject) => {
-                            // AJUSTE 1: Usando URL Dinâmica do Django (Evita erro de rota no Docker)
                             fetch("{% url 'sistema_interno:processar_pagamento_brick' %}", {
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
-                                    // AJUSTE 2: Garantindo o Token CSRF correto
                                     "X-CSRFToken": "{{ csrf_token }}"
                                 },
                                 body: JSON.stringify(formData),
                             })
-                            .then((response) => {
-                                if (!response.ok) throw new Error('Erro no servidor');
-                                return response.json();
+                            .then(async (response) => {
+                                const result = await response.json().catch(() => ({}));
+                                if (!response.ok) {
+                                    const msg = result.detail || result.message || "Erro no servidor (" + response.status + ")";
+                                    throw new Error(msg);
+                                }
+                                return result;
                             })
                             .then((result) => {
                                 if (result.status === 'approved' || result.status === 'pending') {
-                                    // AJUSTE 3: Redirecionamento para a URL absoluta correta
-                                    window.location.href = "{% url 'sistema_interno:painel_paciente' %}?status=pago";
+                                    resolve();
+                                    const q = result.status === 'approved' ? 'pago' : 'pendente';
+                                    window.location.href = "{% url 'sistema_interno:painel_paciente' %}?status=" + encodeURIComponent(q);
                                 } else {
-                                    alert("Pagamento não aprovado: " + (result.detail || "Verifique os dados do cartão."));
+                                    alert("Pagamento não aprovado: " + (result.detail || result.message || "Verifique os dados."));
                                     resolve();
                                 }
                             })
                             .catch((error) => {
                                 console.error("Erro:", error);
-                                alert("Erro de comunicação com o servidor.");
+                                alert(error.message || "Erro de comunicação com o servidor.");
                                 reject();
                             });
                         });

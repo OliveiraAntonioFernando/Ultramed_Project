@@ -1,3 +1,5 @@
+from functools import wraps
+
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
@@ -8,8 +10,12 @@ from django.utils import timezone
 from datetime import timedelta, date
 from django.contrib import messages
 from django.conf import settings
+from django.urls import reverse
 import mercadopago
+from mercadopago.config import RequestOptions
 import json
+import re
+import uuid
 
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
 
@@ -18,6 +24,129 @@ from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda
 # =================================================================
 EMAIL_TESTE_OFICIAL = "TESTUSER3650679277076229617@testuser.com"
 CPF_TESTE_OFICIAL = "12345678909"
+
+_STAFF_USERNAMES = frozenset({"medico", "recepcao", "master"})
+
+
+def _is_staff_user(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and (user.is_superuser or getattr(user, "username", "") in _STAFF_USERNAMES)
+    )
+
+
+def _is_master_user(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and (user.is_superuser or getattr(user, "username", "") == "master")
+    )
+
+
+def _is_medico_user(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and (
+            user.is_superuser
+            or getattr(user, "username", "") in ("master", "medico")
+        )
+    )
+
+
+def _recepcao_ou_master(user):
+    return bool(
+        user
+        and user.is_authenticated
+        and (
+            user.is_superuser
+            or getattr(user, "username", "") in ("master", "recepcao")
+        )
+    )
+
+
+def _staff_home_redirect(user):
+    if getattr(user, "username", "") == "medico":
+        return redirect("sistema_interno:painel_medico")
+    if getattr(user, "username", "") == "recepcao":
+        return redirect("sistema_interno:painel_colaborador")
+    if user.is_superuser or getattr(user, "username", "") == "master":
+        return redirect("sistema_interno:master_dashboard")
+    return redirect("sistema_interno:painel_colaborador")
+
+
+def staff_member_required(view_func):
+    @wraps(view_func)
+    def _wrap(request, *args, **kwargs):
+        if not _is_staff_user(request.user):
+            messages.error(request, "Acesso restrito à equipe Ultramed.")
+            return redirect("sistema_interno:painel_paciente")
+        return view_func(request, *args, **kwargs)
+
+    return _wrap
+
+
+def master_member_required(view_func):
+    @wraps(view_func)
+    def _wrap(request, *args, **kwargs):
+        if not _is_master_user(request.user):
+            messages.error(request, "Acesso restrito ao financeiro / master.")
+            return _staff_home_redirect(request.user)
+        return view_func(request, *args, **kwargs)
+
+    return _wrap
+
+
+def recepcao_ou_master_required(view_func):
+    @wraps(view_func)
+    def _wrap(request, *args, **kwargs):
+        if not _recepcao_ou_master(request.user):
+            messages.error(request, "Acesso restrito à recepção.")
+            return _staff_home_redirect(request.user)
+        return view_func(request, *args, **kwargs)
+
+    return _wrap
+
+
+def _pode_ver_dados_clinicos_paciente(user, paciente_id):
+    if _is_staff_user(user):
+        return True
+    try:
+        p = Paciente.objects.select_related("responsavel").get(pk=paciente_id)
+    except Paciente.DoesNotExist:
+        return False
+    uname = getattr(user, "username", "")
+    if p.cpf == uname:
+        return True
+    if p.responsavel_id and p.responsavel.cpf == uname:
+        return True
+    return False
+
+
+def _mp_limpar_cpf(valor, fallback=CPF_TESTE_OFICIAL):
+    digitos = re.sub(r"\D", "", str(valor or ""))
+    return digitos if len(digitos) >= 11 else fallback
+
+
+def _mp_payer_do_payload(data, paciente):
+    """Usa e-mail/CPF enviados pelo Brick; fallback para paciente ou credenciais de teste."""
+    payer_in = data.get("payer") or {}
+    email = (payer_in.get("email") or "").strip() or EMAIL_TESTE_OFICIAL
+    ident = payer_in.get("identification") or {}
+    cpf = _mp_limpar_cpf(ident.get("number") or paciente.cpf)
+    return {
+        "email": email,
+        "identification": {"type": "CPF", "number": cpf},
+    }
+
+
+def _mp_installments(val):
+    try:
+        return max(1, int(float(val)))
+    except (TypeError, ValueError):
+        return 1
+
 
 # =================================================================
 # 1. REGRAS DE NEGÓCIO (LÓGICA DE DESCONTOS E FINANCEIRO)
@@ -81,6 +210,7 @@ def logout_view(request):
 # =================================================================
 
 @login_required
+@staff_member_required
 def upload_exame(request):
     if request.method == 'POST' and request.FILES.get('arquivo_exame'):
         paciente_id = request.POST.get('paciente_id')
@@ -97,6 +227,7 @@ def upload_exame(request):
     return redirect('sistema_interno:cliente_list')
 
 @login_required
+@staff_member_required
 def cliente_edit(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     
@@ -113,6 +244,7 @@ def cliente_edit(request, paciente_id):
     return redirect('sistema_interno:cliente_list')
 
 @login_required
+@staff_member_required
 def cliente_list(request):
     q = request.GET.get('q', '')
     pacientes = Paciente.objects.filter(responsavel__isnull=True).order_by('-data_cadastro')
@@ -128,6 +260,7 @@ def cliente_list(request):
     return render(request, 'cliente_list.html', context)
 
 @login_required
+@staff_member_required
 def cliente_create(request):
     if request.method == 'POST':
         from django.contrib.auth.models import User
@@ -143,7 +276,6 @@ def cliente_create(request):
             user.save()
 
         titular = Paciente.objects.create(
-            user=user,
             nome_completo=request.POST.get('nome_completo'),
             cpf=cpf,
             telefone=request.POST.get('telefone'),
@@ -198,27 +330,34 @@ def checkout_pagamento(request, paciente_id, plano_id):
     )
 
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+    webhook_url = request.build_absolute_uri(reverse("sistema_interno:mp_webhook"))
+    painel_url = request.build_absolute_uri(reverse("sistema_interno:painel_paciente"))
+
     preference_data = {
         "items": [
             {
                 "id": str(fatura.id),
                 "title": f"Plano {plano.nome} - ANUIDADE",
                 "quantity": 1,
-                "unit_price": valor_a_cobrar, 
+                "unit_price": float(valor_a_cobrar),
+                "currency_id": "BRL",
             }
         ],
         "payer": {
             "name": paciente.nome_completo,
             "email": EMAIL_TESTE_OFICIAL,
-            "identification": {"type": "CPF", "number": CPF_TESTE_OFICIAL}
+            "identification": {
+                "type": "CPF",
+                "number": _mp_limpar_cpf(paciente.cpf),
+            },
         },
         "back_urls": {
-            "success": request.build_absolute_uri('/sistema/paciente/painel/'),
-            "failure": request.build_absolute_uri('/sistema/paciente/painel/'),
+            "success": painel_url,
+            "failure": painel_url,
         },
         "auto_return": "approved",
         "external_reference": str(fatura.id),
-        "notification_url": "https://ultramedsaudexingu.com.br/sistema/api/v1/mp/webhook/",
+        "notification_url": webhook_url,
     }
 
     pref_res = sdk.preference().create(preference_data)
@@ -244,28 +383,50 @@ def processar_pagamento_brick(request):
             
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
-            fatura_id = data.get('external_reference')
+            fatura_id = data.get("external_reference")
             fatura = get_object_or_404(Fatura, id=fatura_id)
             paciente = fatura.paciente
-            
-            payment_data = {
-                "transaction_amount": float(fatura.valor),
-                "token": data.get('token'),
-                "description": f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}",
-                "installments": int(data.get('installments', 1)),
-                "payment_method_id": data.get('payment_method_id'),
-                "payer": {
-                    "email": EMAIL_TESTE_OFICIAL,
-                    "identification": {
-                        "type": "CPF",
-                        "number": CPF_TESTE_OFICIAL
-                    }
-                },
-                "external_reference": str(fatura_id),
-            }
+            payer = _mp_payer_do_payload(data, paciente)
+            pm_id = data.get("payment_method_id")
+            token = data.get("token")
+            descricao = f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}"
+
+            if pm_id == "pix":
+                payment_data = {
+                    "transaction_amount": float(fatura.valor),
+                    "description": descricao,
+                    "payment_method_id": "pix",
+                    "payer": payer,
+                    "external_reference": str(fatura_id),
+                }
+            elif token and pm_id:
+                payment_data = {
+                    "transaction_amount": float(fatura.valor),
+                    "token": token,
+                    "description": descricao,
+                    "installments": _mp_installments(data.get("installments", 1)),
+                    "payment_method_id": pm_id,
+                    "payer": payer,
+                    "external_reference": str(fatura_id),
+                }
+                issuer_id = data.get("issuer_id")
+                if issuer_id is not None and str(issuer_id).strip() != "":
+                    payment_data["issuer_id"] = str(issuer_id)
+            else:
+                return JsonResponse(
+                    {
+                        "status": "error",
+                        "detail": "Pagamento incompleto: use cartão com dados válidos ou PIX.",
+                    },
+                    status=400,
+                )
+
+            req_opts = RequestOptions(
+                custom_headers={"x-idempotency-key": str(uuid.uuid4())}
+            )
 
             print("--- [LOG] ENVIANDO PARA MERCADO PAGO... ---")
-            payment_response = sdk.payment().create(payment_data)
+            payment_response = sdk.payment().create(payment_data, req_opts)
             payment = payment_response["response"]
             
             print(f"--- [LOG] STATUS RESPOSTA MP: {payment_response['status']} ---")
@@ -288,8 +449,16 @@ def processar_pagamento_brick(request):
 
                 return JsonResponse({"status": status_mp, "id": payment.get("id")})
             
-            print(f"--- [LOG] REJEITADO PELO MP: {payment.get('message')} ---")
-            return JsonResponse({"status": "rejected", "detail": payment.get("message", "Dados Inválidos")}, status=200)
+            detalhe = (
+                payment.get("status_detail")
+                or payment.get("message")
+                or "Dados inválidos"
+            )
+            print(f"--- [LOG] REJEITADO PELO MP: {detalhe} ---")
+            return JsonResponse(
+                {"status": "rejected", "detail": detalhe},
+                status=200,
+            )
             
         except Exception as e:
             print("\n" + "!"*50)
@@ -303,8 +472,22 @@ def processar_pagamento_brick(request):
 
 @csrf_exempt
 def mercadopago_webhook(request):
-    if request.method == 'POST':
-        payment_id = request.GET.get('data.id') or request.POST.get('data.id') or request.GET.get('id')
+    if request.method == "POST":
+        payment_id = None
+        ctype = (request.content_type or "").lower()
+        if "application/json" in ctype and request.body:
+            try:
+                payload = json.loads(request.body)
+                inner = payload.get("data") or {}
+                payment_id = inner.get("id")
+            except json.JSONDecodeError:
+                payment_id = None
+        if not payment_id:
+            payment_id = (
+                request.GET.get("id")
+                or request.GET.get("data.id")
+                or request.POST.get("data.id")
+            )
         if payment_id:
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
             payment_info = sdk.payment().get(payment_id)
@@ -331,6 +514,7 @@ def mercadopago_webhook(request):
     return JsonResponse({'status': 'erro'}, status=400)
 
 @login_required
+@master_member_required
 def fatura_create(request):
     return render(request, 'fatura_form.html', {
         'pacientes': Paciente.objects.all().order_by('nome_completo'),
@@ -338,6 +522,7 @@ def fatura_create(request):
     })
 
 @login_required
+@master_member_required
 def fatura_store(request):
     if request.method == 'POST':
         pac_id = request.POST.get('paciente')
@@ -369,6 +554,7 @@ def fatura_store(request):
     return redirect('sistema_interno:master_dashboard')
 
 @login_required
+@recepcao_ou_master_required
 def agenda_view(request):
     hoje = timezone.now().date()
     agendamento_id = request.GET.get('id')
@@ -417,6 +603,7 @@ def agenda_view(request):
     return render(request, 'agenda.html', {'agendamentos': agendamentos})
 
 @login_required
+@master_member_required
 def master_dashboard(request):
     hoje = timezone.now().date()
     doenca_filtro = request.GET.get('doenca')
@@ -458,6 +645,7 @@ def master_dashboard(request):
     })
 
 @login_required
+@recepcao_ou_master_required
 def painel_colaborador(request):
     hoje = timezone.now().date()
     leads = LeadSite.objects.filter(atendido=False).order_by('-id')
@@ -468,12 +656,18 @@ def painel_colaborador(request):
     })
 
 @login_required
+@staff_member_required
 def painel_medico(request):
+    if not _is_medico_user(request.user):
+        messages.error(request, "Acesso restrito ao médico.")
+        return _staff_home_redirect(request.user)
     espera = Agenda.objects.filter(data=timezone.now().date(), status='CHEGOU').order_by('hora')
     return render(request, 'painel_medico.html', {'pacientes_espera': espera})
 
 @login_required
 def painel_paciente(request):
+    if _is_staff_user(request.user):
+        return _staff_home_redirect(request.user)
     paciente = get_object_or_404(Paciente, cpf=request.user.username)
     hoje = timezone.now().date()
     is_vencendo_ou_vencido = False
@@ -490,28 +684,40 @@ def painel_paciente(request):
     return render(request, 'painel_paciente.html', context)
 
 @login_required
+@recepcao_ou_master_required
 def baixar_lead(request, lead_id):
     lead = get_object_or_404(LeadSite, id=lead_id)
     lead.atendido = True
     lead.save()
-    return redirect(request.META.get('HTTP_REFERER', 'sistema_interno:painel_colaborador'))
+    referer = request.META.get("HTTP_REFERER")
+    if referer:
+        return redirect(referer)
+    return redirect("sistema_interno:painel_colaborador")
 
 @login_required
 @csrf_exempt
 def solicitar_renovacao_api(request):
+    if _is_staff_user(request.user):
+        return JsonResponse(
+            {"success": False, "detail": "Endpoint exclusivo do paciente."},
+            status=403,
+        )
     try:
         paciente = Paciente.objects.get(cpf=request.user.username)
         LeadSite.objects.create(
             nome=paciente.nome_completo,
             telefone=paciente.telefone,
-            interest=f"RENOVAÇÃO DE RECEITA - ID: {paciente.id}",
-            atendido=False
+            interesse=f"RENOVAÇÃO DE RECEITA - ID: {paciente.id}",
+            atendido=False,
         )
-        return JsonResponse({'success': True})
-    except:
-        return JsonResponse({'success': False}, status=400)
+        return JsonResponse({"success": True})
+    except Paciente.DoesNotExist:
+        return JsonResponse({"success": False, "detail": "Paciente não encontrado."}, status=404)
+    except Exception:
+        return JsonResponse({"success": False}, status=400)
 
 @login_required
+@staff_member_required
 def salvar_doencas_cronicas(request, paciente_id):
     if request.method == 'POST':
         paciente = get_object_or_404(Paciente, id=paciente_id)
@@ -528,12 +734,22 @@ def salvar_doencas_cronicas(request, paciente_id):
 
 @login_required
 def api_ultima_receita(request, paciente_id):
-    ultima = Receita.objects.filter(paciente_id=paciente_id).order_by('-data_emissao').first()
+    if not _pode_ver_dados_clinicos_paciente(request.user, paciente_id):
+        return JsonResponse(
+            {"success": False, "detail": "Acesso negado."},
+            status=403,
+        )
+    ultima = (
+        Receita.objects.filter(paciente_id=paciente_id)
+        .order_by("-data_emissao")
+        .first()
+    )
     if ultima:
-        return JsonResponse({'success': True, 'conteudo': ultima.conteudo})
-    return JsonResponse({'success': False})
+        return JsonResponse({"success": True, "conteudo": ultima.conteudo})
+    return JsonResponse({"success": False})
 
 @login_required
+@staff_member_required
 def api_buscar_paciente(request):
     q = request.GET.get('q', '')
     pacientes = Paciente.objects.filter(Q(nome_completo__icontains=q) | Q(cpf__icontains=q))[:10]
@@ -541,6 +757,7 @@ def api_buscar_paciente(request):
     return JsonResponse({'results': results})
 
 @login_required
+@staff_member_required
 def api_detalhes_paciente(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
     hoje = timezone.now().date()
@@ -582,10 +799,14 @@ def api_lead_capture(request):
     return JsonResponse({'success': False}, status=400)
 
 @login_required
+@staff_member_required
 def prontuario_view(request, paciente_id):
-    if request.user.username == 'recepcao' and not request.user.is_superuser:
-        messages.error(request, "Acesso Negado: Apenas médicos podem acessar o prontuário.")
-        return redirect('sistema_interno:cliente_list')
+    if not _is_medico_user(request.user):
+        messages.error(
+            request,
+            "Acesso negado: apenas médicos podem acessar o prontuário.",
+        )
+        return redirect("sistema_interno:cliente_list")
 
     p = get_object_or_404(Paciente, id=paciente_id)
     if request.method == 'POST':
@@ -601,14 +822,20 @@ def prontuario_view(request, paciente_id):
     exames = Exame.objects.filter(paciente=p).order_by('-id')
     return render(request, 'prontuario.html', {'paciente': p, 'historico': hist, 'exames': exames})
 
-def fatura_baixar(request, fatura_id): 
+@login_required
+@master_member_required
+def fatura_baixar(request, fatura_id):
     f = get_object_or_404(Fatura, id=fatura_id)
-    f.status = 'PAGO'
+    f.status = "PAGO"
     f.data_pagamento = timezone.now().date()
     f.save()
-    return redirect('sistema_interno:master_dashboard')
+    return redirect("sistema_interno:master_dashboard")
 
-def plan_create(request): return redirect('sistema_interno:master_dashboard')
+
+@login_required
+@master_member_required
+def plan_create(request):
+    return redirect("sistema_interno:master_dashboard")
 
 def cadastro_plano_completo(request, plano_nome):
     if request.method == 'POST':
