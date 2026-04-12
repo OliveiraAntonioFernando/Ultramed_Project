@@ -45,6 +45,14 @@
             </div>
 
             <div id="paymentBrick_container"></div>
+            {% if mp_sandbox %}
+            <p class="text-center text-[10px] text-amber-900 bg-amber-50 rounded-xl px-3 py-3 mt-4 leading-relaxed">
+                <span class="font-black uppercase tracking-wide block mb-1">Modo teste</span>
+                O Mercado Pago <strong class="font-bold">esconde o e-mail</strong> se ele já estiver na preferência ou pré-preenchido no Brick. A preferência de teste não manda mais e-mail para o campo poder aparecer.
+                E-mail @testuser.com que o <strong class="font-bold">servidor</strong> envia ao registrar o pagamento:
+                <span class="font-mono break-all text-[9px] block mt-1 bg-white/80 rounded px-2 py-1">{{ mp_test_payer_email }}</span>
+            </p>
+            {% endif %}
 
             <p class="text-center text-[10px] text-gray-400 mt-6 uppercase tracking-widest italic font-bold">
                 <i class="fas fa-lock mr-1"></i> Pagamento Seguro via Mercado Pago
@@ -68,7 +76,6 @@
                     preferenceId: '{{ preference_id }}',
                     payer: {
                         firstName: "{{ paciente.nome_completo|escapejs }}".trim().split(/\s+/)[0] || "Cliente",
-                        email: "TESTUSER3650679277076229617@testuser.com",
                     },
                 },
                 customization: {

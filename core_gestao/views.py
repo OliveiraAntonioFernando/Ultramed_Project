@@ -129,10 +129,21 @@ def _mp_limpar_cpf(valor, fallback=CPF_TESTE_OFICIAL):
     return digitos if len(digitos) >= 11 else fallback
 
 
+def _mp_credencial_teste():
+    return (getattr(settings, "MERCADO_PAGO_ACCESS_TOKEN", "") or "").startswith("TEST-")
+
+
+def _mp_email_comprador_sandbox():
+    return (getattr(settings, "MERCADO_PAGO_TEST_PAYER_EMAIL", "") or "").strip() or EMAIL_TESTE_OFICIAL
+
+
 def _mp_payer_do_payload(data, paciente):
-    """Usa e-mail/CPF enviados pelo Brick; fallback para paciente ou credenciais de teste."""
+    """Monta payer para a API MP. Em sandbox, e-mail é sempre @testuser.com (Brick pode enviar e-mail real)."""
     payer_in = data.get("payer") or {}
-    email = (payer_in.get("email") or "").strip() or EMAIL_TESTE_OFICIAL
+    if _mp_credencial_teste():
+        email = _mp_email_comprador_sandbox()
+    else:
+        email = (payer_in.get("email") or "").strip() or EMAIL_TESTE_OFICIAL
     ident = payer_in.get("identification") or {}
     cpf = _mp_limpar_cpf(ident.get("number") or paciente.cpf)
     return {
@@ -343,14 +354,24 @@ def checkout_pagamento(request, paciente_id, plano_id):
                 "currency_id": "BRL",
             }
         ],
-        "payer": {
-            "name": paciente.nome_completo,
-            "email": EMAIL_TESTE_OFICIAL,
-            "identification": {
-                "type": "CPF",
-                "number": _mp_limpar_cpf(paciente.cpf),
-            },
-        },
+        "payer": (
+            {
+                "name": paciente.nome_completo,
+                "identification": {
+                    "type": "CPF",
+                    "number": _mp_limpar_cpf(paciente.cpf),
+                },
+            }
+            if _mp_credencial_teste()
+            else {
+                "name": paciente.nome_completo,
+                "email": EMAIL_TESTE_OFICIAL,
+                "identification": {
+                    "type": "CPF",
+                    "number": _mp_limpar_cpf(paciente.cpf),
+                },
+            }
+        ),
         "back_urls": {
             "success": painel_url,
             "failure": painel_url,
@@ -369,7 +390,9 @@ def checkout_pagamento(request, paciente_id, plano_id):
             'public_key': settings.MERCADO_PAGO_PUBLIC_KEY,
             'paciente': paciente,
             'plano': plano,
-            'fatura': fatura
+            'fatura': fatura,
+            'mp_sandbox': _mp_credencial_teste(),
+            'mp_test_payer_email': _mp_email_comprador_sandbox(),
         })
     return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Erro desconhecido')}")
 

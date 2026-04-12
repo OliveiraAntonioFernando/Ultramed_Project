@@ -6406,3 +6406,8 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    44b48e8..fefe3f9  main -> main
+[main ff5a2de] Ponto de Recuperação Automático: 2026-04-12 18:00:01
+ 8 files changed, 444 insertions(+), 130 deletions(-)
+ create mode 100644 core_gestao/admin.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   fefe3f9..ff5a2de  main -> main

@@ -145,3 +145,5 @@ MERCADO_PAGO_ACCESS_TOKEN = os.getenv(
     if DEBUG
     else "",
 )
+# Sandbox: e-mail deve ser de comprador teste (@testuser.com) criado na sua aplicação MP.
+MERCADO_PAGO_TEST_PAYER_EMAIL = os.getenv("MERCADO_PAGO_TEST_PAYER_EMAIL", "").strip()
