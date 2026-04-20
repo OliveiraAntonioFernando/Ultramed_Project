@@ -20,9 +20,8 @@ import uuid
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
 
 # =================================================================
-# DADOS DE TESTE OFICIAIS (CONFORME SEU AMBIENTE SANDBOX)
+# DADOS DE TESTE OFICIAIS (SANDBOX)
 # =================================================================
-EMAIL_TESTE_OFICIAL = "TESTUSER3650679277076229617@testuser.com"
 CPF_TESTE_OFICIAL = "12345678909"
 
 _STAFF_USERNAMES = frozenset({"medico", "recepcao", "master"})
@@ -134,16 +133,23 @@ def _mp_credencial_teste():
 
 
 def _mp_email_comprador_sandbox():
-    return (getattr(settings, "MERCADO_PAGO_TEST_PAYER_EMAIL", "") or "").strip() or EMAIL_TESTE_OFICIAL
+    return (getattr(settings, "MERCADO_PAGO_TEST_PAYER_EMAIL", "") or "").strip().lower()
+
+
+def _mp_email_teste_valido(email):
+    email = (email or "").strip().lower()
+    return email.endswith("@testuser.com")
 
 
 def _mp_payer_do_payload(data, paciente):
     """Monta payer para a API MP. Em sandbox, e-mail é sempre @testuser.com (Brick pode enviar e-mail real)."""
     payer_in = data.get("payer") or {}
     if _mp_credencial_teste():
-        email = _mp_email_comprador_sandbox()
+        email_brick = (payer_in.get("email") or "").strip().lower()
+        email_cfg = _mp_email_comprador_sandbox()
+        email = email_brick or email_cfg
     else:
-        email = (payer_in.get("email") or "").strip() or EMAIL_TESTE_OFICIAL
+        email = (payer_in.get("email") or "").strip()
     ident = payer_in.get("identification") or {}
     cpf = _mp_limpar_cpf(ident.get("number") or paciente.cpf)
     return {
@@ -354,24 +360,13 @@ def checkout_pagamento(request, paciente_id, plano_id):
                 "currency_id": "BRL",
             }
         ],
-        "payer": (
-            {
-                "name": paciente.nome_completo,
-                "identification": {
-                    "type": "CPF",
-                    "number": _mp_limpar_cpf(paciente.cpf),
-                },
-            }
-            if _mp_credencial_teste()
-            else {
-                "name": paciente.nome_completo,
-                "email": EMAIL_TESTE_OFICIAL,
-                "identification": {
-                    "type": "CPF",
-                    "number": _mp_limpar_cpf(paciente.cpf),
-                },
-            }
-        ),
+        "payer": {
+            "name": paciente.nome_completo,
+            "identification": {
+                "type": "CPF",
+                "number": _mp_limpar_cpf(paciente.cpf),
+            },
+        },
         "back_urls": {
             "success": painel_url,
             "failure": painel_url,
@@ -410,6 +405,7 @@ def processar_pagamento_brick(request):
             fatura = get_object_or_404(Fatura, id=fatura_id)
             paciente = fatura.paciente
             payer = _mp_payer_do_payload(data, paciente)
+            print(f"--- [LOG] PAYER EMAIL ENVIADO: {payer.get('email')} ---")
             pm_id = data.get("payment_method_id")
             token = data.get("token")
             descricao = f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}"
