@@ -147,3 +147,15 @@ MERCADO_PAGO_ACCESS_TOKEN = os.getenv(
 )
 # Sandbox: e-mail deve ser de comprador teste (@testuser.com) criado na sua aplicação MP.
 MERCADO_PAGO_TEST_PAYER_EMAIL = os.getenv("MERCADO_PAGO_TEST_PAYER_EMAIL", "").strip()
+MERCADO_PAGO_TIMEOUT_SECONDS = int(os.getenv("MERCADO_PAGO_TIMEOUT_SECONDS", "15"))
+MERCADO_PAGO_MAX_ATTEMPTS = int(os.getenv("MERCADO_PAGO_MAX_ATTEMPTS", "2"))
+
+if not DEBUG:
+    if not MERCADO_PAGO_PUBLIC_KEY:
+        raise ImproperlyConfigured(
+            "Produção exige MERCADO_PAGO_PUBLIC_KEY definida no ambiente."
+        )
+    if not MERCADO_PAGO_ACCESS_TOKEN:
+        raise ImproperlyConfigured(
+            "Produção exige MERCADO_PAGO_ACCESS_TOKEN definida no ambiente."
+        )

@@ -1,7 +1,9 @@
 from functools import wraps
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -14,10 +16,13 @@ from django.urls import reverse
 import mercadopago
 from mercadopago.config import RequestOptions
 import json
+import logging
 import re
 import uuid
 
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
+
+logger = logging.getLogger(__name__)
 
 # =================================================================
 # DADOS DE TESTE OFICIAIS (SANDBOX)
@@ -163,6 +168,102 @@ def _mp_installments(val):
         return max(1, int(float(val)))
     except (TypeError, ValueError):
         return 1
+
+
+def _mp_timeout_seconds():
+    try:
+        return max(5, int(getattr(settings, "MERCADO_PAGO_TIMEOUT_SECONDS", 15)))
+    except (TypeError, ValueError):
+        return 15
+
+
+def _mp_max_attempts():
+    try:
+        return max(1, int(getattr(settings, "MERCADO_PAGO_MAX_ATTEMPTS", 2)))
+    except (TypeError, ValueError):
+        return 2
+
+
+def _mp_should_retry(resp):
+    if not isinstance(resp, dict):
+        return True
+    status = resp.get("status")
+    return status in (429, 500, 502, 503, 504)
+
+
+def _mp_call_with_timeout(callable_, *args):
+    timeout = _mp_timeout_seconds()
+    max_attempts = _mp_max_attempts()
+    last_response = None
+
+    for attempt in range(1, max_attempts + 1):
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(callable_, *args)
+                response = future.result(timeout=timeout)
+        except FuturesTimeoutError:
+            response = {
+                "status": 504,
+                "response": {
+                    "message": f"timeout_after_{timeout}s",
+                    "status_detail": "gateway_timeout",
+                },
+            }
+        except Exception as exc:
+            response = {"status": 500, "response": {"message": str(exc)}}
+
+        last_response = response
+        if not _mp_should_retry(response):
+            break
+        if attempt < max_attempts:
+            logger.warning(
+                "Retry de chamada Mercado Pago (tentativa %s/%s).",
+                attempt + 1,
+                max_attempts,
+            )
+    return last_response or {"status": 500, "response": {"message": "empty_response"}}
+
+
+def _email_paciente_por_cpf(cpf):
+    return (
+        User.objects.filter(username=cpf)
+        .values_list("email", flat=True)
+        .first()
+        or ""
+    ).strip()
+
+
+def _mp_payer_email_forbidden(resp):
+    if not isinstance(resp, dict):
+        return False
+    if resp.get("status") != 403:
+        return False
+    body = resp.get("response") or {}
+    message = (body.get("message") or "").lower()
+    if "payer email forbidden" in message:
+        return True
+    for cause in body.get("cause") or []:
+        desc = str((cause or {}).get("description", "")).lower()
+        if "payer email forbidden" in desc:
+            return True
+    return False
+
+
+def _mp_email_coletor(sdk):
+    me = _mp_call_with_timeout(sdk.user().get)
+    if me.get("status") != 200:
+        return ""
+    return (me.get("response") or {}).get("email", "").strip().lower()
+
+
+def _mp_internal_error_retryable(resp):
+    if not isinstance(resp, dict):
+        return False
+    status = resp.get("status")
+    if not isinstance(status, int) or status < 500:
+        return False
+    message = str((resp.get("response") or {}).get("message", "")).lower()
+    return "internal_error" in message or message == ""
 
 
 # =================================================================
@@ -349,6 +450,7 @@ def checkout_pagamento(request, paciente_id, plano_id):
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
     webhook_url = request.build_absolute_uri(reverse("sistema_interno:mp_webhook"))
     painel_url = request.build_absolute_uri(reverse("sistema_interno:painel_paciente"))
+    email_paciente = _email_paciente_por_cpf(paciente.cpf)
 
     preference_data = {
         "items": [
@@ -375,8 +477,10 @@ def checkout_pagamento(request, paciente_id, plano_id):
         "external_reference": str(fatura.id),
         "notification_url": webhook_url,
     }
+    if email_paciente and not _mp_credencial_teste():
+        preference_data["payer"]["email"] = email_paciente
 
-    pref_res = sdk.preference().create(preference_data)
+    pref_res = _mp_call_with_timeout(sdk.preference().create, preference_data)
     
     if pref_res["status"] in [200, 201]:
         preference = pref_res["response"]
@@ -388,16 +492,21 @@ def checkout_pagamento(request, paciente_id, plano_id):
             'fatura': fatura,
             'mp_sandbox': _mp_credencial_teste(),
             'mp_test_payer_email': _mp_email_comprador_sandbox(),
+            'payer_email': email_paciente if not _mp_credencial_teste() else "",
         })
     return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Erro desconhecido')}")
 
 @csrf_exempt
 def processar_pagamento_brick(request):
-    print("\n--- [LOG] INÍCIO DO PROCESSAMENTO BRICK ---")
+    if settings.DEBUG:
+        logger.debug("Inicio do processamento do Payment Brick.")
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            print(f"--- [LOG] DADOS RECEBIDOS: {data.get('payment_method_id')} ---")
+            if settings.DEBUG:
+                logger.debug(
+                    "Metodo recebido no Brick: %s", data.get("payment_method_id")
+                )
             
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
@@ -405,7 +514,8 @@ def processar_pagamento_brick(request):
             fatura = get_object_or_404(Fatura, id=fatura_id)
             paciente = fatura.paciente
             payer = _mp_payer_do_payload(data, paciente)
-            print(f"--- [LOG] PAYER EMAIL ENVIADO: {payer.get('email')} ---")
+            if settings.DEBUG:
+                logger.debug("Payer email enviado ao MP: %s", payer.get("email"))
             pm_id = data.get("payment_method_id")
             token = data.get("token")
             descricao = f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}"
@@ -444,15 +554,46 @@ def processar_pagamento_brick(request):
                 custom_headers={"x-idempotency-key": str(uuid.uuid4())}
             )
 
-            print("--- [LOG] ENVIANDO PARA MERCADO PAGO... ---")
-            payment_response = sdk.payment().create(payment_data, req_opts)
-            payment = payment_response["response"]
-            
-            print(f"--- [LOG] STATUS RESPOSTA MP: {payment_response['status']} ---")
+            if settings.DEBUG:
+                logger.debug("Enviando pagamento para Mercado Pago.")
+            payment_response = _mp_call_with_timeout(
+                sdk.payment().create, payment_data, req_opts
+            )
+            if _mp_credencial_teste() and _mp_payer_email_forbidden(payment_response):
+                email_fallback = _mp_email_coletor(sdk)
+                email_atual = (
+                    ((payment_data.get("payer") or {}).get("email") or "").strip().lower()
+                )
+                if email_fallback and email_fallback != email_atual:
+                    logger.info(
+                        "Fallback sandbox aplicado: retry com e-mail da conta coletora."
+                    )
+                    payment_data["payer"]["email"] = email_fallback
+                    req_opts = RequestOptions(
+                        custom_headers={"x-idempotency-key": str(uuid.uuid4())}
+                    )
+                    payment_response = _mp_call_with_timeout(
+                        sdk.payment().create, payment_data, req_opts
+                    )
+            retries_interno = 0
+            while _mp_internal_error_retryable(payment_response) and retries_interno < 2:
+                retries_interno += 1
+                logger.warning(
+                    "Retry sandbox por erro interno do MP (tentativa %s).",
+                    retries_interno,
+                )
+                req_opts = RequestOptions(
+                    custom_headers={"x-idempotency-key": str(uuid.uuid4())}
+                )
+                payment_response = _mp_call_with_timeout(
+                    sdk.payment().create, payment_data, req_opts
+                )
+            payment = payment_response.get("response") or {}
+            logger.info("Status de resposta do Mercado Pago: %s", payment_response.get("status"))
 
-            if payment_response["status"] in [200, 201]:
+            if payment_response.get("status") in [200, 201]:
                 status_mp = payment.get("status")
-                print(f"--- [LOG] PAGAMENTO FINALIZADO COMO: {status_mp} ---")
+                logger.info("Pagamento finalizado no MP com status: %s", status_mp)
                 fatura.status = 'PAGO' if status_mp == "approved" else 'PENDENTE'
                 fatura.data_pagamento = timezone.now().date() if status_mp == "approved" else None
                 fatura.mercadopago_id = str(payment.get("id"))
@@ -473,18 +614,16 @@ def processar_pagamento_brick(request):
                 or payment.get("message")
                 or "Dados inválidos"
             )
-            print(f"--- [LOG] REJEITADO PELO MP: {detalhe} ---")
+            logger.warning("Pagamento rejeitado pelo MP: %s", detalhe)
             return JsonResponse(
                 {"status": "rejected", "detail": detalhe},
                 status=200,
             )
             
         except Exception as e:
-            print("\n" + "!"*50)
-            print(f"🚨 CRASH NO BACKEND: {str(e)}")
-            if hasattr(e, 'response'):
-                print(f"🔍 DETALHE TÉCNICO: {e.response}")
-            print("!"*50 + "\n")
+            logger.exception("Erro ao processar pagamento no Brick: %s", str(e))
+            if hasattr(e, "response"):
+                logger.error("Detalhe tecnico da resposta MP: %s", e.response)
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
             
     return JsonResponse({"status": "error"}, status=405)
@@ -509,7 +648,7 @@ def mercadopago_webhook(request):
             )
         if payment_id:
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
-            payment_info = sdk.payment().get(payment_id)
+            payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
             if payment_info["status"] == 200:
                 resposta = payment_info["response"]
                 fatura_id = resposta.get("external_reference")
@@ -531,6 +670,31 @@ def mercadopago_webhook(request):
                         
         return JsonResponse({'status': 'ok'}, status=200)
     return JsonResponse({'status': 'erro'}, status=400)
+
+
+@login_required
+@master_member_required
+def mp_healthcheck(request):
+    has_public_key = bool((settings.MERCADO_PAGO_PUBLIC_KEY or "").strip())
+    has_access_token = bool((settings.MERCADO_PAGO_ACCESS_TOKEN or "").strip())
+    is_test_token = _mp_credencial_teste()
+
+    checks = {
+        "env_public_key": has_public_key,
+        "env_access_token": has_access_token,
+        "mode": "sandbox" if is_test_token else "production",
+    }
+
+    if not has_public_key or not has_access_token:
+        return JsonResponse({"ok": False, "checks": checks}, status=500)
+
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+    me = _mp_call_with_timeout(sdk.user().get)
+    checks["mp_user_status"] = me.get("status")
+    checks["collector_id"] = (me.get("response") or {}).get("id")
+
+    ok = me.get("status") == 200
+    return JsonResponse({"ok": ok, "checks": checks}, status=200 if ok else 502)
 
 @login_required
 @master_member_required
@@ -861,6 +1025,7 @@ def cadastro_plano_completo(request, plano_nome):
         nome = request.POST.get('titular_nome') or request.POST.get('nome')
         cpf = request.POST.get('titular_cpf') or request.POST.get('cpf')
         tel = request.POST.get('titular_telefone') or request.POST.get('telefone')
+        email = (request.POST.get('titular_email') or request.POST.get('email') or "").strip()
         end = request.POST.get('endereco')
         sexo = request.POST.get('titular_sexo') or request.POST.get('sexo') or 'M'
         nasc = request.POST.get('titular_nascimento') or request.POST.get('data_nascimento')
@@ -873,6 +1038,10 @@ def cadastro_plano_completo(request, plano_nome):
                 data_nascimento=nasc, endereco=end, sexo=sexo, cidade="SFX",
                 is_titular=True
             )
+            if email:
+                user, _ = User.objects.get_or_create(username=cpf)
+                user.email = email
+                user.save()
             plano = Plano.objects.filter(nome__icontains=plano_nome).first() or Plano.objects.first()
             return redirect('sistema_interno:checkout_pagamento', paciente_id=p.id, plano_id=plano.id)
         except Exception as e:

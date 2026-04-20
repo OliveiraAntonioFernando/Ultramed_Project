@@ -86,6 +86,11 @@
                     </div>
 
                     <div>
+                        <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">E-mail</label>
+                        <input type="email" name="titular_email" required class="w-full p-4 glass-input rounded-2xl font-bold" placeholder="nome@dominio.com">
+                    </div>
+
+                    <div>
                         <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">Plano Selecionado</label>
                         <select name="plano_tipo" class="w-full p-5 glass-input rounded-2xl font-black uppercase italic text-sm text-marsala-700">
                             <option value="Essencial" {% if plano_selecionado == 'Essencial' %}selected{% endif %}>PLANO ESSENCIAL - R$ 44,90</option>
