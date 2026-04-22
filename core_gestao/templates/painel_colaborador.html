@@ -99,7 +99,7 @@
                                     </td>
                                     <td class="p-6 text-right">
                                         {% if ag.status == 'AGENDADO' %}
-                                        <a href="{% url 'sistema_interno:agenda_view' %}?status=CHEGOU&id={{ ag.id }}" class="bg-marsala-700 text-white text-[9px] font-black px-4 py-2 rounded-xl uppercase italic shadow-md">Fazer Check-in</a>
+                                        <a href="{% url 'sistema_interno:agenda_view' %}?status=CHEGOU&id={{ ag.id }}&data={{ ag.data|date:'Y-m-d' }}" class="bg-marsala-700 text-white text-[9px] font-black px-4 py-2 rounded-xl uppercase italic shadow-md">Fazer Check-in</a>
                                         {% else %}
                                         <span class="text-emerald-500 text-[9px] font-black uppercase italic"><i class="fas fa-check-circle mr-1"></i> Já na Clínica</span>
                                         {% endif %}
@@ -121,7 +121,7 @@
 <script>
 function atenderLead(leadId) {
     // Dispara a baixa silenciosa no servidor
-    fetch(`/leads/baixar/${leadId}/`)
+    fetch("{% url 'sistema_interno:baixar_lead' 999001999 %}".replace("999001999", String(leadId)))
         .then(() => {
             // Recarrega a página após 1 segundo para atualizar a lista
             setTimeout(() => { 

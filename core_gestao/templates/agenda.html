@@ -1,105 +1,213 @@
 {% extends 'base.html' %}
+{% block title %}Agenda | Ultramed{% endblock %}
 {% block content %}
-<div class="min-h-screen bg-gray-50 p-4 md:p-6 text-left">
-    <div class="max-w-4xl mx-auto">
-
-        <div class="mb-6">
-            <a href="{% url 'sistema_interno:painel_colaborador' %}" class="inline-flex items-center text-marsala-800 font-black uppercase tracking-tighter hover:scale-105 transition-transform no-underline">
-                <i class="fas fa-arrow-left mr-2"></i> Voltar ao Painel
+<div class="min-h-screen bg-gray-50 text-left pb-16">
+    <div class="max-w-6xl mx-auto px-4 md:px-6 pt-6">
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <a href="{% url 'sistema_interno:painel_colaborador' %}" class="inline-flex items-center text-marsala-800 font-black uppercase tracking-tighter hover:opacity-80 transition-opacity no-underline text-sm">
+                <i class="fas fa-arrow-left mr-2"></i> Voltar ao painel
+            </a>
+            <a href="?data={{ hoje_iso }}" class="inline-flex items-center gap-2 bg-white text-marsala-800 px-4 py-2 rounded-xl text-[10px] font-black uppercase border border-gray-200 shadow-sm hover:border-marsala-700 no-underline">
+                <i class="fas fa-calendar-day"></i> Ir para hoje
             </a>
         </div>
 
-        <div class="bg-white rounded-[2.5rem] shadow-2xl overflow-hidden border border-gray-100">
-            <div class="p-8 bg-gradient-to-r from-marsala-800 to-marsala-700 text-white flex justify-between items-center" style="background-color: #700c15;">
-                <div>
-                    <h1 class="text-2xl font-black uppercase italic tracking-tighter">Novo Agendamento</h1>
-                    <p class="text-xs font-bold text-marsala-100 uppercase tracking-widest mt-1">Defina o procedimento e valide o pagamento</p>
-                </div>
-                <div class="bg-white/10 p-4 rounded-2xl">
-                    <i class="fas fa-cash-register text-2xl text-white"></i>
+        <header class="mb-8">
+            <h1 class="text-2xl md:text-3xl font-black uppercase italic text-gray-900 tracking-tight">Agenda</h1>
+            <p class="text-xs font-bold text-gray-500 uppercase tracking-widest mt-1">Calendário e atendimentos do dia</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div class="lg:col-span-5 space-y-4">
+                <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="px-5 py-4 flex items-center justify-between gap-2 border-b border-gray-100 bg-gradient-to-r from-marsala-800 to-marsala-700 text-white" style="background-color: #700c15;">
+                        <a href="?data={{ data_nav_anterior }}" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 transition-colors no-underline text-white shrink-0" title="Mês anterior" aria-label="Mês anterior">
+                            <i class="fas fa-chevron-left text-sm"></i>
+                        </a>
+                        <h2 class="text-sm font-black uppercase italic tracking-wide text-center flex-1">{{ mes_titulo }}</h2>
+                        <a href="?data={{ data_nav_proximo }}" class="w-10 h-10 flex items-center justify-center rounded-xl bg-white/15 hover:bg-white/25 transition-colors no-underline text-white shrink-0" title="Próximo mês" aria-label="Próximo mês">
+                            <i class="fas fa-chevron-right text-sm"></i>
+                        </a>
+                    </div>
+                    <div class="p-4 sm:p-5">
+                        <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-black uppercase text-gray-400 mb-2">
+                            <span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span><span>Dom</span>
+                        </div>
+                        {% for semana in calendario_semanas %}
+                        <div class="grid grid-cols-7 gap-1 mb-1">
+                            {% for cel in semana %}
+                            <a href="?data={{ cel.iso }}"
+                               class="relative flex flex-col items-center justify-center min-h-[2.75rem] sm:min-h-[3rem] rounded-xl text-sm font-black transition-all no-underline
+                               {% if cel.selected %}bg-marsala-700 text-white ring-2 ring-marsala-900 ring-offset-2
+                               {% elif cel.is_today %}bg-marsala-50 text-marsala-800 border-2 border-marsala-200
+                               {% elif cel.in_month %}bg-gray-50 text-gray-800 hover:bg-marsala-100/60 border border-transparent hover:border-marsala-200
+                               {% else %}bg-gray-50/50 text-gray-300 hover:bg-gray-100{% endif %}">
+                                <span class="{% if not cel.in_month %}opacity-60{% endif %}">{{ cel.day }}</span>
+                                {% if cel.count %}
+                                <span class="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-black px-1.5 py-0 rounded-full {% if cel.selected %}bg-white/25 text-white{% else %}bg-emerald-500 text-white{% endif %}">{{ cel.count }}</span>
+                                {% endif %}
+                            </a>
+                            {% endfor %}
+                        </div>
+                        {% endfor %}
+                        <p class="text-[9px] text-gray-400 font-bold uppercase text-center mt-4 tracking-wide">Número = agendamentos (exc. cancelados)</p>
+                    </div>
                 </div>
             </div>
 
-            <form id="form-agenda" class="p-8 space-y-6 text-left">
-                {% csrf_token %}
-
-                <div class="relative">
-                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 tracking-widest text-left">1. Pesquisar Paciente</label>
-                    <div class="relative">
-                        <input type="text" id="input_busca" name="busca_texto" autocomplete="off" placeholder="DIGITE NOME OU CPF..."
-                            class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 transition-all uppercase pl-12 outline-none">
-                        <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
+            <div class="lg:col-span-7 space-y-4">
+                <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+                    <div class="px-6 py-5 border-b border-gray-100 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 class="text-xs font-black uppercase italic text-gray-500 tracking-widest">Dia selecionado</h3>
+                            <p class="text-lg font-black text-gray-900 mt-1 leading-snug">{{ data_caption }}</p>
+                        </div>
+                        <span class="text-[10px] font-black uppercase bg-gray-100 text-gray-600 px-3 py-1.5 rounded-full">{{ agendamentos.count }} horário{% if agendamentos.count != 1 %}s{% endif %}</span>
                     </div>
-                    <div id="res_busca" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-2 hidden border border-gray-100 overflow-hidden"></div>
-                    <input type="hidden" name="paciente_id" id="paciente_id_hidden">
+                    <div class="divide-y divide-gray-50 max-h-[min(28rem,55vh)] overflow-y-auto">
+                        {% for ag in agendamentos %}
+                        <div class="px-6 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:bg-gray-50/80 transition-colors">
+                            <div class="min-w-0 flex-1">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    <span class="text-sm font-black text-marsala-800 tabular-nums">{{ ag.hora|time:"H:i" }}</span>
+                                    <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg {% if ag.tipo == 'EXAME' %}bg-sky-100 text-sky-800{% else %}bg-gray-100 text-gray-700{% endif %}">{{ ag.get_tipo_display }}</span>
+                                    <span class="text-[9px] font-black uppercase px-2 py-0.5 rounded-lg
+                                        {% if ag.status == 'AGENDADO' %}bg-amber-100 text-amber-800
+                                        {% elif ag.status == 'CHEGOU' %}bg-emerald-100 text-emerald-800
+                                        {% elif ag.status == 'FINALIZADO' %}bg-gray-200 text-gray-700
+                                        {% else %}bg-red-50 text-red-700{% endif %}">{{ ag.get_status_display }}</span>
+                                </div>
+                                <p class="font-black text-sm uppercase text-gray-900 mt-1 truncate">{{ ag.paciente.nome_completo }}</p>
+                                {% if ag.observacoes %}
+                                <p class="text-[10px] text-gray-500 font-bold mt-1 line-clamp-2">{{ ag.observacoes }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="shrink-0 flex items-center gap-2">
+                                {% if ag.status == 'AGENDADO' %}
+                                <a href="{% url 'sistema_interno:agenda_view' %}?status=CHEGOU&id={{ ag.id }}&data={{ data_selecionada_iso }}" class="inline-flex items-center justify-center bg-marsala-700 text-white text-[9px] font-black px-4 py-2.5 rounded-xl uppercase italic shadow-md hover:bg-marsala-800 no-underline whitespace-nowrap">Check-in</a>
+                                {% elif ag.status == 'CHEGOU' %}
+                                <span class="text-emerald-600 text-[9px] font-black uppercase italic whitespace-nowrap"><i class="fas fa-user-check mr-1"></i> Na clínica</span>
+                                {% elif ag.status == 'FINALIZADO' %}
+                                <span class="text-gray-500 text-[9px] font-black uppercase italic whitespace-nowrap"><i class="fas fa-check mr-1"></i> Finalizado</span>
+                                {% else %}
+                                <span class="text-gray-400 text-[9px] font-black uppercase italic whitespace-nowrap">—</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="px-6 py-16 text-center">
+                            <i class="fas fa-calendar-times text-3xl text-gray-200 mb-3"></i>
+                            <p class="text-sm font-black uppercase text-gray-400 italic">Nenhum agendamento neste dia</p>
+                            <p class="text-[10px] text-gray-400 font-bold mt-2 uppercase">Use o formulário abaixo para registrar</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <details class="mt-10 agenda-details" open>
+            <summary class="list-none cursor-pointer flex items-center justify-between gap-4 bg-white rounded-[2rem] border border-gray-100 shadow-sm px-6 py-5 hover:border-marsala-200 transition-colors">
+                <div class="flex items-center gap-4">
+                    <div class="bg-marsala-100 text-marsala-800 w-12 h-12 rounded-2xl flex items-center justify-center shrink-0">
+                        <i class="fas fa-calendar-plus text-lg"></i>
+                    </div>
+                    <div class="text-left">
+                        <span class="text-sm font-black uppercase italic text-gray-900 block">Novo agendamento</span>
+                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Procedimento e pagamento</span>
+                    </div>
+                </div>
+                <i class="agenda-details-chevron fas fa-chevron-down text-marsala-700 transition-transform"></i>
+            </summary>
+            <div class="mt-4 bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
+                <div class="p-6 sm:p-8 bg-gradient-to-r from-marsala-800 to-marsala-700 text-white sm:hidden" style="background-color: #700c15;">
+                    <h2 class="text-lg font-black uppercase italic tracking-tighter">Novo agendamento</h2>
                 </div>
 
-                <div id="badge_plano" class="hidden p-5 rounded-[1.5rem] bg-marsala-50 border border-marsala-100 flex flex-wrap justify-between items-center animate-fade-in text-left">
-                    <div class="flex items-center">
-                        <div class="bg-marsala-800 p-3 rounded-xl mr-4 text-white"><i class="fas fa-id-card"></i></div>
-                        <div>
-                            <span class="text-[10px] font-black text-marsala-400 uppercase block tracking-widest">Plano Identificado</span>
-                            <span id="txt_plano" class="font-black text-marsala-900 uppercase text-lg">---</span>
+                <form id="form-agenda" class="p-6 sm:p-8 space-y-6 text-left">
+                    {% csrf_token %}
+
+                    <div class="relative">
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 tracking-widest text-left">1. Pesquisar paciente</label>
+                        <div class="relative">
+                            <input type="text" id="input_busca" name="busca_texto" autocomplete="off" placeholder="Digite nome ou CPF…"
+                                class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 transition-all uppercase pl-12 outline-none">
+                            <i class="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-gray-300"></i>
+                        </div>
+                        <div id="res_busca" class="absolute z-50 w-full bg-white shadow-2xl rounded-2xl mt-2 hidden border border-gray-100 overflow-hidden"></div>
+                        <input type="hidden" name="paciente_id" id="paciente_id_hidden">
+                    </div>
+
+                    <div id="badge_plano" class="hidden p-5 rounded-[1.5rem] bg-marsala-50 border border-marsala-100 flex flex-wrap justify-between items-center text-left">
+                        <div class="flex items-center">
+                            <div class="bg-marsala-800 p-3 rounded-xl mr-4 text-white"><i class="fas fa-id-card"></i></div>
+                            <div>
+                                <span class="text-[10px] font-black text-marsala-400 uppercase block tracking-widest">Plano identificado</span>
+                                <span id="txt_plano" class="font-black text-marsala-900 uppercase text-lg">---</span>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] font-black text-marsala-400 uppercase block tracking-widest">CPF</span>
+                            <span id="txt_cpf" class="font-bold text-gray-700 uppercase">---</span>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <span class="text-[10px] font-black text-marsala-400 uppercase block tracking-widest">CPF</span>
-                        <span id="txt_cpf" class="font-bold text-gray-700 uppercase">---</span>
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">2. Procedimento</label>
-                        <select name="tipo" id="tipo_select" onchange="toggleExameCampo()" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none border-r-[16px] border-transparent">
-                            <option value="CONSULTA">CONSULTA MÉDICA</option>
-                            <option value="EXAME">REALIZAÇÃO DE EXAME</option>
-                        </select>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                        <div>
+                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">2. Procedimento</label>
+                            <select name="tipo" id="tipo_select" onchange="toggleExameCampo()" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none border-r-[16px] border-transparent">
+                                <option value="CONSULTA">Consulta médica</option>
+                                <option value="EXAME">Realização de exame</option>
+                            </select>
+                        </div>
+                        <div id="div_exame_especifico" class="hidden">
+                            <label class="block text-[10px] font-black uppercase text-marsala-700 mb-2 ml-2">Qual exame?</label>
+                            <input type="text" name="exame_nome" placeholder="Ex.: USG abdômen" class="w-full bg-marsala-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-marsala-700 outline-none">
+                        </div>
                     </div>
-                    <div id="div_exame_especifico" class="hidden">
-                        <label class="block text-[10px] font-black uppercase text-marsala-700 mb-2 ml-2">Qual o Exame?</label>
-                        <input type="text" name="exame_nome" placeholder="EX: USG ABDOMEN" class="w-full bg-marsala-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-marsala-700 outline-none">
-                    </div>
-                </div>
 
-                <div class="text-left">
-                    <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">3. Nº Comprovante / Ref. Pagamento</label>
-                    <input type="text" name="comprovante" required placeholder="EX: PIX DATA/HORA OU COD. AUTENTICAÇÃO" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-marsala-700 outline-none">
-                </div>
+                    <div class="text-left">
+                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">3. Nº comprovante / ref. pagamento</label>
+                        <input type="text" name="comprovante" required placeholder="Ex.: PIX data/hora ou código" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-marsala-700 outline-none">
+                    </div>
 
-                <div class="bg-gray-100 p-6 rounded-[2.5rem] mt-6 grid grid-cols-1 md:grid-cols-2 gap-8 items-center border border-dashed border-gray-300">
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 italic">Valor de Tabela (R$)</label>
-                        <input type="number" name="valor_cheio" id="valor_tabela" step="0.01" oninput="recalcularDesconto()" placeholder="0.00"
-                            class="w-full bg-white border-none rounded-2xl p-4 text-2xl font-black text-gray-800 focus:ring-2 focus:ring-marsala-700 outline-none">
+                    <div class="bg-gray-100 p-6 rounded-[2.5rem] grid grid-cols-1 md:grid-cols-2 gap-8 items-center border border-dashed border-gray-300">
+                        <div>
+                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2 italic">Valor de tabela (R$)</label>
+                            <input type="number" name="valor_cheio" id="valor_tabela" step="0.01" oninput="recalcularDesconto()" placeholder="0.00"
+                                class="w-full bg-white border-none rounded-2xl p-4 text-2xl font-black text-gray-800 focus:ring-2 focus:ring-marsala-700 outline-none">
+                        </div>
+                        <div class="text-right pr-4">
+                            <p class="text-[10px] font-black uppercase text-marsala-400 tracking-widest leading-none mb-2">Valor com desconto</p>
+                            <h3 class="text-4xl font-black text-marsala-700 leading-none">R$ <span id="span_valor_desconto">0.00</span></h3>
+                            <p id="label_plano_ativo" class="text-[9px] font-black uppercase mt-2 italic"></p>
+                        </div>
                     </div>
-                    <div class="text-right pr-4">
-                        <p class="text-[10px] font-black uppercase text-marsala-400 tracking-widest leading-none mb-2">Valor com Desconto</p>
-                        <h3 class="text-4xl font-black text-marsala-700 leading-none">R$ <span id="span_valor_desconto">0.00</span></h3>
-                        <p id="label_plano_ativo" class="text-[9px] font-black uppercase mt-2 italic"></p>
-                    </div>
-                </div>
 
-                <div class="grid grid-cols-2 gap-6 text-left">
-                    <div>
-                        <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Data</label>
-                        <input type="date" name="data" required value="{% now 'Y-m-d' %}" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold outline-none">
+                    <div class="grid grid-cols-2 gap-6 text-left">
+                        <div>
+                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Data</label>
+                            <input type="date" name="data" required value="{{ data_selecionada_iso }}" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold outline-none">
+                        </div>
+                        <div>
+                            <label class="text-left block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Hora</label>
+                            <input type="time" name="hora" required class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold outline-none">
+                        </div>
                     </div>
-                    <div>
-                        <label class="text-left block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Hora</label>
-                        <input type="time" name="hora" required class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold outline-none">
-                    </div>
-                </div>
 
-                <button type="submit" id="btn-submit" class="w-full bg-marsala-800 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest hover:bg-marsala-700 transition-all shadow-xl shadow-marsala-900/20 border-none cursor-pointer">
-                    Confirmar e Gerar Fatura Paga
-                </button>
-            </form>
-        </div>
+                    <button type="submit" id="btn-submit" class="w-full bg-marsala-800 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest hover:bg-marsala-700 transition-all shadow-xl shadow-marsala-900/20 border-none cursor-pointer">
+                        Confirmar e gerar fatura paga
+                    </button>
+                </form>
+            </div>
+        </details>
     </div>
 </div>
 
 <script>
+const URL_API_BUSCAR_PACIENTE = "{% url 'sistema_interno:api_buscar_paciente' %}";
+const URL_API_DETALHES_TMPL = "{% url 'sistema_interno:api_detalhes_paciente' 999001999 %}";
+
 const inputBusca = document.getElementById('input_busca');
 const resBusca = document.getElementById('res_busca');
 let percentualGlobal = 0;
@@ -109,12 +217,12 @@ inputBusca.oninput = async () => {
     if(termo.length < 3) { resBusca.classList.add('hidden'); return; }
 
     try {
-        const r = await fetch(`/api/buscar-paciente/?q=${termo}`);
+        const r = await fetch(`${URL_API_BUSCAR_PACIENTE}?q=${encodeURIComponent(termo)}`);
         const d = await r.json();
 
         if(d.results && d.results.length > 0) {
             resBusca.innerHTML = d.results.map(p => `
-                <div onclick="selecionar('${p.id}', '${p.text}')" class="p-4 hover:bg-marsala-50 cursor-pointer border-b border-gray-50 transition-colors text-left">
+                <div onclick="selecionar('${p.id}', '${String(p.text).replace(/'/g, "\\'")}')" class="p-4 hover:bg-marsala-50 cursor-pointer border-b border-gray-50 transition-colors text-left">
                     <div class="font-black text-xs uppercase text-marsala-900">${p.text}</div>
                 </div>
             `).join('');
@@ -129,21 +237,21 @@ async function selecionar(id, textoCompleto) {
     resBusca.classList.add('hidden');
 
     try {
-        const r = await fetch(`/api/detalhes-paciente/${id}/`);
+        const r = await fetch(URL_API_DETALHES_TMPL.replace('999001999', String(id)));
         const d = await r.json();
 
         percentualGlobal = parseFloat(d.percentual) || 0;
-        
+
         document.getElementById('txt_plano').innerText = d.plano;
         document.getElementById('txt_cpf').innerText = d.cpf || "---";
         document.getElementById('badge_plano').classList.remove('hidden');
 
         const label = document.getElementById('label_plano_ativo');
         if (percentualGlobal > 0) {
-            label.innerText = `PLANO ATIVO: ${(percentualGlobal * 100)}% DE DESCONTO`;
+            label.innerText = `Plano ativo: ${(percentualGlobal * 100)}% de desconto`;
             label.className = "text-[9px] font-black text-emerald-600 uppercase mt-2 italic";
         } else {
-            label.innerText = "PARTICULAR / SEM DESCONTO";
+            label.innerText = "Particular / sem desconto";
             label.className = "text-[9px] font-black text-red-500 uppercase mt-2 italic";
         }
         recalcularDesconto();
@@ -167,32 +275,35 @@ function recalcularDesconto() {
 document.getElementById('form-agenda').onsubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btn-submit');
-    if(!document.getElementById('paciente_id_hidden').value) { alert('Selecione um paciente!'); return; }
+    if(!document.getElementById('paciente_id_hidden').value) { alert('Selecione um paciente.'); return; }
 
     btn.disabled = true;
-    btn.innerText = "PROCESSANDO...";
+    btn.innerText = "Processando…";
 
     const formData = new FormData(e.target);
+    const dataAg = formData.get('data');
     try {
-        // AJUSTE: Usando URL absoluta para evitar erros de redirecionamento
-        const response = await fetch("{% url 'sistema_interno:agenda_view' %}", { 
-            method: 'POST', 
+        const response = await fetch("{% url 'sistema_interno:agenda_view' %}", {
+            method: 'POST',
             body: formData,
             headers: { 'X-CSRFToken': '{{ csrf_token }}' }
         });
         if (response.ok) {
-            alert('✅ Sucesso!');
-            window.location.href = "{% url 'sistema_interno:painel_colaborador' %}";
+            window.location.href = "{% url 'sistema_interno:agenda_view' %}?data=" + encodeURIComponent(dataAg);
         } else {
-            alert('❌ Erro ao salvar.');
+            alert('Erro ao salvar.');
             btn.disabled = false;
-            btn.innerText = "Confirmar e Gerar Fatura Paga";
+            btn.innerText = "Confirmar e gerar fatura paga";
         }
-    } catch (err) { 
-        alert('❌ Erro de conexão.'); 
+    } catch (err) {
+        alert('Erro de conexão.');
         btn.disabled = false;
-        btn.innerText = "Confirmar e Gerar Fatura Paga";
+        btn.innerText = "Confirmar e gerar fatura paga";
     }
 };
 </script>
+<style>
+    details.agenda-details > summary::-webkit-details-marker { display: none; }
+    details.agenda-details[open] .agenda-details-chevron { transform: rotate(180deg); }
+</style>
 {% endblock %}

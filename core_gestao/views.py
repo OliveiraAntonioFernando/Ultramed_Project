@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q, Avg, Count
 from django.utils import timezone
 from datetime import timedelta, date
+import calendar as cal_module
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
@@ -30,6 +31,60 @@ logger = logging.getLogger(__name__)
 CPF_TESTE_OFICIAL = "12345678909"
 
 _STAFF_USERNAMES = frozenset({"medico", "recepcao", "master"})
+
+def _add_months(d: date, months_delta: int) -> date:
+    month_index = d.year * 12 + d.month - 1 + months_delta
+    y, mi = divmod(month_index, 12)
+    m = mi + 1
+    last_day = cal_module.monthrange(y, m)[1]
+    return date(y, m, min(d.day, last_day))
+
+
+def _build_agenda_calendar(year: int, month: int, hoje: date, data_sel: date, contagens: dict):
+    cal = cal_module.Calendar(firstweekday=cal_module.MONDAY)
+    weeks = []
+    for week in cal.monthdatescalendar(year, month):
+        row = []
+        for d in week:
+            row.append(
+                {
+                    "day": d.day,
+                    "iso": d.isoformat(),
+                    "in_month": d.month == month,
+                    "count": contagens.get(d, 0),
+                    "is_today": d == hoje,
+                    "selected": d == data_sel,
+                }
+            )
+        weeks.append(row)
+    return weeks
+
+
+_DIAS_SEMANA_PT = (
+    "Segunda-feira",
+    "Terça-feira",
+    "Quarta-feira",
+    "Quinta-feira",
+    "Sexta-feira",
+    "Sábado",
+    "Domingo",
+)
+
+_MESES_PT = (
+    "",
+    "Janeiro",
+    "Fevereiro",
+    "Março",
+    "Abril",
+    "Maio",
+    "Junho",
+    "Julho",
+    "Agosto",
+    "Setembro",
+    "Outubro",
+    "Novembro",
+    "Dezembro",
+)
 
 
 def _is_staff_user(user):
@@ -302,6 +357,29 @@ def calcular_valor_com_desconto(paciente, valor_base):
     
     return valor_base * (1 - desconto)
 
+
+def _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura):
+    """
+    Renova vencimento (+365 dias) e, se a fatura estiver ligada a um plano
+    (checkout Mercado Pago), grava o plano no titular e nos dependentes.
+    """
+    hoje = timezone.now().date()
+    base = (
+        paciente.vencimento_plano
+        if paciente.vencimento_plano and paciente.vencimento_plano > hoje
+        else hoje
+    )
+    novo_vencimento = base + timedelta(days=365)
+    paciente.vencimento_plano = novo_vencimento
+    if getattr(fatura, "plano_id", None):
+        paciente.plano_id = fatura.plano_id
+    paciente.save()
+    atualizacao = {"vencimento_plano": novo_vencimento}
+    if fatura.plano_id:
+        atualizacao["plano_id"] = fatura.plano_id
+    Paciente.objects.filter(responsavel=paciente).update(**atualizacao)
+
+
 # =================================================================
 # 2. SISTEMA DE ACESSO
 # =================================================================
@@ -441,6 +519,7 @@ def checkout_pagamento(request, paciente_id, plano_id):
 
     fatura = Fatura.objects.create(
         paciente=paciente,
+        plano=plano,
         valor=valor_a_cobrar,
         data_vencimento=timezone.now().date(),
         status='PENDENTE',
@@ -600,12 +679,7 @@ def processar_pagamento_brick(request):
                 fatura.save()
                 
                 if status_mp == "approved":
-                    hoje = timezone.now().date()
-                    base = paciente.vencimento_plano if paciente.vencimento_plano and paciente.vencimento_plano > hoje else hoje
-                    novo_vencimento = base + timedelta(days=365)
-                    paciente.vencimento_plano = novo_vencimento
-                    paciente.save()
-                    Paciente.objects.filter(responsavel=paciente).update(vencimento_plano=novo_vencimento)
+                    _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura)
 
                 return JsonResponse({"status": status_mp, "id": payment.get("id")})
             
@@ -660,14 +734,8 @@ def mercadopago_webhook(request):
                         fatura.mercadopago_id = str(payment_id)
                         fatura.save()
                         
-                        p = fatura.paciente
-                        hoje = timezone.now().date()
-                        base = p.vencimento_plano if p.vencimento_plano and p.vencimento_plano > hoje else hoje
-                        novo_vencimento = base + timedelta(days=365)
-                        p.vencimento_plano = novo_vencimento
-                        p.save()
-                        Paciente.objects.filter(responsavel=p).update(vencimento_plano=novo_vencimento)
-                        
+                        _ativar_vencimento_e_plano_pos_pagamento(fatura.paciente, fatura)
+
         return JsonResponse({'status': 'ok'}, status=200)
     return JsonResponse({'status': 'erro'}, status=400)
 
@@ -697,44 +765,56 @@ def mp_healthcheck(request):
     return JsonResponse({"ok": ok, "checks": checks}, status=200 if ok else 502)
 
 @login_required
-@master_member_required
+@recepcao_ou_master_required
 def fatura_create(request):
-    return render(request, 'fatura_form.html', {
-        'pacientes': Paciente.objects.all().order_by('nome_completo'),
-        'today': timezone.now()
-    })
+    voltar_url = (
+        reverse("sistema_interno:master_dashboard")
+        if _is_master_user(request.user)
+        else reverse("sistema_interno:painel_colaborador")
+    )
+    return render(
+        request,
+        "fatura_form.html",
+        {
+            "pacientes": Paciente.objects.all().order_by("nome_completo"),
+            "today": timezone.now(),
+            "voltar_url": voltar_url,
+        },
+    )
+
 
 @login_required
-@master_member_required
+@recepcao_ou_master_required
 def fatura_store(request):
     if request.method == 'POST':
         pac_id = request.POST.get('paciente')
         if not pac_id:
             messages.error(request, "Selecione um paciente.")
             return redirect('sistema_interno:fatura_create')
-            
+
         paciente = get_object_or_404(Paciente, id=pac_id)
         status = request.POST.get('status').upper()
         valor = request.POST.get('valor').replace(',', '.')
-        
+
         fatura = Fatura.objects.create(
             paciente=paciente,
+            plano=paciente.plano,
             valor=valor,
             data_vencimento=timezone.now().date(),
             metodo_pagamento=request.POST.get('metodo_pagamento'),
             status=status,
             data_pagamento=timezone.now().date() if status == 'PAGO' else None
         )
-        
+
         if status == 'PAGO':
-            hoje = timezone.now().date()
-            base = paciente.vencimento_plano if paciente.vencimento_plano and paciente.vencimento_plano > hoje else hoje
-            novo_vencimento = base + timedelta(days=365)
-            paciente.vencimento_plano = novo_vencimento
-            paciente.save()
-            Paciente.objects.filter(responsavel=paciente).update(vencimento_plano=novo_vencimento)
-            
-    return redirect('sistema_interno:master_dashboard')
+            _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura)
+
+    destino = (
+        "sistema_interno:master_dashboard"
+        if _is_master_user(request.user)
+        else "sistema_interno:painel_colaborador"
+    )
+    return redirect(destino)
 
 @login_required
 @recepcao_ou_master_required
@@ -742,12 +822,14 @@ def agenda_view(request):
     hoje = timezone.now().date()
     agendamento_id = request.GET.get('id')
     novo_status = request.GET.get('status')
-    
+
     if agendamento_id and novo_status:
         ag = get_object_or_404(Agenda, id=agendamento_id)
         ag.status = novo_status
         ag.save()
-        return redirect('sistema_interno:painel_colaborador')
+        return redirect(
+            f"{reverse('sistema_interno:agenda_view')}?data={ag.data.isoformat()}"
+        )
 
     if request.method == 'POST':
         try:
@@ -757,12 +839,13 @@ def agenda_view(request):
             exame_nome = request.POST.get('exame_nome', 'Consulta')
             valor_cheio = request.POST.get('valor_cheio', '0').replace(',', '.')
             comprovante = request.POST.get('comprovante', 'N/A')
-            
+            data_ag_str = request.POST.get('data') or hoje.isoformat()
+
             valor_final = calcular_valor_com_desconto(paciente, valor_cheio)
 
             Agenda.objects.create(
                 paciente=paciente,
-                data=request.POST.get('data'),
+                data=data_ag_str,
                 hora=request.POST.get('hora'),
                 tipo=tipo,
                 status='AGENDADO',
@@ -771,6 +854,7 @@ def agenda_view(request):
 
             Fatura.objects.create(
                 paciente=paciente,
+                plano=paciente.plano,
                 valor=valor_final,
                 data_vencimento=timezone.now().date(),
                 metodo_pagamento='PIX/CARTAO',
@@ -778,12 +862,63 @@ def agenda_view(request):
                 data_pagamento=timezone.now().date()
             )
             messages.success(request, "Agendamento realizado com sucesso!")
-            return redirect('sistema_interno:painel_colaborador')
+            return redirect(
+                f"{reverse('sistema_interno:agenda_view')}?data={data_ag_str}"
+            )
         except Exception as e:
             messages.error(request, f"Erro ao salvar: {e}")
 
-    agendamentos = Agenda.objects.filter(data=hoje).order_by('hora')
-    return render(request, 'agenda.html', {'agendamentos': agendamentos})
+    data_str = request.GET.get('data')
+    data_sel = hoje
+    if data_str:
+        try:
+            data_sel = date.fromisoformat(data_str)
+        except ValueError:
+            data_sel = hoje
+
+    y, m = data_sel.year, data_sel.month
+    primeiro = date(y, m, 1)
+    ultimo_dia = cal_module.monthrange(y, m)[1]
+    ultimo = date(y, m, ultimo_dia)
+
+    contagens_raw = (
+        Agenda.objects.filter(data__range=[primeiro, ultimo])
+        .exclude(status='CANCELADO')
+        .values('data')
+        .annotate(c=Count('id'))
+    )
+    contagens = {row['data']: row['c'] for row in contagens_raw}
+
+    calendario_semanas = _build_agenda_calendar(y, m, hoje, data_sel, contagens)
+    mes_titulo = f"{_MESES_PT[m]} de {y}"
+    data_nav_anterior = _add_months(data_sel, -1)
+    data_nav_proximo = _add_months(data_sel, 1)
+    data_caption = (
+        f"{_DIAS_SEMANA_PT[data_sel.weekday()]}, "
+        f"{data_sel.day} de {_MESES_PT[data_sel.month]} de {data_sel.year}"
+    )
+
+    agendamentos = (
+        Agenda.objects.filter(data=data_sel)
+        .select_related('paciente')
+        .order_by('hora')
+    )
+
+    return render(
+        request,
+        'agenda.html',
+        {
+            'agendamentos': agendamentos,
+            'data_selecionada': data_sel,
+            'data_selecionada_iso': data_sel.isoformat(),
+            'data_caption': data_caption,
+            'mes_titulo': mes_titulo,
+            'calendario_semanas': calendario_semanas,
+            'data_nav_anterior': data_nav_anterior.isoformat(),
+            'data_nav_proximo': data_nav_proximo.isoformat(),
+            'hoje_iso': hoje.isoformat(),
+        },
+    )
 
 @login_required
 @master_member_required
@@ -804,27 +939,65 @@ def master_dashboard(request):
             Q(nome_completo__icontains=q_busca) | Q(cpf__icontains=q_busca)
         )
     
-    faturas_pago = Fatura.objects.filter(status='PAGO')
+    try:
+        ano_ref = int(ano_ref)
+    except (TypeError, ValueError):
+        ano_ref = hoje.year
+    if ano_ref < 2000 or ano_ref > hoje.year + 1:
+        ano_ref = hoje.year
+
+    faturas_pago = Fatura.objects.filter(status='PAGO').select_related('paciente')
     if mes_ref:
-        faturas_pago = faturas_pago.filter(data_pagamento__month=mes_ref, data_pagamento__year=ano_ref)
+        try:
+            mes_int = int(mes_ref)
+        except (TypeError, ValueError):
+            mes_int = hoje.month
+        if mes_int < 1 or mes_int > 12:
+            mes_int = hoje.month
+        faturas_pago = faturas_pago.filter(
+            data_pagamento__month=mes_int, data_pagamento__year=ano_ref
+        )
+        periodo_mes = mes_int
+        periodo_ano = ano_ref
     else:
-        faturas_pago = faturas_pago.filter(data_pagamento__month=hoje.month, data_pagamento__year=hoje.year)
+        faturas_pago = faturas_pago.filter(
+            data_pagamento__month=hoje.month, data_pagamento__year=hoje.year
+        )
+        periodo_mes = hoje.month
+        periodo_ano = hoje.year
 
     pago_total = faturas_pago.aggregate(Sum('valor'))['valor__sum'] or 0
+    qtd_recebimentos = faturas_pago.count()
+    recebimentos_por_metodo = list(
+        faturas_pago.values('metodo_pagamento')
+        .annotate(subtotal=Sum('valor'), quantidade=Count('id'))
+        .order_by('metodo_pagamento')
+    )
     alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
     leads = LeadSite.objects.filter(atendido=False).order_by('-id')
     total_pacientes = Paciente.objects.count()
     total_cronicos = Paciente.objects.filter(is_cronico=True).count()
     porcentagem_cronicos = round((total_cronicos / total_pacientes * 100), 1) if total_pacientes > 0 else 0
 
+    boletos_recentes = faturas_pago.order_by('-data_pagamento', '-id')[:50]
+    anos_referencia_opcao = list(range(hoje.year - 5, hoje.year + 2))
+    periodo_recebimentos_label = f"{_MESES_PT[periodo_mes]} de {periodo_ano}"
+
     return render(request, 'master_dashboard.html', {
         'pacientes_lista': pacientes_lista,
         'doenca_selecionada': doenca_filtro,
-        'faturamento_total': pago_total, 
-        'leads_recentes': leads, 
+        'faturamento_total': pago_total,
+        'qtd_recebimentos_periodo': qtd_recebimentos,
+        'recebimentos_por_metodo': recebimentos_por_metodo,
+        'leads_recentes': leads,
         'pacientes_vencendo': alertas,
-        'boletos_recentes': Fatura.objects.filter(status='PAGO').order_by('-id')[:10],
+        'boletos_recentes': boletos_recentes,
         'porcentagem_cronicos': porcentagem_cronicos,
+        'ano_referencia_dashboard': ano_ref,
+        'anos_referencia_opcao': anos_referencia_opcao,
+        'periodo_recebimentos_mes': periodo_mes,
+        'periodo_recebimentos_ano': periodo_ano,
+        'periodo_recebimentos_label': periodo_recebimentos_label,
     })
 
 @login_required

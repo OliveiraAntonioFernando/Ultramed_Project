@@ -66,6 +66,8 @@ class Fatura(models.Model):
 
     # related_name='faturas' permite: paciente.faturas.all()
     paciente = models.ForeignKey(Paciente, on_delete=models.CASCADE, related_name='faturas')
+    # Plano cobrado nesta fatura (checkout online); usado para gravar no paciente após pagamento aprovado
+    plano = models.ForeignKey(Plano, on_delete=models.SET_NULL, null=True, blank=True, related_name='faturas')
     valor = models.DecimalField(max_digits=10, decimal_places=2)
     data_vencimento = models.DateField() 
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='PENDENTE')

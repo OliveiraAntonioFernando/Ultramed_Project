@@ -3,173 +3,250 @@
 {% block title %}Master Control | Ultramed{% endblock %}
 
 {% block content %}
-<div class="bg-gray-50 min-h-screen pb-20 text-left">
-    <nav class="bg-marsala-700 p-6 shadow-xl flex justify-between items-center text-white sticky top-0 z-50" style="background-color: #700c15;">
-        <h1 class="text-2xl font-black italic uppercase tracking-tighter">
-            Ultramed <span class="text-marsala-100 text-sm font-light opacity-80 not-italic uppercase">| Master Control</span>
-        </h1>
-        <div class="flex items-center gap-4">
-            <form method="GET" class="flex items-center bg-white/10 px-3 py-1 rounded-xl gap-2 border border-white/20">
-                <i class="fas fa-calendar-alt text-[10px] opacity-70"></i>
-                <select name="mes_referencia" onchange="this.form.submit()" class="bg-transparent text-white text-[10px] font-black uppercase outline-none border-none cursor-pointer">
-                    <option value="" class="text-gray-800">Mês Atual</option>
-                    <option value="1" {% if request.GET.mes_referencia == '1' %}selected{% endif %} class="text-gray-800">Janeiro</option>
-                    <option value="2" {% if request.GET.mes_referencia == '2' %}selected{% endif %} class="text-gray-800">Fevereiro</option>
-                    <option value="3" {% if request.GET.mes_referencia == '3' %}selected{% endif %} class="text-gray-800">Março</option>
-                    <option value="4" {% if request.GET.mes_referencia == '4' %}selected{% endif %} class="text-gray-800">Abril</option>
-                    <option value="5" {% if request.GET.mes_referencia == '5' %}selected{% endif %} class="text-gray-800">Maio</option>
-                    <option value="6" {% if request.GET.mes_referencia == '6' %}selected{% endif %} class="text-gray-800">Junho</option>
-                    <option value="7" {% if request.GET.mes_referencia == '7' %}selected{% endif %} class="text-gray-800">Julho</option>
-                    <option value="8" {% if request.GET.mes_referencia == '8' %}selected{% endif %} class="text-gray-800">Agosto</option>
-                    <option value="9" {% if request.GET.mes_referencia == '9' %}selected{% endif %} class="text-gray-800">Setembro</option>
-                    <option value="10" {% if request.GET.mes_referencia == '10' %}selected{% endif %} class="text-gray-800">Outubro</option>
-                    <option value="11" {% if request.GET.mes_referencia == '11' %}selected{% endif %} class="text-gray-800">Novembro</option>
-                    <option value="12" {% if request.GET.mes_referencia == '12' %}selected{% endif %} class="text-gray-800">Dezembro</option>
-                </select>
-            </form>
-
-            <span class="text-[10px] font-black bg-white/20 px-4 py-1 rounded-full uppercase italic tracking-widest">
-                Admin: {{ request.user.username }}
-            </span>
-            <a href="{% url 'sistema_interno:logout' %}" class="bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg hover:bg-marsala-100 transition-all">
-                <i class="fas fa-power-off text-sm"></i>
-            </a>
+<div class="bg-gray-50 min-h-screen pb-24 text-left">
+    <nav class="bg-marsala-700 shadow-xl text-white sticky top-0 z-50 border-b border-black/10" style="background-color: #700c15;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="min-w-0">
+                <h1 class="text-xl sm:text-2xl font-black italic uppercase tracking-tighter truncate">
+                    Ultramed <span class="text-marsala-100 text-xs sm:text-sm font-light opacity-80 not-italic uppercase">| Master Control</span>
+                </h1>
+                <p class="text-[10px] text-white/60 font-bold uppercase tracking-widest mt-1 hidden sm:block">Visão geral operacional e financeira</p>
+            </div>
+            <div class="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-4">
+                <form method="GET" class="flex flex-wrap items-center gap-2 bg-white/10 px-3 py-2 rounded-xl border border-white/20" aria-label="Período dos recebimentos">
+                    {% if request.GET.doenca %}<input type="hidden" name="doenca" value="{{ request.GET.doenca }}">{% endif %}
+                    {% if request.GET.q %}<input type="hidden" name="q" value="{{ request.GET.q }}">{% endif %}
+                    <span class="text-[9px] font-black uppercase text-white/70 whitespace-nowrap">Recebimentos</span>
+                    <i class="fas fa-calendar-alt text-[10px] opacity-70 hidden sm:inline" aria-hidden="true"></i>
+                    <select name="mes_referencia" onchange="this.form.submit()" class="bg-transparent text-white text-[10px] font-black uppercase outline-none border-none cursor-pointer max-w-[7.5rem] min-w-0">
+                        <option value="" class="text-gray-800">Mês atual</option>
+                        <option value="1" {% if request.GET.mes_referencia == '1' %}selected{% endif %} class="text-gray-800">Janeiro</option>
+                        <option value="2" {% if request.GET.mes_referencia == '2' %}selected{% endif %} class="text-gray-800">Fevereiro</option>
+                        <option value="3" {% if request.GET.mes_referencia == '3' %}selected{% endif %} class="text-gray-800">Março</option>
+                        <option value="4" {% if request.GET.mes_referencia == '4' %}selected{% endif %} class="text-gray-800">Abril</option>
+                        <option value="5" {% if request.GET.mes_referencia == '5' %}selected{% endif %} class="text-gray-800">Maio</option>
+                        <option value="6" {% if request.GET.mes_referencia == '6' %}selected{% endif %} class="text-gray-800">Junho</option>
+                        <option value="7" {% if request.GET.mes_referencia == '7' %}selected{% endif %} class="text-gray-800">Julho</option>
+                        <option value="8" {% if request.GET.mes_referencia == '8' %}selected{% endif %} class="text-gray-800">Agosto</option>
+                        <option value="9" {% if request.GET.mes_referencia == '9' %}selected{% endif %} class="text-gray-800">Setembro</option>
+                        <option value="10" {% if request.GET.mes_referencia == '10' %}selected{% endif %} class="text-gray-800">Outubro</option>
+                        <option value="11" {% if request.GET.mes_referencia == '11' %}selected{% endif %} class="text-gray-800">Novembro</option>
+                        <option value="12" {% if request.GET.mes_referencia == '12' %}selected{% endif %} class="text-gray-800">Dezembro</option>
+                    </select>
+                    <select name="ano_referencia" onchange="this.form.submit()" class="bg-transparent text-white text-[10px] font-black uppercase outline-none border-none cursor-pointer">
+                        {% for y in anos_referencia_opcao %}
+                        <option value="{{ y }}" class="text-gray-800" {% if ano_referencia_dashboard == y %}selected{% endif %}>{{ y }}</option>
+                        {% endfor %}
+                    </select>
+                </form>
+                <div class="flex items-center justify-between sm:justify-end gap-3 sm:gap-4 border-t border-white/10 sm:border-0 pt-3 sm:pt-0">
+                    <span class="text-[10px] font-black bg-white/20 px-3 sm:px-4 py-1.5 rounded-full uppercase italic tracking-widest truncate max-w-[10rem] sm:max-w-none">
+                        {{ request.user.username }}
+                    </span>
+                    <a href="{% url 'sistema_interno:logout' %}" class="shrink-0 bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg hover:bg-marsala-100 transition-all" title="Sair">
+                        <i class="fas fa-power-off text-sm"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </nav>
 
-    <main class="p-8 max-w-7xl mx-auto">
+    <main class="px-4 sm:px-6 lg:px-8 py-8 max-w-7xl mx-auto">
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-12">
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-emerald-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Faturamento Mensal</p>
-                <h3 class="text-2xl font-black text-emerald-600 mt-2 text-center">R$ {{ faturamento_total|floatformat:2 }}</h3>
+        <section class="mb-10" aria-labelledby="heading-kpis">
+            <h2 id="heading-kpis" class="sr-only">Indicadores rápidos</h2>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-emerald-500 shadow-sm">
+                    <p class="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center leading-tight">Faturamento (recebido)</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-emerald-600 mt-2 text-center tabular-nums">R$ {{ faturamento_total|floatformat:2 }}</h3>
+                    <p class="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase text-center mt-2 tracking-wide leading-tight">{{ periodo_recebimentos_label }}</p>
+                    <p class="text-[8px] sm:text-[9px] text-emerald-700/80 font-bold text-center mt-1">{{ qtd_recebimentos_periodo }} pagamento{% if qtd_recebimentos_periodo != 1 %}s{% endif %}</p>
+                </div>
+                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-amber-500 shadow-sm">
+                    <p class="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center leading-tight">Titulares à vencer</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-amber-600 mt-2 text-center tabular-nums">{{ pacientes_vencendo.count }}</h3>
+                    <p class="text-[8px] text-gray-400 font-bold uppercase text-center mt-2">Próximos 30 dias</p>
+                </div>
+                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-blue-500 shadow-sm">
+                    <p class="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center leading-tight">Leads novos</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-blue-600 mt-2 text-center tabular-nums">{{ leads_recentes.count }}</h3>
+                    <p class="text-[8px] text-gray-400 font-bold uppercase text-center mt-2">Aguardando contato</p>
+                </div>
+                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-marsala-700 shadow-sm">
+                    <p class="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center leading-tight">Pacientes crônicos</p>
+                    <h3 class="text-lg sm:text-2xl font-black text-marsala-700 mt-2 text-center tabular-nums">{{ porcentagem_cronicos }}%</h3>
+                    <p class="text-[8px] text-gray-400 font-bold uppercase text-center mt-2">Da base titular</p>
+                </div>
             </div>
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-amber-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Titulares à Vencer</p>
-                <h3 class="text-2xl font-black text-amber-600 mt-2 text-center">{{ pacientes_vencendo.count }}</h3>
-            </div>
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-blue-500 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">Leads Novos</p>
-                <h3 class="text-2xl font-black text-blue-600 mt-2 text-center">{{ leads_recentes.count }}</h3>
-            </div>
-            <div class="bg-white p-6 rounded-[2rem] border-b-4 border-marsala-700 shadow-sm transition-transform hover:scale-105">
-                <p class="text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center">KPI Crônicos</p>
-                <h3 class="text-2xl font-black text-marsala-700 mt-2 text-center">{{ porcentagem_cronicos }}%</h3>
-            </div>
-        </div>
+        </section>
 
-        <div class="mb-8">
-            <h3 class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] ml-2 mb-4">Filtrar para Disparos Farmácia</h3>
-            <div class="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm flex flex-wrap items-center gap-2">
-                <a href="?doenca=" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if not request.GET.doenca %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Todos</a>
-                
-                <a href="?doenca=HIPERTENSAO" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'HIPERTENSAO' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Hipertensão</a>
-                
-                <a href="?doenca=ASMA" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'ASMA' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Asma</a>
-                
-                <a href="?doenca=ONCOLOGICO" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'ONCOLOGICO' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Oncológico</a>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+            <div class="lg:col-span-8 space-y-10">
 
-                <a href="?doenca=DIABETES" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'DIABETES' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Diabetes</a>
-
-                <a href="?doenca=CARDIOPATIA" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'CARDIOPATIA' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Cardiopatia</a>
-
-                <a href="?doenca=RENAL" class="px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'RENAL' %}bg-marsala-700 text-white shadow-lg{% else %}bg-gray-100 text-gray-500 hover:bg-gray-200{% endif %} no-underline">Renal Crônico</a>
-                
-                <form method="GET" class="flex-1 min-w-[200px] flex gap-2 ml-2">
-                    <input type="text" name="q" placeholder="Buscar por Nome ou CPF..." class="w-full bg-gray-50 border-none rounded-xl px-4 py-2 text-xs font-bold" value="{{ request.GET.q }}">
-                    <button type="submit" class="bg-gray-800 text-white p-2 rounded-xl border-none cursor-pointer"><i class="fas fa-search"></i></button>
-                </form>
-            </div>
-        </div>
-
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div class="lg:col-span-1 space-y-4">
-                <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest">Ações Rápidas</h4>
-                
-                <a href="{% url 'sistema_interno:agenda_view' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-blue-500 transition-all group no-underline">
-                    <div class="bg-blue-50 p-3 rounded-2xl group-hover:bg-blue-600 group-hover:text-white text-blue-600 transition-all"><i class="fas fa-calendar-alt"></i></div>
-                    <span class="text-xs font-bold uppercase italic text-gray-700 group-hover:text-blue-600">Agenda de Atendimentos</span>
-                </a>
-
-                <a href="{% url 'sistema_interno:fatura_create' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-marsala-700 transition-all group no-underline">
-                    <div class="bg-marsala-50 p-3 rounded-2xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all"><i class="fas fa-credit-card"></i></div>
-                    <span class="text-xs font-bold uppercase italic text-marsala-700">Lançar Novo Pagamento</span>
-                </a>
-
-                <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 bg-white p-5 rounded-3xl border border-gray-100 shadow-sm hover:border-emerald-500 transition-all group no-underline">
-                    <div class="bg-emerald-50 p-3 rounded-2xl group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 transition-all"><i class="fas fa-users"></i></div>
-                    <span class="text-xs font-bold uppercase italic text-gray-700 group-hover:text-emerald-600">Gestão de Clientes</span>
-                </a>
-
-                <div class="mt-8">
-                    <h4 class="text-[10px] font-black uppercase text-gray-400 ml-4 tracking-widest mb-4">Leads do Site</h4>
-                    <div class="bg-white rounded-[2rem] border border-gray-100 p-4 space-y-3 shadow-sm">
-                        {% for lead in leads_recentes %}
-                        <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center">
-                            <div class="flex-1">
-                                <p class="text-[10px] font-black uppercase text-gray-800 leading-none">{{ lead.nome }}</p>
-                                <p class="text-[9px] text-marsala-600 font-bold mt-1">{{ lead.telefone }}</p>
+                <section aria-labelledby="heading-financeiro">
+                    <div class="flex items-end justify-between gap-4 mb-3 ml-1">
+                        <h2 id="heading-financeiro" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Financeiro</h2>
+                        <span class="text-[9px] font-bold text-gray-400 uppercase hidden sm:inline">Conferência de recebimentos</span>
+                    </div>
+                    <div class="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 sm:p-6 border-b border-gray-50 bg-marsala-50/50 flex flex-col gap-2 sm:flex-row sm:justify-between sm:items-start">
+                            <div>
+                                <h3 class="text-xs font-black uppercase italic text-marsala-800"><i class="fas fa-receipt mr-2" aria-hidden="true"></i> Pagamentos recebidos</h3>
+                                <p class="text-[9px] text-marsala-600/90 font-bold uppercase tracking-wide mt-1">{{ periodo_recebimentos_label }}{% if qtd_recebimentos_periodo > 50 %} · exibindo os 50 mais recentes ({{ qtd_recebimentos_periodo }} no período){% else %} · {{ qtd_recebimentos_periodo }} lançamento{% if qtd_recebimentos_periodo != 1 %}s{% endif %}{% endif %}</p>
                             </div>
-                            <button class="btn-atender bg-emerald-500 text-white w-9 h-9 flex items-center justify-center rounded-xl border-none cursor-pointer" data-id="{{ lead.id }}" data-tel="{{ lead.telefone }}">
-                                <i class="fab fa-whatsapp text-lg"></i>
+                        </div>
+                        {% if recebimentos_por_metodo %}
+                        <div class="px-4 sm:px-6 py-3 sm:py-4 bg-gray-50/80 border-b border-gray-100 flex flex-wrap gap-2">
+                            {% for row in recebimentos_por_metodo %}
+                            <span class="inline-flex items-center gap-2 text-[9px] font-black uppercase italic bg-white border border-gray-200 text-gray-700 px-3 py-2 rounded-xl shadow-sm">
+                                <span class="text-marsala-700">{{ row.metodo_pagamento|default:"Não informado" }}</span>
+                                <span class="text-emerald-600">R$ {{ row.subtotal|floatformat:2 }}</span>
+                                <span class="text-gray-400 font-bold">({{ row.quantidade }})</span>
+                            </span>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left text-sm min-w-[32rem]">
+                                <thead class="bg-gray-50 text-[9px] font-black uppercase text-gray-500 tracking-wider">
+                                    <tr>
+                                        <th class="p-3 pl-6 sm:pl-8 text-left">Paciente</th>
+                                        <th class="p-3 text-left hidden sm:table-cell">Data</th>
+                                        <th class="p-3 text-left hidden md:table-cell">Método</th>
+                                        <th class="p-3 text-right">Valor</th>
+                                        <th class="p-3 text-right pr-6 sm:pr-8">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    {% for b in boletos_recentes %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="p-4 pl-6 sm:pl-8">
+                                            <div class="font-black text-sm uppercase text-gray-800">{{ b.paciente.nome_completo }}</div>
+                                            <div class="text-[9px] text-gray-400 font-bold uppercase italic mt-1 sm:hidden">{{ b.data_pagamento|date:"d/m/Y" }}</div>
+                                        </td>
+                                        <td class="p-4 text-gray-600 font-bold text-xs hidden sm:table-cell">{{ b.data_pagamento|date:"d/m/Y" }}</td>
+                                        <td class="p-4 text-[10px] font-bold text-gray-600 uppercase hidden md:table-cell">{{ b.get_metodo_pagamento_display|default:"—" }}</td>
+                                        <td class="p-4 text-right"><span class="text-sm font-black text-emerald-600 tabular-nums">R$ {{ b.valor|floatformat:2 }}</span></td>
+                                        <td class="p-4 text-right pr-6 sm:pr-8"><span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Pago</span></td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="p-10 text-center text-[10px] font-bold text-gray-400 uppercase italic">Nenhum pagamento recebido neste período</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <section aria-labelledby="heading-crm">
+                    <div class="flex items-end justify-between gap-4 mb-3 ml-1">
+                        <h2 id="heading-crm" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Campanhas &amp; CRM</h2>
+                        <span class="text-[9px] font-bold text-gray-400 uppercase hidden sm:inline">WhatsApp farmácia</span>
+                    </div>
+                    <div class="bg-white rounded-[1.75rem] sm:rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
+                        <div class="p-5 sm:p-6 border-b border-gray-50 bg-emerald-50/50">
+                            <h3 class="text-xs font-black uppercase italic text-emerald-800"><i class="fas fa-bullhorn mr-2" aria-hidden="true"></i> Disparo de promoções <span class="text-emerald-600">({{ pacientes_lista.count }})</span></h3>
+                            <p class="text-[9px] text-emerald-800/70 font-bold uppercase mt-2 mb-4">Filtre titulares e envie ofertas segmentadas</p>
+                            <div class="flex flex-wrap items-center gap-2 pt-1 border-t border-emerald-100/80">
+                                <a href="?{% if request.GET.mes_referencia %}mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}&{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if not request.GET.doenca %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Todos</a>
+                                <a href="?doenca=HIPERTENSAO{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'HIPERTENSAO' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Hipertensão</a>
+                                <a href="?doenca=ASMA{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'ASMA' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Asma</a>
+                                <a href="?doenca=ONCOLOGICO{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'ONCOLOGICO' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Oncológico</a>
+                                <a href="?doenca=DIABETES{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'DIABETES' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Diabetes</a>
+                                <a href="?doenca=CARDIOPATIA{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'CARDIOPATIA' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Cardiopatia</a>
+                                <a href="?doenca=GESTANTE{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'GESTANTE' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Gestantes</a>
+                                <a href="?doenca=RENAL{% if request.GET.mes_referencia %}&mes_referencia={{ request.GET.mes_referencia }}&ano_referencia={{ ano_referencia_dashboard }}{% endif %}" class="px-3 sm:px-4 py-2 rounded-xl text-[9px] font-black uppercase italic {% if request.GET.doenca == 'RENAL' %}bg-emerald-600 text-white shadow-md{% else %}bg-white text-gray-500 border border-gray-200 hover:border-emerald-300{% endif %} no-underline">Renal crônico</a>
+                                <form method="GET" class="flex flex-1 min-w-0 gap-2 ml-auto mt-2 sm:mt-0 w-full sm:w-auto sm:min-w-[220px]">
+                                    {% if request.GET.doenca %}<input type="hidden" name="doenca" value="{{ request.GET.doenca }}">{% endif %}
+                                    {% if request.GET.mes_referencia %}<input type="hidden" name="mes_referencia" value="{{ request.GET.mes_referencia }}"><input type="hidden" name="ano_referencia" value="{{ ano_referencia_dashboard }}">{% endif %}
+                                    <input type="search" name="q" placeholder="Nome ou CPF…" class="flex-1 min-w-0 bg-white border border-gray-200 rounded-xl px-3 py-2 text-xs font-bold focus:ring-2 focus:ring-emerald-500/30 outline-none" value="{{ request.GET.q }}" autocomplete="off">
+                                    <button type="submit" class="shrink-0 bg-gray-800 text-white px-3 py-2 rounded-xl border-none cursor-pointer hover:bg-gray-900" aria-label="Buscar"><i class="fas fa-search"></i></button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-left min-w-[28rem]">
+                                <thead class="bg-gray-50 text-[9px] font-black uppercase text-gray-500 tracking-wider border-b border-gray-100">
+                                    <tr>
+                                        <th class="p-3 pl-6 sm:pl-8 text-left">Paciente</th>
+                                        <th class="p-3 text-right pr-6 sm:pr-8">Ação</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="divide-y divide-gray-50">
+                                    {% for p in pacientes_lista %}
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="p-4 pl-6 sm:pl-8">
+                                            <div class="font-black text-sm uppercase text-gray-800">{{ p.nome_completo }}</div>
+                                            <div class="text-[9px] text-gray-400 font-bold uppercase italic mt-1">{{ p.doencas_cronicas|default:"Titular ativo" }}</div>
+                                        </td>
+                                        <td class="p-4 text-right pr-6 sm:pr-8 whitespace-nowrap">
+                                            <button type="button" class="btn-promocao bg-emerald-500 text-white px-3 sm:px-4 py-2 rounded-xl text-[8px] font-black uppercase italic border-none cursor-pointer shadow-md hover:bg-emerald-600"
+                                                    data-nome="{{ p.nome_completo }}" data-tel="{{ p.telefone }}" data-doenca="{{ request.GET.doenca|default:'Geral' }}">
+                                                <i class="fab fa-whatsapp mr-1"></i> Enviar oferta
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="2" class="p-10 text-center text-[10px] font-bold text-gray-400 uppercase italic">Nenhum titular com este filtro</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <aside class="lg:col-span-4 space-y-8 lg:sticky lg:top-[5.5rem] self-start">
+                <section aria-labelledby="heading-operacao">
+                    <h2 id="heading-operacao" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-3 ml-1">Operação</h2>
+                    <div class="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-4 sm:p-5 space-y-3">
+                        <a href="{% url 'sistema_interno:agenda_view' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-blue-400 hover:bg-blue-50/40 transition-all group no-underline">
+                            <div class="bg-blue-50 p-3 rounded-xl group-hover:bg-blue-600 group-hover:text-white text-blue-600 transition-all shrink-0"><i class="fas fa-calendar-alt" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">Agenda</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Atendimentos do dia</span>
+                            </div>
+                        </a>
+                        <a href="{% url 'sistema_interno:fatura_create' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-marsala-700 hover:bg-marsala-50/30 transition-all group no-underline">
+                            <div class="bg-marsala-50 p-3 rounded-xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all shrink-0"><i class="fas fa-credit-card" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-marsala-800 block">Lançar pagamento</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Nova fatura</span>
+                            </div>
+                        </a>
+                        <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-emerald-500 hover:bg-emerald-50/40 transition-all group no-underline">
+                            <div class="bg-emerald-50 p-3 rounded-xl group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 transition-all shrink-0"><i class="fas fa-users" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">Clientes</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Lista e cadastros</span>
+                            </div>
+                        </a>
+                    </div>
+                </section>
+
+                <section aria-labelledby="heading-leads">
+                    <h2 id="heading-leads" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-3 ml-1">Leads do site</h2>
+                    <div class="bg-white rounded-[1.75rem] border border-gray-100 p-4 sm:p-5 shadow-sm space-y-3 max-h-[28rem] overflow-y-auto">
+                        {% for lead in leads_recentes %}
+                        <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center gap-2">
+                            <div class="flex-1 min-w-0">
+                                <p class="text-[10px] font-black uppercase text-gray-800 leading-tight truncate">{{ lead.nome }}</p>
+                                <p class="text-[9px] text-marsala-600 font-bold mt-1 truncate">{{ lead.telefone }}</p>
+                            </div>
+                            <button type="button" class="btn-atender shrink-0 bg-emerald-500 text-white w-9 h-9 flex items-center justify-center rounded-xl border-none cursor-pointer hover:bg-emerald-600" data-id="{{ lead.id }}" data-tel="{{ lead.telefone }}" title="WhatsApp">
+                                <i class="fab fa-whatsapp text-lg" aria-hidden="true"></i>
                             </button>
                         </div>
                         {% empty %}
-                        <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-4 italic">Nenhum lead novo</p>
+                        <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-6 italic">Nenhum lead novo</p>
                         {% endfor %}
                     </div>
-                </div>
-            </div>
-
-            <div class="lg:col-span-2 space-y-8">
-                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="p-6 border-b border-gray-50 bg-emerald-50/50 flex justify-between items-center">
-                        <h3 class="text-xs font-black uppercase italic text-emerald-800"><i class="fas fa-bullhorn mr-2"></i> Disparo de Promoções ({{ pacientes_lista.count }})</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <tbody class="divide-y divide-gray-50">
-                                {% for p in pacientes_lista %}
-                                <tr class="hover:bg-gray-50">
-                                    <td class="p-4 pl-8">
-                                        <div class="font-black text-sm uppercase text-gray-800">{{ p.nome_completo }}</div>
-                                        <div class="text-[9px] text-gray-400 font-bold uppercase italic mt-1">{{ p.doencas_cronicas|default:"Titular Ativo" }}</div>
-                                    </td>
-                                    <td class="p-4 text-right pr-8">
-                                        <button class="btn-promocao bg-emerald-500 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase italic border-none cursor-pointer shadow-md"
-                                                data-nome="{{ p.nome_completo }}" data-tel="{{ p.telefone }}" data-doenca="{{ request.GET.doenca|default:'Geral' }}">
-                                            <i class="fab fa-whatsapp mr-1"></i> Enviar Oferta
-                                        </button>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm overflow-hidden">
-                    <div class="p-6 border-b border-gray-50 bg-marsala-50/50 flex justify-between items-center">
-                        <h3 class="text-xs font-black uppercase italic text-marsala-800"><i class="fas fa-history mr-2"></i> Recebimentos Recentes</h3>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <tbody class="divide-y divide-gray-50">
-                                {% for b in boletos_recentes %}
-                                <tr class="hover:bg-gray-50">
-                                    <td class="p-4 pl-8">
-                                        <div class="font-black text-sm uppercase text-gray-800">{{ b.paciente.nome_completo }}</div>
-                                        <div class="text-[9px] text-gray-400 font-bold uppercase italic mt-1">{{ b.data_pagamento|date:"d/m/Y" }}</div>
-                                    </td>
-                                    <td class="p-4 text-center"><span class="text-sm font-black text-emerald-600">R$ {{ b.valor }}</span></td>
-                                    <td class="p-4 text-right pr-8"><span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Pago</span></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
+                </section>
+            </aside>
         </div>
     </main>
 </div>
@@ -181,7 +258,7 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
             const tel = this.getAttribute('data-tel').replace(/\D/g,'');
-            fetch("/leads/baixar/" + id + "/").then(() => { 
+            fetch("{% url 'sistema_interno:baixar_lead' 999001999 %}".replace("999001999", id)).then(() => { 
                 window.open("https://wa.me/55" + tel, "_blank");
                 setTimeout(() => { window.location.reload(); }, 1000); 
             });
@@ -203,6 +280,7 @@ document.addEventListener('DOMContentLoaded', function() {
             else if (doenca === 'ONCOLOGICO') oferta = "Estamos ao seu lado na jornada! Confira nossa linha de cuidados especiais com descontos exclusivos.";
             else if (doenca === 'DIABETES') oferta = "Ofertas exclusivas em Insulinas e Glicosímetros para você hoje na Farmácia Ultramed!";
             else if (doenca === 'CARDIOPATIA') oferta = "Cuidado extra com o coração! Confira ofertas em medicamentos cardíacos e suplementos.";
+            else if (doenca === 'GESTANTE') oferta = "Cuidados na gestação com carinho! Temos ofertas em ácido fólico, vitaminas pré-natais e itens de apoio à mamãe e ao bebê na Farmácia Ultramed.";
             else if (doenca === 'RENAL') oferta = "Apoio total à sua saúde renal! Temos descontos em medicamentos específicos na Farmácia Ultramed.";
 
             const textoFinal = msg + "\n\n" + oferta + "\n\nBasta apresentar sua carteirinha digital Ultramed! ✨";

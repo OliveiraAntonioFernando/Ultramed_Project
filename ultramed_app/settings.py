@@ -82,6 +82,15 @@ DATABASES = {
     }
 }
 
+# Testes: SQLite local para não depender do MySQL (python manage.py test)
+import sys
+
+if "test" in sys.argv:
+    DATABASES["default"] = {
+        "ENGINE": "django.db.backends.sqlite3",
+        "NAME": str(BASE_DIR / "test_db.sqlite3"),
+    }
+
 LANGUAGE_CODE = "pt-br"
 TIME_ZONE = "America/Belem"
 USE_I18N = True

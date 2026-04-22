@@ -17,8 +17,8 @@ class PacienteAdmin(admin.ModelAdmin):
 
 @admin.register(Fatura)
 class FaturaAdmin(admin.ModelAdmin):
-    list_display = ("id", "paciente", "valor", "status", "data_pagamento")
-    list_filter = ("status",)
+    list_display = ("id", "paciente", "plano", "valor", "status", "data_pagamento")
+    list_filter = ("status", "plano")
 
 
 @admin.register(Agenda)

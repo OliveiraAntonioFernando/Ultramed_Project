@@ -1,6 +1,8 @@
 __pycache__/
 *.py[cod]
 .env
+.venv/
+test_db.sqlite3
 /certs/
 /certbot/
 *.sql
