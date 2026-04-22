@@ -6851,3 +6851,10 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    dcd8862..a74bca5  main -> main
+[main d540c43] Ponto de Recuperação Automático: 2026-04-22 00:00:01
+ 15 files changed, 918 insertions(+), 292 deletions(-)
+ create mode 100644 core_gestao/migrations/0014_fatura_plano.py
+ create mode 100644 core_gestao/tests/__init__.py
+ create mode 100644 core_gestao/tests/test_access.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   a74bca5..d540c43  main -> main
