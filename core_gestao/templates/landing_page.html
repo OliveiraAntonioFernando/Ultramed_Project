@@ -5,6 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ultramed Saúde Xingu - Referência em Medicina</title>
+    <meta name="description" content="Ultramed Saúde Xingu: planos de saúde familiar e empresarial, exames de imagem, cardiologia e procedimentos com atendimento humanizado em São Félix do Xingu.">
+    <meta property="og:type" content="website">
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:title" content="Ultramed Saúde Xingu - Referência em Medicina">
+    <meta property="og:description" content="Conheça nossos planos, exames e procedimentos com tecnologia avançada e cuidado humanizado.">
+    <meta property="og:image" content="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
     <link rel="icon" type="image/png" sizes="32x32" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
     <link rel="shortcut icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
     <link rel="apple-touch-icon" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
@@ -48,9 +54,17 @@
         .loader { border-top-color: #700c15; animation: spinner 1.5s linear infinite; }
         @keyframes spinner { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* EFEITO DE TROCA DE TEXTO */
-        .hero-title { transition: opacity 0.5s ease-in-out, transform 0.5s ease-in-out; opacity: 1; transform: translateY(0); }
-        .hero-title.hidden-anim { opacity: 0; transform: translateY(10px); }
+        /* EFEITO DE TROCA DE TEXTO (mais suave, sem "flash") */
+        .hero-title {
+            transition: opacity 0.35s ease, transform 0.35s ease;
+            opacity: 1;
+            transform: translateY(0);
+            will-change: opacity, transform;
+        }
+        .hero-title.hidden-anim {
+            opacity: 0;
+            transform: translateY(6px);
+        }
 
         /* CORREÇÃO MOBILE: CSS para o Menu Hambúrguer (escondido por padrão) */
         #mobile-menu {
@@ -89,8 +103,9 @@
 
             <div class="hidden md:flex gap-4 text-gray-600 font-medium items-center">
                 <a href="#planos" class="hover:text-marsala-700 transition text-sm">Planos</a>
-                <a href="#vantagens" class="hover:text-marsala-700 transition text-sm">Vantagens</a>
                 <a href="#exames" class="hover:text-marsala-700 transition text-sm">Exames</a>
+                <a href="#vantagens" class="hover:text-marsala-700 transition text-sm">Vantagens</a>
+                <a href="#depoimentos" class="hover:text-marsala-700 transition text-sm">Depoimentos</a>
 
                 <a href="{% url 'sistema_interno:login' %}" class="text-blue-700 border border-blue-700 px-4 py-2 rounded-full font-bold hover:bg-blue-50 transition text-xs flex items-center gap-2" title="Acesso Médico">
                     <i class="fas fa-user-md"></i> Médico
@@ -108,15 +123,16 @@
             </div>
 
             <div class="md:hidden flex items-center">
-                <button onclick="toggleMenu()" class="text-gray-600 hover:text-marsala-700 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button>
+                <button onclick="toggleMenu()" aria-label="Abrir ou fechar menu de navegação" class="text-gray-600 hover:text-marsala-700 focus:outline-none p-2"><i class="fas fa-bars text-2xl"></i></button>
             </div>
         </div>
 
         <div id="mobile-menu" class="md:hidden bg-white border-t border-gray-100 shadow-lg">
             <div class="px-4 pt-2 pb-4 space-y-1 flex flex-col">
                 <a href="#planos" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Planos</a>
-                <a href="#vantagens" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Vantagens</a>
                 <a href="#exames" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Exames</a>
+                <a href="#vantagens" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Vantagens</a>
+                <a href="#depoimentos" onclick="toggleMenu()" class="block px-3 py-3 text-base font-medium text-gray-700 border-b">Depoimentos</a>
 
                 <div class="mt-2 pt-2 border-t border-gray-100 space-y-2">
                     <a href="{% url 'sistema_interno:login' %}" class="flex items-center px-3 py-2 text-base font-medium text-blue-700 hover:bg-blue-50 rounded"><i class="fas fa-user-md w-6"></i> Portal Médico</a>
@@ -207,6 +223,29 @@
         </div>
     </section>
 
+    <section id="exames" class="py-16 px-4 bg-gray-50">
+        <div class="max-w-7xl mx-auto">
+            <div class="text-center mb-10"><h2 class="text-3xl font-bold text-gray-900">Exames e Procedimentos</h2></div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 flex flex-col h-full">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-2"><div class="bg-marsala-50 p-2 rounded text-marsala-700"><i class="fas fa-heartbeat text-xl"></i></div><h3 class="text-lg font-bold text-gray-800">Cardiologia</h3></div>
+                    <ul class="space-y-2 text-sm text-gray-600 mb-6 flex-grow"><li><i class="fas fa-check text-green-500"></i> Eletrocardiograma (ECG)</li><li><i class="fas fa-check text-green-500"></i> MAPA 24h</li><li><i class="fas fa-check text-green-500"></i> Holter 24h</li><li><i class="fas fa-check text-green-500"></i> Espirometria</li></ul>
+                    <button onclick="abrirModalExame('Cardiologia')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-2 rounded font-bold shadow transition">Agendar Cardiologia</button>
+                </div>
+                <div class="bg-marsala-900 p-6 rounded-2xl shadow-lg text-white transform md:-translate-y-2 border border-marsala-700 flex flex-col h-full">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-2 border-marsala-700"><div class="bg-white/10 p-2 rounded text-white"><i class="fas fa-baby text-xl"></i></div><h3 class="text-lg font-bold">Ultrassonografia</h3></div>
+                    <ul class="space-y-2 text-sm text-marsala-100 mb-6 flex-grow"><li>• Obstétrica / Morfológica</li><li>• Mamas / Transvaginal</li><li>• Abdômen / Rins</li><li>• Próstata / Tireoide</li><li>• Doppler Obstétrico</li></ul>
+                    <button onclick="abrirModalExame('Ultrassonografia')" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-2 rounded font-bold shadow transition">Agendar Ultrassonografia</button>
+                </div>
+                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 flex flex-col h-full">
+                    <div class="flex items-center gap-3 mb-4 border-b pb-2"><div class="bg-marsala-50 p-2 rounded text-marsala-700"><i class="fas fa-user-md text-xl"></i></div><h3 class="text-lg font-bold text-gray-800">Procedimentos</h3></div>
+                    <ul class="space-y-2 text-sm text-gray-600 mb-6 flex-grow"><li><i class="fas fa-check text-green-500"></i> Endoscopia Digestiva</li><li><i class="fas fa-check text-green-500"></i> Inserção DIU / Implanon</li><li><i class="fas fa-check text-green-500"></i> PAAF / Biópsias</li><li><i class="fas fa-check text-green-500"></i> EEG e Polissonografia</li></ul>
+                    <button onclick="abrirModalExame('Procedimentos')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-2 rounded font-bold shadow transition">Agendar Procedimentos</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section id="vantagens" class="py-16 bg-white border-b border-gray-100">
         <div class="max-w-7xl mx-auto px-4 text-center">
             <h2 class="text-3xl font-bold text-gray-900 mb-10">Clube de Vantagens</h2>
@@ -227,26 +266,42 @@
         </div>
     </section>
 
-    <section id="exames" class="py-16 px-4 bg-gray-50">
+    <section id="depoimentos" class="py-16 px-4 bg-gray-50 border-b border-gray-100">
         <div class="max-w-7xl mx-auto">
-            <div class="text-center mb-10"><h2 class="text-3xl font-bold text-gray-900">Exames e Procedimentos</h2></div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 flex flex-col h-full">
-                    <div class="flex items-center gap-3 mb-4 border-b pb-2"><div class="bg-marsala-50 p-2 rounded text-marsala-700"><i class="fas fa-heartbeat text-xl"></i></div><h3 class="text-lg font-bold text-gray-800">Cardiologia</h3></div>
-                    <ul class="space-y-2 text-sm text-gray-600 mb-6 flex-grow"><li><i class="fas fa-check text-green-500"></i> Eletrocardiograma (ECG)</li><li><i class="fas fa-check text-green-500"></i> MAPA 24h</li><li><i class="fas fa-check text-green-500"></i> Holter 24h</li><li><i class="fas fa-check text-green-500"></i> Espirometria</li></ul>
-                    <button onclick="abrirModalExame('Cardiologia')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-2 rounded font-bold shadow transition">Agendar</button>
-                </div>
-                <div class="bg-marsala-900 p-6 rounded-2xl shadow-lg text-white transform md:-translate-y-2 border border-marsala-700 flex flex-col h-full">
-                    <div class="flex items-center gap-3 mb-4 border-b pb-2 border-marsala-700"><div class="bg-white/10 p-2 rounded text-white"><i class="fas fa-baby text-xl"></i></div><h3 class="text-lg font-bold">Ultrassonografia</h3></div>
-                    <ul class="space-y-2 text-sm text-marsala-100 mb-6 flex-grow"><li>• Obstétrica / Morfológica</li><li>• Mamas / Transvaginal</li><li>• Abdômen / Rins</li><li>• Próstata / Tireoide</li><li>• Doppler Obstétrico</li></ul>
-                    <button onclick="abrirModalExame('Ultrassonografia')" class="block w-full text-center bg-white text-marsala-900 hover:bg-gray-100 py-2 rounded font-bold shadow transition">Agendar</button>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border-t-4 border-marsala-700 flex flex-col h-full">
-                    <div class="flex items-center gap-3 mb-4 border-b pb-2"><div class="bg-marsala-50 p-2 rounded text-marsala-700"><i class="fas fa-user-md text-xl"></i></div><h3 class="text-lg font-bold text-gray-800">Procedimentos</h3></div>
-                    <ul class="space-y-2 text-sm text-gray-600 mb-6 flex-grow"><li><i class="fas fa-check text-green-500"></i> Endoscopia Digestiva</li><li><i class="fas fa-check text-green-500"></i> Inserção DIU / Implanon</li><li><i class="fas fa-check text-green-500"></i> PAAF / Biópsias</li><li><i class="fas fa-check text-green-500"></i> EEG e Polissonografia</li></ul>
-                    <button onclick="abrirModalExame('Procedimentos')" class="block w-full text-center bg-marsala-700 hover:bg-marsala-800 text-white py-2 rounded font-bold shadow transition">Agendar</button>
-                </div>
+            <div class="text-center mb-10">
+                <span class="text-marsala-700 font-bold tracking-widest text-xs uppercase">Confiança</span>
+                <h2 class="text-3xl font-bold text-gray-900">Quem atende com a Ultramed recomenda</h2>
             </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                <article class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-yellow-400 mb-3" aria-label="Avaliação 5 estrelas">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm leading-relaxed">"Atendimento muito humano e rápido. Consegui fazer meus exames e tirar dúvidas no mesmo dia."</p>
+                    <p class="mt-4 text-sm font-bold text-gray-800">Maria S.</p>
+                    <p class="text-xs text-gray-500">Paciente</p>
+                </article>
+
+                <article class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-yellow-400 mb-3" aria-label="Avaliação 5 estrelas">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm leading-relaxed">"A estrutura e os profissionais passam segurança. O plano familiar vale muito a pena."</p>
+                    <p class="mt-4 text-sm font-bold text-gray-800">Joao P.</p>
+                    <p class="text-xs text-gray-500">Cliente do Plano Master</p>
+                </article>
+
+                <article class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                    <div class="text-yellow-400 mb-3" aria-label="Avaliação 5 estrelas">
+                        <i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i><i class="fas fa-star"></i>
+                    </div>
+                    <p class="text-gray-600 text-sm leading-relaxed">"Consegui agendar procedimentos com facilidade e recebi retorno rapido da equipe no WhatsApp."</p>
+                    <p class="mt-4 text-sm font-bold text-gray-800">Ana R.</p>
+                    <p class="text-xs text-gray-500">Paciente</p>
+                </article>
+            </div>
+
         </div>
     </section>
 
@@ -254,7 +309,7 @@
         <div class="modal-overlay absolute w-full h-full bg-gray-900 opacity-80 backdrop-blur-sm" onclick="fecharModal()"></div>
         <div class="modal-container bg-white w-full max-w-md mx-auto rounded-2xl shadow-2xl z-50 overflow-hidden transform transition-all scale-95">
             <div class="p-6">
-                <div class="flex justify-between items-center mb-6"><p class="text-xl font-bold text-marsala-700" id="modal-titulo">Agendar Exame</p><button onclick="fecharModal()" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-times fa-lg"></i></button></div>
+                <div class="flex justify-between items-center mb-6"><p class="text-xl font-bold text-marsala-700" id="modal-titulo">Agendar Exame</p><button onclick="fecharModal()" aria-label="Fechar modal de agendamento" class="text-gray-400 hover:text-red-500 p-2"><i class="fas fa-times fa-lg"></i></button></div>
                 <div id="form-lead" class="space-y-4">
                     <p id="plano-nome-modal" data-interesse="" class="font-bold text-gray-800 bg-marsala-50 p-3 rounded-lg text-center border border-marsala-100 text-sm"></p>
 
@@ -299,21 +354,24 @@
             window.location.href = urlFinal;
         }
 
-        // Lógica de Troca de Frases
-        const frases = ["Referência em Medicina", "Exames de Imagem", "No Coração do Xingu"];
-        let indexFrase = 0;
+        // Lógica de troca de frases (sem piscar e sem repetir a frase inicial)
+        const frases = [
+            "Referência em Medicina",
+            "Exames de Imagem com Precisão",
+            "Cuidado Humanizado no Coração do Xingu"
+        ];
+        let indexFrase = 1;
         const elTitulo = document.getElementById('hero-title');
         function trocarFrase() {
             elTitulo.classList.add('hidden-anim');
             setTimeout(() => {
                 let texto = frases[indexFrase];
-                if(indexFrase === 2) texto += "<br/><span class='text-3xl md:text-4xl font-light opacity-90'>Ultramed</span>";
                 elTitulo.innerHTML = texto;
                 indexFrase = (indexFrase + 1) % frases.length;
                 elTitulo.classList.remove('hidden-anim');
             }, 500);
         }
-        setInterval(trocarFrase, 4000);
+        setInterval(trocarFrase, 4500);
 
         function toggleMenu() { document.getElementById('mobile-menu').classList.toggle('open'); }
         function fecharModal() { document.getElementById('modal-cadastro').classList.add('opacity-0', 'pointer-events-none'); }
