@@ -62,6 +62,7 @@ services:
       - ./media_content:/usr/share/nginx/html/media:ro
       - ./nginx/certs:/etc/nginx/ssl:ro
       - /etc/letsencrypt:/etc/letsencrypt:ro
+      - /var/lib/letsencrypt:/var/lib/letsencrypt:ro
     # ESSENCIAL: Permite que o Nginx fale com o host (VPS) via host.docker.internal
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -207,7 +207,10 @@ def _mp_payer_do_payload(data, paciente):
     if _mp_credencial_teste():
         email_brick = (payer_in.get("email") or "").strip().lower()
         email_cfg = _mp_email_comprador_sandbox()
-        email = email_brick or email_cfg
+        if _mp_email_teste_valido(email_brick):
+            email = email_brick
+        else:
+            email = email_cfg
     else:
         email = (payer_in.get("email") or "").strip()
     ident = payer_in.get("identification") or {}
