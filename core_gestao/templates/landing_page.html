@@ -315,6 +315,7 @@
 
                     <div><label for="nome-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">Nome Completo</label><input id="nome-modal" type="text" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none"></div>
                     <div><label for="telefone-modal" class="text-xs font-bold text-gray-500 uppercase mb-1">WhatsApp</label><input id="telefone-modal" type="tel" class="w-full border p-3 rounded-lg focus:border-marsala-700 outline-none" placeholder="(94) 99999-9999"></div>
+                    <input type="text" name="website" id="lead-honeypot" class="hidden" tabindex="-1" autocomplete="off" aria-hidden="true">
 
                     <button onclick="enviarSolicitacaoLead()" class="w-full bg-marsala-700 hover:bg-marsala-800 text-white font-bold py-4 rounded-xl shadow-lg mt-2 flex items-center justify-center gap-2">Solicitar Contato</button>
                 </div>
@@ -395,6 +396,7 @@
             formData.append('telefone', tel);
             formData.append('interesse', "Agendamento: " + int_);
             formData.append('csrfmiddlewaretoken', csrfTokenGlobal);
+            formData.append('website', document.getElementById('lead-honeypot').value);
 
             try {
                 const response = await fetch(urlLeadCapture, { method: 'POST', body: formData });

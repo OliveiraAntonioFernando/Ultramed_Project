@@ -212,9 +212,12 @@ class AgendaCheckinTests(StaffUserMixin, TestCase):
 
     def test_checkin_atualiza_status_e_redirect(self):
         url = reverse("sistema_interno:agenda_view")
-        r = self.client.get(
-            url,
-            {"status": "CHEGOU", "id": str(self.ag.id), "data": "2026-06-10"},
+        r = self.client.post(
+            f"{url}?data=2026-06-10",
+            {
+                "agenda_checkin_id": str(self.ag.id),
+                "data": "2026-06-10",
+            },
         )
         self.assertEqual(r.status_code, 302)
         self.assertIn("data=2026-06-10", r.url)

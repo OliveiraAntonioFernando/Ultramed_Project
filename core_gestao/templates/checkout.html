@@ -97,6 +97,7 @@
                     onReady: () => { console.log("Checkout Pronto"); },
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
                         formData.external_reference = "{{ fatura.id }}";
+                        formData.checkout_token = "{{ checkout_token }}";
                         formData.transaction_amount = cleanAmount;
                         formData.description = "Plano {{ plano.nome|escapejs }} - {{ paciente.nome_completo|escapejs }}";
 

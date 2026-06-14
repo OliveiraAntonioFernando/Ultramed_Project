@@ -92,7 +92,7 @@
                                         {% if exame.realizado %}CONCLUÍDO{% else %}PENDENTE{% endif %}
                                     </span>
                                     {% if exame.arquivo %}
-                                    <a href="{{ exame.arquivo.url }}" target="_blank" class="bg-sky-600 text-white px-2 py-1 rounded text-[7px] font-black uppercase no-underline hover:bg-sky-700 transition-all">
+                                    <a href="{% url 'sistema_interno:download_exame_arquivo' exame.id %}" target="_blank" class="bg-sky-600 text-white px-2 py-1 rounded text-[7px] font-black uppercase no-underline hover:bg-sky-700 transition-all">
                                         <i class="fas fa-file-download mr-1"></i> Ver Anexo
                                     </a>
                                     {% endif %}

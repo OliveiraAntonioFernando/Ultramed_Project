@@ -51,6 +51,7 @@ urlpatterns = [
     path('api/v1/lead-capture/', views.api_lead_capture, name='lead_capture'),
     path('api/v1/buscar-paciente/', views.api_buscar_paciente, name='api_buscar_paciente'),
     path('api/v1/detalhes-paciente/<int:paciente_id>/', views.api_detalhes_paciente, name='api_detalhes_paciente'),
+    path('arquivo/exame/<int:exame_id>/', views.download_exame_arquivo, name='download_exame_arquivo'),
 ]
 
 if settings.DEBUG:

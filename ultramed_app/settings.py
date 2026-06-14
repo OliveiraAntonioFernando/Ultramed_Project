@@ -111,11 +111,12 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 CSRF_TRUSTED_ORIGINS = [
     "https://ultramedsaudexingu.com.br",
     "https://www.ultramedsaudexingu.com.br",
-    "http://ultramedsaudexingu.com.br",
-    "http://72.61.52.175",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
 ]
+if DEBUG:
+    CSRF_TRUSTED_ORIGINS.extend([
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ])
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 USE_X_FORWARDED_HOST = True
@@ -133,6 +134,9 @@ SESSION_COOKIE_SAMESITE = "Lax"
 if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     X_FRAME_OPTIONS = "DENY"
+    SECURE_HSTS_SECONDS = 31536000
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
 
 # =================================================================
 # REDIRECIONAMENTOS
@@ -158,6 +162,7 @@ MERCADO_PAGO_ACCESS_TOKEN = os.getenv(
 MERCADO_PAGO_TEST_PAYER_EMAIL = os.getenv("MERCADO_PAGO_TEST_PAYER_EMAIL", "").strip()
 MERCADO_PAGO_TIMEOUT_SECONDS = int(os.getenv("MERCADO_PAGO_TIMEOUT_SECONDS", "15"))
 MERCADO_PAGO_MAX_ATTEMPTS = int(os.getenv("MERCADO_PAGO_MAX_ATTEMPTS", "2"))
+MERCADO_PAGO_WEBHOOK_SECRET = os.getenv("MERCADO_PAGO_WEBHOOK_SECRET", "").strip()
 
 if not DEBUG:
     if not MERCADO_PAGO_PUBLIC_KEY:

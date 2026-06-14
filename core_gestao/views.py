@@ -5,7 +5,8 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, FileResponse, Http404
+from django.views.decorators.cache import never_cache
 from django.views.decorators.csrf import csrf_exempt
 from django.db.models import Sum, Q, Avg, Count
 from django.utils import timezone
@@ -22,6 +23,23 @@ import re
 import uuid
 
 from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
+from .procedimentos_catalogo import catalogo_por_grupos, procedimento_por_id
+from .mp_webhook_utils import validar_assinatura_webhook_mp
+from .rate_limit import rate_limit_or_429
+from .plano_utils import (
+    avaliar_desconto_procedimento,
+    calcular_valor_com_desconto,
+    gerar_acesso_checkout,
+    gerar_checkout_token,
+    max_dependentes_plano,
+    normalizar_cpf,
+    percentual_desconto,
+    resolver_plano,
+    validar_acesso_checkout,
+    validar_checkout_token,
+    valor_checkout_plano,
+    valores_mp_coincidem,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -328,39 +346,6 @@ def _mp_internal_error_retryable(resp):
 # 1. REGRAS DE NEGÓCIO (LÓGICA DE DESCONTOS E FINANCEIRO)
 # =================================================================
 
-def calcular_valor_com_desconto(paciente, valor_base):
-    hoje = timezone.now().date()
-    try:
-        if isinstance(valor_base, str):
-            valor_base = valor_base.replace(',', '.')
-        valor_base = float(valor_base)
-    except:
-        valor_base = 0.0
-
-    if not paciente.plano:
-        return valor_base
-
-    if not paciente.vencimento_plano or paciente.vencimento_plano < hoje:
-        return valor_base
-
-    plano_nome = paciente.plano.nome.upper()
-    desconto = 0.0
-
-    if 'ESSENCIAL' in plano_nome:
-        ja_usou_este_mes = Prontuario.objects.filter(
-            paciente=paciente,
-            data_atendimento__month=timezone.now().month,
-            data_atendimento__year=timezone.now().year
-        ).exists()
-        desconto = 0.30 if not ja_usou_este_mes else 0.20
-    elif 'MASTER' in plano_nome:
-        desconto = 0.30
-    elif 'EMPRESARIAL' in plano_nome:
-        desconto = 0.35
-    
-    return valor_base * (1 - desconto)
-
-
 def _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura):
     """
     Renova vencimento (+365 dias) e, se a fatura estiver ligada a um plano
@@ -381,6 +366,39 @@ def _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura):
     if fatura.plano_id:
         atualizacao["plano_id"] = fatura.plano_id
     Paciente.objects.filter(responsavel=paciente).update(**atualizacao)
+
+
+def _confirmar_fatura_paga(fatura, payment_id, valor_pago=None):
+    """Marca fatura paga, ativa plano/vencimento; retorna False se rejeitado."""
+    if fatura.status == "PAGO":
+        return True
+    if valor_pago is not None and not valores_mp_coincidem(fatura.valor, valor_pago):
+        logger.warning(
+            "Pagamento %s rejeitado: valor MP %s != fatura %s (id=%s)",
+            payment_id,
+            valor_pago,
+            fatura.valor,
+            fatura.id,
+        )
+        return False
+    fatura.status = "PAGO"
+    fatura.data_pagamento = timezone.now().date()
+    fatura.mercadopago_id = str(payment_id)
+    fatura.save()
+    _ativar_vencimento_e_plano_pos_pagamento(fatura.paciente, fatura)
+    return True
+
+
+def _login_paciente_pos_pagamento(request, paciente):
+    cpf = paciente.cpf
+    cpf_limpo = normalizar_cpf(cpf)
+    user = User.objects.filter(username=cpf).first()
+    if not user and cpf_limpo:
+        user = User.objects.filter(username=cpf_limpo).first()
+    if user and user.check_password(cpf_limpo):
+        login(request, user)
+        return True
+    return False
 
 
 # =================================================================
@@ -470,9 +488,11 @@ def cliente_create(request):
         vencimento = venc_input if venc_input else (timezone.now().date() + timedelta(days=365))
 
         user, _ = User.objects.get_or_create(username=cpf)
+        cpf_limpo = normalizar_cpf(cpf)
+        user.set_password(cpf_limpo)
         if email_form:
             user.email = email_form
-            user.save()
+        user.save()
 
         titular = Paciente.objects.create(
             nome_completo=request.POST.get('nome_completo'),
@@ -513,23 +533,39 @@ def cliente_create(request):
 # =================================================================
 
 def checkout_pagamento(request, paciente_id, plano_id):
+    token_acesso = request.GET.get("t", "")
+    if not validar_acesso_checkout(token_acesso, paciente_id, plano_id):
+        return HttpResponse("Link de checkout inválido ou expirado.", status=403)
+
     paciente = get_object_or_404(Paciente, id=paciente_id)
     plano = get_object_or_404(Plano, id=plano_id)
-    
-    valor_a_cobrar = float(plano.valor_anual)
-    if valor_a_cobrar < 100:
-        valor_a_cobrar = valor_a_cobrar * 12
 
-    fatura = Fatura.objects.create(
-        paciente=paciente,
-        plano=plano,
-        valor=valor_a_cobrar,
-        data_vencimento=timezone.now().date(),
-        status='PENDENTE',
-        metodo_pagamento='PIX/CARTAO'
+    valor_a_cobrar = valor_checkout_plano(plano)
+    hoje = timezone.now().date()
+    fatura = (
+        Fatura.objects.filter(
+            paciente=paciente,
+            plano=plano,
+            status="PENDENTE",
+            data_vencimento__gte=hoje - timedelta(days=7),
+        )
+        .order_by("-id")
+        .first()
     )
+    if not fatura:
+        fatura = Fatura.objects.create(
+            paciente=paciente,
+            plano=plano,
+            valor=valor_a_cobrar,
+            data_vencimento=hoje,
+            status="PENDENTE",
+            metodo_pagamento="PIX/CARTAO",
+        )
+    elif abs(float(fatura.valor) - valor_a_cobrar) > 0.02:
+        fatura.valor = valor_a_cobrar
+        fatura.save()
 
-    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+    checkout_token = gerar_checkout_token(fatura.id, paciente.id, plano.id)
     webhook_url = request.build_absolute_uri(reverse("sistema_interno:mp_webhook"))
     painel_url = request.build_absolute_uri(reverse("sistema_interno:painel_paciente"))
     email_paciente = _email_paciente_por_cpf(paciente.cpf)
@@ -562,6 +598,7 @@ def checkout_pagamento(request, paciente_id, plano_id):
     if email_paciente and not _mp_credencial_teste():
         preference_data["payer"]["email"] = email_paciente
 
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
     pref_res = _mp_call_with_timeout(sdk.preference().create, preference_data)
     
     if pref_res["status"] in [200, 201]:
@@ -572,13 +609,13 @@ def checkout_pagamento(request, paciente_id, plano_id):
             'paciente': paciente,
             'plano': plano,
             'fatura': fatura,
+            'checkout_token': checkout_token,
             'mp_sandbox': _mp_credencial_teste(),
             'mp_test_payer_email': _mp_email_comprador_sandbox(),
             'payer_email': email_paciente if not _mp_credencial_teste() else "",
         })
     return HttpResponse(f"Erro Mercado Pago: {pref_res['response'].get('message', 'Erro desconhecido')}")
 
-@csrf_exempt
 def processar_pagamento_brick(request):
     if settings.DEBUG:
         logger.debug("Inicio do processamento do Payment Brick.")
@@ -589,11 +626,37 @@ def processar_pagamento_brick(request):
                 logger.debug(
                     "Metodo recebido no Brick: %s", data.get("payment_method_id")
                 )
-            
-            sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
 
             fatura_id = data.get("external_reference")
+            checkout_token = data.get("checkout_token")
+            if not fatura_id:
+                return JsonResponse(
+                    {"status": "error", "detail": "Checkout inválido ou expirado."},
+                    status=403,
+                )
+
             fatura = get_object_or_404(Fatura, id=fatura_id)
+            if not validar_checkout_token(
+                checkout_token,
+                fatura.id,
+                fatura.paciente_id,
+                fatura.plano_id,
+            ):
+                return JsonResponse(
+                    {"status": "error", "detail": "Checkout inválido ou expirado."},
+                    status=403,
+                )
+            if fatura.status == "PAGO":
+                return JsonResponse(
+                    {"status": "approved", "id": fatura.mercadopago_id or fatura.id}
+                )
+            if fatura.status != "PENDENTE":
+                return JsonResponse(
+                    {"status": "error", "detail": "Fatura não está pendente de pagamento."},
+                    status=400,
+                )
+
+            sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
             paciente = fatura.paciente
             payer = _mp_payer_do_payload(data, paciente)
             if settings.DEBUG:
@@ -676,13 +739,24 @@ def processar_pagamento_brick(request):
             if payment_response.get("status") in [200, 201]:
                 status_mp = payment.get("status")
                 logger.info("Pagamento finalizado no MP com status: %s", status_mp)
-                fatura.status = 'PAGO' if status_mp == "approved" else 'PENDENTE'
-                fatura.data_pagamento = timezone.now().date() if status_mp == "approved" else None
-                fatura.mercadopago_id = str(payment.get("id"))
-                fatura.save()
-                
+
                 if status_mp == "approved":
-                    _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura)
+                    if not _confirmar_fatura_paga(
+                        fatura,
+                        payment.get("id"),
+                        payment.get("transaction_amount"),
+                    ):
+                        return JsonResponse(
+                            {
+                                "status": "rejected",
+                                "detail": "Valor do pagamento não confere com a fatura.",
+                            },
+                            status=200,
+                        )
+                    _login_paciente_pos_pagamento(request, paciente)
+                elif status_mp == "pending":
+                    fatura.mercadopago_id = str(payment.get("id"))
+                    fatura.save()
 
                 return JsonResponse({"status": status_mp, "id": payment.get("id")})
             
@@ -701,7 +775,10 @@ def processar_pagamento_brick(request):
             logger.exception("Erro ao processar pagamento no Brick: %s", str(e))
             if hasattr(e, "response"):
                 logger.error("Detalhe tecnico da resposta MP: %s", e.response)
-            return JsonResponse({"status": "error", "message": str(e)}, status=400)
+            return JsonResponse(
+                {"status": "error", "message": "Erro ao processar pagamento. Tente novamente."},
+                status=400,
+            )
             
     return JsonResponse({"status": "error"}, status=405)
 
@@ -723,6 +800,8 @@ def mercadopago_webhook(request):
                 or request.GET.get("data.id")
                 or request.POST.get("data.id")
             )
+        if payment_id and not validar_assinatura_webhook_mp(request, str(payment_id)):
+            return JsonResponse({"status": "forbidden"}, status=403)
         if payment_id:
             sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
             payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
@@ -731,13 +810,12 @@ def mercadopago_webhook(request):
                 fatura_id = resposta.get("external_reference")
                 if resposta.get("status") == "approved":
                     fatura = Fatura.objects.filter(id=fatura_id).first()
-                    if fatura and fatura.status != 'PAGO':
-                        fatura.status = 'PAGO'
-                        fatura.data_pagamento = timezone.now().date()
-                        fatura.mercadopago_id = str(payment_id)
-                        fatura.save()
-                        
-                        _ativar_vencimento_e_plano_pos_pagamento(fatura.paciente, fatura)
+                    if fatura and fatura.status == "PENDENTE":
+                        _confirmar_fatura_paga(
+                            fatura,
+                            payment_id,
+                            resposta.get("transaction_amount"),
+                        )
 
         return JsonResponse({'status': 'ok'}, status=200)
     return JsonResponse({'status': 'erro'}, status=400)
@@ -798,10 +876,11 @@ def fatura_store(request):
         paciente = get_object_or_404(Paciente, id=pac_id)
         status = request.POST.get('status').upper()
         valor = request.POST.get('valor').replace(',', '.')
+        plano_id = request.POST.get('plano') or paciente.plano_id
 
         fatura = Fatura.objects.create(
             paciente=paciente,
-            plano=paciente.plano,
+            plano_id=plano_id if plano_id else None,
             valor=valor,
             data_vencimento=timezone.now().date(),
             metodo_pagamento=request.POST.get('metodo_pagamento'),
@@ -819,6 +898,7 @@ def fatura_store(request):
     )
     return redirect(destino)
 
+@never_cache
 @login_required
 @recepcao_ou_master_required
 def agenda_view(request):
@@ -826,25 +906,49 @@ def agenda_view(request):
     agendamento_id = request.GET.get('id')
     novo_status = request.GET.get('status')
 
-    if agendamento_id and novo_status:
-        ag = get_object_or_404(Agenda, id=agendamento_id)
-        ag.status = novo_status
+    if request.method == 'POST' and request.POST.get('agenda_checkin_id'):
+        ag = get_object_or_404(Agenda, id=request.POST.get('agenda_checkin_id'))
+        ag.status = 'CHEGOU'
         ag.save()
-        return redirect(
-            f"{reverse('sistema_interno:agenda_view')}?data={ag.data.isoformat()}"
-        )
+        data_redirect = request.POST.get('data') or ag.data.isoformat()
+        return redirect(f"{reverse('sistema_interno:agenda_view')}?data={data_redirect}")
+
+    if agendamento_id and novo_status:
+        return redirect(f"{reverse('sistema_interno:agenda_view')}?data={hoje.isoformat()}")
 
     if request.method == 'POST':
         try:
             paciente_id = request.POST.get('paciente_id')
+            if not paciente_id:
+                messages.error(request, "Selecione um paciente.")
+                return redirect(f"{reverse('sistema_interno:agenda_view')}?data={hoje.isoformat()}")
+
             paciente = get_object_or_404(Paciente, id=paciente_id)
-            tipo = request.POST.get('tipo')
-            exame_nome = request.POST.get('exame_nome', 'Consulta')
+            procedimento_id = (request.POST.get('procedimento_id') or "").strip()
+            proc = procedimento_por_id(procedimento_id)
+            if not proc:
+                messages.error(request, "Selecione um procedimento válido da lista.")
+                return redirect(f"{reverse('sistema_interno:agenda_view')}?data={request.POST.get('data', hoje.isoformat())}")
+
+            tipo = proc["tipo"]
+            exame_nome = proc["nome"]
+            observacao_extra = (request.POST.get('observacao_procedimento') or "").strip()
             valor_cheio = request.POST.get('valor_cheio', '0').replace(',', '.')
             comprovante = request.POST.get('comprovante', 'N/A')
             data_ag_str = request.POST.get('data') or hoje.isoformat()
 
-            valor_final = calcular_valor_com_desconto(paciente, valor_cheio)
+            info_desconto = avaliar_desconto_procedimento(
+                paciente, procedimento_id=procedimento_id
+            )
+            valor_final = calcular_valor_com_desconto(
+                paciente, valor_cheio, procedimento_id=procedimento_id
+            )
+            cobertura_txt = (
+                f"{int(info_desconto['percentual'] * 100)}% desconto"
+                if info_desconto["coberto"]
+                else "sem cobertura (particular)"
+            )
+            obs_extra = f" | Obs: {observacao_extra}" if observacao_extra else ""
 
             Agenda.objects.create(
                 paciente=paciente,
@@ -852,7 +956,11 @@ def agenda_view(request):
                 hora=request.POST.get('hora'),
                 tipo=tipo,
                 status='AGENDADO',
-                observacoes=f"Procedimento: {exame_nome} | Ref: {comprovante} | V.Tabela: {valor_cheio} | V.Final: {valor_final}"
+                observacoes=(
+                    f"Procedimento: {exame_nome} [{procedimento_id}] | Cobertura: {cobertura_txt} | "
+                    f"Ref: {comprovante} | V.Tabela: {valor_cheio} | V.Final: {valor_final}"
+                    f"{obs_extra}"
+                )
             )
 
             Fatura.objects.create(
@@ -920,6 +1028,7 @@ def agenda_view(request):
             'data_nav_anterior': data_nav_anterior.isoformat(),
             'data_nav_proximo': data_nav_proximo.isoformat(),
             'hoje_iso': hoje.isoformat(),
+            'procedimentos_grupos': catalogo_por_grupos(),
         },
     )
 
@@ -1040,6 +1149,15 @@ def painel_paciente(request):
         'receitas': Receita.objects.filter(paciente=paciente).order_by('-data_emissao'),
         'consultas': Agenda.objects.filter(paciente=paciente).order_by('-data', '-hora'),
     }
+    if paciente.plano_id:
+        token = gerar_acesso_checkout(paciente.id, paciente.plano_id)
+        base = reverse(
+            'sistema_interno:checkout_pagamento',
+            kwargs={'paciente_id': paciente.id, 'plano_id': paciente.plano_id},
+        )
+        context['checkout_renovacao_url'] = f"{base}?t={token}"
+    else:
+        context['checkout_renovacao_url'] = None
     return render(request, 'painel_paciente.html', context)
 
 @login_required
@@ -1054,7 +1172,6 @@ def baixar_lead(request, lead_id):
     return redirect("sistema_interno:painel_colaborador")
 
 @login_required
-@csrf_exempt
 def solicitar_renovacao_api(request):
     if _is_staff_user(request.user):
         return JsonResponse(
@@ -1115,41 +1232,45 @@ def api_buscar_paciente(request):
     results = [{'id': p.id, 'text': f"{p.nome_completo} ({p.cpf})"} for p in pacientes]
     return JsonResponse({'results': results})
 
+@never_cache
 @login_required
 @staff_member_required
 def api_detalhes_paciente(request, paciente_id):
     paciente = get_object_or_404(Paciente, id=paciente_id)
-    hoje = timezone.now().date()
-    percentual = 0.0
-    plano_status = "PARTICULAR"
+    proc_id = (request.GET.get("procedimento_id") or "").strip()
+    tipo_ag = request.GET.get("tipo")
+    tipo_proc = request.GET.get("tipo_procedimento") or request.GET.get("exame")
 
-    if paciente.plano and paciente.vencimento_plano and paciente.vencimento_plano >= hoje:
-        plano_nome = paciente.plano.nome.upper()
-        plano_status = plano_nome
-        if 'ESSENCIAL' in plano_nome:
-            ja_usou_este_mes = Prontuario.objects.filter(
-                paciente=paciente,
-                data_atendimento__month=timezone.now().month,
-                data_atendimento__year=timezone.now().year
-            ).exists()
-            percentual = 0.30 if not ja_usou_este_mes else 0.20
-        elif 'MASTER' in plano_nome:
-            percentual = 0.30
-        elif 'EMPRESARIAL' in plano_nome:
-            percentual = 0.35
+    if proc_id:
+        info = avaliar_desconto_procedimento(paciente, procedimento_id=proc_id)
     else:
-        plano_status = "PARTICULAR / PLANO VENCIDO"
+        info = avaliar_desconto_procedimento(paciente, tipo_proc, tipo_ag)
+
+    plano_status = "PARTICULAR / PLANO VENCIDO"
+    if info["plano_ativo"] and paciente.plano:
+        plano_status = paciente.plano.nome.upper()
 
     return JsonResponse({
         'id': paciente.id,
         'plano': plano_status,
-        'percentual': percentual,
-        'cpf': paciente.cpf
+        'percentual': info['percentual'],
+        'coberto': info['coberto'],
+        'categoria': info['categoria'],
+        'mensagem': info['mensagem'],
+        'plano_ativo': info['plano_ativo'],
+        'procedimentos_plano': info['procedimentos_plano'],
+        'procedimento_id': info.get('procedimento_id', ''),
+        'procedimento_nome': info.get('procedimento_nome', ''),
+        'cpf': paciente.cpf,
     })
 
-@csrf_exempt
 def api_lead_capture(request):
     if request.method == 'POST':
+        if request.POST.get('website'):
+            return JsonResponse({'success': True})
+        limited = rate_limit_or_429(request, 'lead_capture', limit=20, period=3600)
+        if limited:
+            return limited
         nome = request.POST.get('nome')
         tel = request.POST.get('telefone')
         int_ = request.POST.get('interesse', 'Geral')
@@ -1185,10 +1306,26 @@ def prontuario_view(request, paciente_id):
 @master_member_required
 def fatura_baixar(request, fatura_id):
     f = get_object_or_404(Fatura, id=fatura_id)
-    f.status = "PAGO"
-    f.data_pagamento = timezone.now().date()
-    f.save()
+    if f.status != "PAGO":
+        f.status = "PAGO"
+        f.data_pagamento = timezone.now().date()
+        f.save()
+        _ativar_vencimento_e_plano_pos_pagamento(f.paciente, f)
     return redirect("sistema_interno:master_dashboard")
+
+
+@login_required
+def download_exame_arquivo(request, exame_id):
+    exame = get_object_or_404(Exame.objects.select_related('paciente', 'paciente__responsavel'), id=exame_id)
+    if not _pode_ver_dados_clinicos_paciente(request.user, exame.paciente_id):
+        return HttpResponse("Acesso negado.", status=403)
+    if not exame.arquivo:
+        raise Http404("Arquivo não encontrado.")
+    return FileResponse(
+        exame.arquivo.open('rb'),
+        as_attachment=True,
+        filename=exame.arquivo.name.split('/')[-1],
+    )
 
 
 @login_required
@@ -1202,25 +1339,84 @@ def cadastro_plano_completo(request, plano_nome):
         cpf = request.POST.get('titular_cpf') or request.POST.get('cpf')
         tel = request.POST.get('titular_telefone') or request.POST.get('telefone')
         email = (request.POST.get('titular_email') or request.POST.get('email') or "").strip()
-        end = request.POST.get('endereco')
+        end = request.POST.get('endereco') or ""
         sexo = request.POST.get('titular_sexo') or request.POST.get('sexo') or 'M'
         nasc = request.POST.get('titular_nascimento') or request.POST.get('data_nascimento')
-        
-        if not nasc: nasc = "1900-01-01"
+        plano_tipo = request.POST.get('plano_tipo')
+
+        if not nasc:
+            nasc = "1900-01-01"
+
+        plano = resolver_plano(tipo=plano_tipo, url_nome=plano_nome)
+        if not plano:
+            return JsonResponse({'success': False, 'error': 'Plano inválido.'}, status=400)
 
         try:
+            cpf_limpo = normalizar_cpf(cpf)
+            if Paciente.objects.filter(cpf=cpf).exists():
+                return JsonResponse(
+                    {
+                        'success': False,
+                        'error': 'CPF já cadastrado. Faça login ou entre em contato com a clínica.',
+                    },
+                    status=400,
+                )
+
+            user, created = User.objects.get_or_create(username=cpf)
+            if not created and user.is_staff:
+                return JsonResponse(
+                    {'success': False, 'error': 'CPF inválido para cadastro de plano.'},
+                    status=400,
+                )
+            user.email = email
+            if created:
+                user.set_password(cpf_limpo)
+            user.save()
+
+            nomes_dep = request.POST.getlist('dep_nome[]')
+            cpfs_dep = request.POST.getlist('dep_cpf[]')
+            sexos_dep = request.POST.getlist('dep_sexo[]')
+            max_dep = max_dependentes_plano(plano)
+
             p = Paciente.objects.create(
-                nome_completo=nome, cpf=cpf, telefone=tel,
-                data_nascimento=nasc, endereco=end, sexo=sexo, cidade="SFX",
-                is_titular=True
+                nome_completo=nome,
+                cpf=cpf,
+                telefone=tel,
+                data_nascimento=nasc,
+                endereco=end,
+                sexo=sexo,
+                cidade="SFX",
+                is_titular=True,
+                possui_dependentes=any(n.strip() for n in nomes_dep),
             )
-            if email:
-                user, _ = User.objects.get_or_create(username=cpf)
-                user.email = email
-                user.save()
-            plano = Plano.objects.filter(nome__icontains=plano_nome).first() or Plano.objects.first()
-            return redirect('sistema_interno:checkout_pagamento', paciente_id=p.id, plano_id=plano.id)
+
+            salvos = 0
+            for i in range(len(nomes_dep)):
+                if not nomes_dep[i].strip():
+                    continue
+                if salvos >= max_dep:
+                    break
+                Paciente.objects.create(
+                    nome_completo=nomes_dep[i].strip(),
+                    cpf=cpfs_dep[i] if i < len(cpfs_dep) and cpfs_dep[i] else None,
+                    sexo=sexos_dep[i] if i < len(sexos_dep) and sexos_dep[i] else "M",
+                    data_nascimento="1900-01-01",
+                    is_titular=False,
+                    responsavel=p,
+                )
+                salvos += 1
+
+            token = gerar_acesso_checkout(p.id, plano.id)
+            checkout_url = reverse(
+                'sistema_interno:checkout_pagamento',
+                kwargs={'paciente_id': p.id, 'plano_id': plano.id},
+            )
+            return redirect(f"{checkout_url}?t={token}")
         except Exception as e:
-            return JsonResponse({'success': False, 'error': str(e)})
+            logger.exception("Erro no cadastro de plano: %s", e)
+            return JsonResponse(
+                {'success': False, 'error': 'Não foi possível concluir o cadastro. Tente novamente.'},
+                status=400,
+            )
 
     return render(request, 'cadastro_plano.html', {'plano_selecionado': plano_nome})

@@ -1,6 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Agenda | Ultramed{% endblock %}
 {% block content %}
+<!-- agenda-ui-v20250614 -->
 <div class="min-h-screen bg-gray-50 text-left pb-16">
     <div class="max-w-6xl mx-auto px-4 md:px-6 pt-6">
         <div class="mb-6 flex flex-wrap items-center justify-between gap-4">
@@ -84,7 +85,12 @@
                             </div>
                             <div class="shrink-0 flex items-center gap-2">
                                 {% if ag.status == 'AGENDADO' %}
-                                <a href="{% url 'sistema_interno:agenda_view' %}?status=CHEGOU&id={{ ag.id }}&data={{ data_selecionada_iso }}" class="inline-flex items-center justify-center bg-marsala-700 text-white text-[9px] font-black px-4 py-2.5 rounded-xl uppercase italic shadow-md hover:bg-marsala-800 no-underline whitespace-nowrap">Check-in</a>
+                                <form method="post" action="{% url 'sistema_interno:agenda_view' %}?data={{ data_selecionada_iso }}" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="agenda_checkin_id" value="{{ ag.id }}">
+                                    <input type="hidden" name="data" value="{{ data_selecionada_iso }}">
+                                    <button type="submit" class="inline-flex items-center justify-center bg-marsala-700 text-white text-[9px] font-black px-4 py-2.5 rounded-xl uppercase italic shadow-md hover:bg-marsala-800 border-none cursor-pointer whitespace-nowrap">Check-in</button>
+                                </form>
                                 {% elif ag.status == 'CHEGOU' %}
                                 <span class="text-emerald-600 text-[9px] font-black uppercase italic whitespace-nowrap"><i class="fas fa-user-check mr-1"></i> Na clínica</span>
                                 {% elif ag.status == 'FINALIZADO' %}
@@ -152,17 +158,28 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 text-left">
+                    <div class="space-y-4 text-left">
                         <div>
                             <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">2. Procedimento</label>
-                            <select name="tipo" id="tipo_select" onchange="toggleExameCampo()" class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none border-r-[16px] border-transparent">
-                                <option value="CONSULTA">Consulta médica</option>
-                                <option value="EXAME">Realização de exame</option>
+                            <select name="procedimento_id" id="select_procedimento" required onchange="atualizarDesconto()"
+                                class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none border-r-[16px] border-transparent">
+                                <option value="">Selecione o procedimento…</option>
+                                {% for grupo, itens in procedimentos_grupos %}
+                                <optgroup label="{{ grupo }}">
+                                    {% for p in itens %}
+                                    <option value="{{ p.id }}">{{ p.nome }}</option>
+                                    {% endfor %}
+                                </optgroup>
+                                {% endfor %}
                             </select>
+                            <p class="text-[9px] text-gray-400 font-bold uppercase mt-2 ml-2">
+                                Escolha na lista — o desconto do plano é calculado automaticamente.
+                            </p>
                         </div>
-                        <div id="div_exame_especifico" class="hidden">
-                            <label class="block text-[10px] font-black uppercase text-marsala-700 mb-2 ml-2">Qual exame?</label>
-                            <input type="text" name="exame_nome" placeholder="Ex.: USG abdômen" class="w-full bg-marsala-50 border-none rounded-2xl p-4 text-sm font-bold uppercase focus:ring-2 focus:ring-marsala-700 outline-none">
+                        <div>
+                            <label class="block text-[10px] font-black uppercase text-gray-400 mb-2 ml-2">Observação (opcional)</label>
+                            <input type="text" name="observacao_procedimento" maxlength="200" placeholder="Ex.: pedido do Dr. Silva"
+                                class="w-full bg-gray-50 border-none rounded-2xl p-4 text-sm font-bold focus:ring-2 focus:ring-marsala-700 outline-none">
                         </div>
                     </div>
 
@@ -181,6 +198,8 @@
                             <p class="text-[10px] font-black uppercase text-marsala-400 tracking-widest leading-none mb-2">Valor com desconto</p>
                             <h3 class="text-4xl font-black text-marsala-700 leading-none">R$ <span id="span_valor_desconto">0.00</span></h3>
                             <p id="label_plano_ativo" class="text-[9px] font-black uppercase mt-2 italic"></p>
+                            <p id="label_cobertura_plano" class="text-[8px] font-bold text-gray-400 uppercase mt-1 hidden"></p>
+                            <p id="label_alerta_cobertura" class="text-[9px] font-black text-amber-700 uppercase mt-2 hidden"></p>
                         </div>
                     </div>
 
@@ -196,7 +215,7 @@
                     </div>
 
                     <button type="submit" id="btn-submit" class="w-full bg-marsala-800 text-white p-6 rounded-[2rem] font-black uppercase tracking-widest hover:bg-marsala-700 transition-all shadow-xl shadow-marsala-900/20 border-none cursor-pointer">
-                        Confirmar e gerar fatura paga
+                        Confirmar agendamento
                     </button>
                 </form>
             </div>
@@ -211,6 +230,81 @@ const URL_API_DETALHES_TMPL = "{% url 'sistema_interno:api_detalhes_paciente' 99
 const inputBusca = document.getElementById('input_busca');
 const resBusca = document.getElementById('res_busca');
 let percentualGlobal = 0;
+let pacienteSelecionadoId = null;
+let ultimoDetalhePaciente = null;
+let descontoRequestSeq = 0;
+
+async function atualizarDesconto() {
+    const procId = document.getElementById('select_procedimento').value;
+    if (!pacienteSelecionadoId || !procId) {
+        percentualGlobal = 0;
+        ultimoDetalhePaciente = null;
+        document.getElementById('label_plano_ativo').innerText = procId
+            ? "Selecione um paciente"
+            : "Selecione paciente e procedimento";
+        document.getElementById('label_plano_ativo').className =
+            "text-[9px] font-black text-gray-500 uppercase mt-2 italic";
+        document.getElementById('label_alerta_cobertura').classList.add('hidden');
+        recalcularDesconto();
+        return;
+    }
+
+    const reqId = ++descontoRequestSeq;
+    try {
+        const url = URL_API_DETALHES_TMPL.replace('999001999', String(pacienteSelecionadoId));
+        const params = new URLSearchParams({ procedimento_id: procId });
+        const r = await fetch(`${url}?${params.toString()}`);
+        const d = await r.json();
+        if (reqId !== descontoRequestSeq) return;
+        ultimoDetalhePaciente = d;
+        aplicarDetalhesPaciente(d);
+    } catch (e) {
+        console.error(e);
+    }
+}
+
+function aplicarDetalhesPaciente(d) {
+    percentualGlobal = parseFloat(d.percentual) || 0;
+    const planoAtivo = d.plano_ativo === true || (
+        d.plano && !String(d.plano).includes('PARTICULAR')
+    );
+    const temDesconto = planoAtivo && percentualGlobal > 0;
+
+    document.getElementById('txt_plano').innerText = d.plano;
+    document.getElementById('txt_cpf').innerText = d.cpf || "---";
+    document.getElementById('badge_plano').classList.remove('hidden');
+
+    const label = document.getElementById('label_plano_ativo');
+    const cobertura = document.getElementById('label_cobertura_plano');
+    const alerta = document.getElementById('label_alerta_cobertura');
+
+    if (temDesconto) {
+        label.innerText = `Plano ${d.plano}: ${(percentualGlobal * 100)}% de desconto`;
+        label.className = "text-[9px] font-black text-emerald-600 uppercase mt-2 italic";
+        alerta.classList.add('hidden');
+    } else if (planoAtivo) {
+        label.innerText = "Procedimento sem cobertura no plano";
+        label.className = "text-[9px] font-black text-amber-700 uppercase mt-2 italic";
+        if (d.mensagem) {
+            alerta.innerText = d.mensagem;
+            alerta.classList.remove('hidden');
+        } else {
+            alerta.classList.add('hidden');
+        }
+    } else {
+        label.innerText = "Particular / sem desconto";
+        label.className = "text-[9px] font-black text-red-500 uppercase mt-2 italic";
+        alerta.classList.add('hidden');
+    }
+
+    if (d.procedimentos_plano && d.procedimentos_plano.length) {
+        cobertura.innerText = "Cobertura: " + d.procedimentos_plano.join(" · ");
+        cobertura.classList.remove('hidden');
+    } else {
+        cobertura.classList.add('hidden');
+    }
+    recalcularDesconto();
+}
 
 inputBusca.oninput = async () => {
     const termo = inputBusca.value;
@@ -232,38 +326,11 @@ inputBusca.oninput = async () => {
 };
 
 async function selecionar(id, textoCompleto) {
+    pacienteSelecionadoId = id;
     document.getElementById('paciente_id_hidden').value = id;
     inputBusca.value = textoCompleto.split(' (')[0];
     resBusca.classList.add('hidden');
-
-    try {
-        const r = await fetch(URL_API_DETALHES_TMPL.replace('999001999', String(id)));
-        const d = await r.json();
-
-        percentualGlobal = parseFloat(d.percentual) || 0;
-
-        document.getElementById('txt_plano').innerText = d.plano;
-        document.getElementById('txt_cpf').innerText = d.cpf || "---";
-        document.getElementById('badge_plano').classList.remove('hidden');
-
-        const label = document.getElementById('label_plano_ativo');
-        if (percentualGlobal > 0) {
-            label.innerText = `Plano ativo: ${(percentualGlobal * 100)}% de desconto`;
-            label.className = "text-[9px] font-black text-emerald-600 uppercase mt-2 italic";
-        } else {
-            label.innerText = "Particular / sem desconto";
-            label.className = "text-[9px] font-black text-red-500 uppercase mt-2 italic";
-        }
-        recalcularDesconto();
-    } catch (e) {
-        percentualGlobal = 0;
-        recalcularDesconto();
-    }
-}
-
-function toggleExameCampo() {
-    const tipo = document.getElementById('tipo_select').value;
-    document.getElementById('div_exame_especifico').classList.toggle('hidden', tipo !== 'EXAME');
+    await atualizarDesconto();
 }
 
 function recalcularDesconto() {
@@ -275,7 +342,25 @@ function recalcularDesconto() {
 document.getElementById('form-agenda').onsubmit = async (e) => {
     e.preventDefault();
     const btn = document.getElementById('btn-submit');
-    if(!document.getElementById('paciente_id_hidden').value) { alert('Selecione um paciente.'); return; }
+    if(!document.getElementById('paciente_id_hidden').value) {
+        alert('Selecione um paciente.');
+        return;
+    }
+    if(!document.getElementById('select_procedimento').value) {
+        alert('Selecione o procedimento na lista.');
+        return;
+    }
+
+    if (ultimoDetalhePaciente && ultimoDetalhePaciente.plano_ativo !== false
+        && ultimoDetalhePaciente.plano && !String(ultimoDetalhePaciente.plano).includes('PARTICULAR')
+        && (parseFloat(ultimoDetalhePaciente.percentual) || 0) <= 0) {
+        const nomeProc = ultimoDetalhePaciente.procedimento_nome || 'este procedimento';
+        const ok = confirm(
+            nomeProc + ' não tem desconto no plano ' + ultimoDetalhePaciente.plano + '.\n\n'
+            + 'Será cobrado valor de tabela (particular). Deseja continuar?'
+        );
+        if (!ok) return;
+    }
 
     btn.disabled = true;
     btn.innerText = "Processando…";
@@ -293,12 +378,12 @@ document.getElementById('form-agenda').onsubmit = async (e) => {
         } else {
             alert('Erro ao salvar.');
             btn.disabled = false;
-            btn.innerText = "Confirmar e gerar fatura paga";
+            btn.innerText = "Confirmar agendamento";
         }
     } catch (err) {
         alert('Erro de conexão.');
         btn.disabled = false;
-        btn.innerText = "Confirmar e gerar fatura paga";
+        btn.innerText = "Confirmar agendamento";
     }
 };
 </script>
