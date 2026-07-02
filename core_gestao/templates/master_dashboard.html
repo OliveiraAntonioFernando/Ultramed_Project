@@ -235,7 +235,10 @@
                         <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center gap-2">
                             <div class="flex-1 min-w-0">
                                 <p class="text-[10px] font-black uppercase text-gray-800 leading-tight truncate">{{ lead.nome }}</p>
-                                <p class="text-[9px] text-marsala-600 font-bold mt-1 truncate">{{ lead.telefone }}</p>
+                                <p class="text-xs text-marsala-600 font-bold mt-1">{{ lead.telefone }}</p>
+                                <p class="text-xs text-gray-600 font-bold mt-1">
+                                    {{ lead.data_solicitacao|date:"d/m/Y" }} · {{ lead.data_solicitacao|date:"H:i" }}
+                                </p>
                             </div>
                             <button type="button" class="btn-atender shrink-0 bg-emerald-500 text-white w-9 h-9 flex items-center justify-center rounded-xl border-none cursor-pointer hover:bg-emerald-600" data-id="{{ lead.id }}" data-tel="{{ lead.telefone }}" title="WhatsApp">
                                 <i class="fab fa-whatsapp text-lg" aria-hidden="true"></i>

@@ -1086,7 +1086,7 @@ def master_dashboard(request):
         .order_by('metodo_pagamento')
     )
     alertas = Paciente.objects.filter(vencimento_plano__range=[hoje, hoje + timedelta(days=30)], is_titular=True)
-    leads = LeadSite.objects.filter(atendido=False).order_by('-id')
+    leads = LeadSite.objects.filter(atendido=False).order_by('-data_solicitacao')
     total_pacientes = Paciente.objects.count()
     total_cronicos = Paciente.objects.filter(is_cronico=True).count()
     porcentagem_cronicos = round((total_cronicos / total_pacientes * 100), 1) if total_pacientes > 0 else 0
@@ -1116,7 +1116,7 @@ def master_dashboard(request):
 @recepcao_ou_master_required
 def painel_colaborador(request):
     hoje = timezone.now().date()
-    leads = LeadSite.objects.filter(atendido=False).order_by('-id')
+    leads = LeadSite.objects.filter(atendido=False).order_by('-data_solicitacao')
     agendamentos_hoje = Agenda.objects.filter(data=hoje).order_by('hora')
     return render(request, 'painel_colaborador.html', {
         'leads_recentes': leads,
