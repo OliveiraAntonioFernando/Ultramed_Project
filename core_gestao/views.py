@@ -246,6 +246,29 @@ def _mp_installments(val):
         return 1
 
 
+def _mp_extrair_dados_pix(payment: dict) -> dict:
+    """Extrai QR / copia-e-cola do retorno de pagamento PIX do Mercado Pago."""
+    poi = payment.get("point_of_interaction") or {}
+    tx = poi.get("transaction_data") or {}
+    qr_code = (tx.get("qr_code") or "").strip()
+    qr_b64 = (tx.get("qr_code_base64") or "").strip()
+    ticket_url = (tx.get("ticket_url") or "").strip()
+    out = {}
+    if qr_code:
+        out["qr_code"] = qr_code
+    if qr_b64:
+        if not qr_b64.startswith("data:"):
+            qr_b64 = f"data:image/png;base64,{qr_b64}"
+        out["qr_code_base64"] = qr_b64
+    if ticket_url:
+        out["ticket_url"] = ticket_url
+    return out
+
+
+def _mp_notification_url(request) -> str:
+    return request.build_absolute_uri(reverse("sistema_interno:mp_webhook"))
+
+
 def _mp_timeout_seconds():
     try:
         return max(5, int(getattr(settings, "MERCADO_PAGO_TIMEOUT_SECONDS", 15)))
@@ -663,7 +686,13 @@ def processar_pagamento_brick(request):
                 logger.debug("Payer email enviado ao MP: %s", payer.get("email"))
             pm_id = data.get("payment_method_id")
             token = data.get("token")
-            descricao = f"Plano {paciente.plano.nome if paciente.plano else 'Ultramed'}"
+            plano_nome = (
+                fatura.plano.nome
+                if fatura.plano_id
+                else (paciente.plano.nome if paciente.plano else "Ultramed")
+            )
+            descricao = f"Plano {plano_nome}"
+            notification_url = _mp_notification_url(request)
 
             if pm_id == "pix":
                 payment_data = {
@@ -672,6 +701,7 @@ def processar_pagamento_brick(request):
                     "payment_method_id": "pix",
                     "payer": payer,
                     "external_reference": str(fatura_id),
+                    "notification_url": notification_url,
                 }
             elif token and pm_id:
                 payment_data = {
@@ -682,6 +712,7 @@ def processar_pagamento_brick(request):
                     "payment_method_id": pm_id,
                     "payer": payer,
                     "external_reference": str(fatura_id),
+                    "notification_url": notification_url,
                 }
                 issuer_id = data.get("issuer_id")
                 if issuer_id is not None and str(issuer_id).strip() != "":
@@ -754,9 +785,23 @@ def processar_pagamento_brick(request):
                             status=200,
                         )
                     _login_paciente_pos_pagamento(request, paciente)
-                elif status_mp == "pending":
+                    return JsonResponse(
+                        {"status": status_mp, "id": payment.get("id")}
+                    )
+
+                if status_mp == "pending":
                     fatura.mercadopago_id = str(payment.get("id"))
-                    fatura.save()
+                    fatura.save(update_fields=["mercadopago_id"])
+                    payload = {"status": status_mp, "id": payment.get("id")}
+                    if pm_id == "pix":
+                        pix = _mp_extrair_dados_pix(payment)
+                        if not pix.get("qr_code") and not pix.get("qr_code_base64"):
+                            logger.warning(
+                                "PIX pending sem QR no retorno MP (payment_id=%s).",
+                                payment.get("id"),
+                            )
+                        payload.update(pix)
+                    return JsonResponse(payload)
 
                 return JsonResponse({"status": status_mp, "id": payment.get("id")})
             
@@ -781,6 +826,86 @@ def processar_pagamento_brick(request):
             )
             
     return JsonResponse({"status": "error"}, status=405)
+
+
+def consultar_status_pagamento(request):
+    """Polling do checkout: confirma PIX/cartão pendente via API MP + fatura local."""
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=405)
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse(
+            {"status": "error", "detail": "JSON inválido."},
+            status=400,
+        )
+
+    fatura_id = data.get("external_reference")
+    checkout_token = data.get("checkout_token")
+    payment_id = data.get("payment_id") or data.get("id")
+    if not fatura_id or not checkout_token:
+        return JsonResponse(
+            {"status": "error", "detail": "Checkout inválido ou expirado."},
+            status=403,
+        )
+
+    fatura = get_object_or_404(Fatura, id=fatura_id)
+    if not validar_checkout_token(
+        checkout_token,
+        fatura.id,
+        fatura.paciente_id,
+        fatura.plano_id,
+    ):
+        return JsonResponse(
+            {"status": "error", "detail": "Checkout inválido ou expirado."},
+            status=403,
+        )
+
+    if fatura.status == "PAGO":
+        _login_paciente_pos_pagamento(request, fatura.paciente)
+        return JsonResponse(
+            {"status": "approved", "id": fatura.mercadopago_id or payment_id}
+        )
+
+    payment_id = payment_id or fatura.mercadopago_id
+    if not payment_id:
+        return JsonResponse({"status": "pending", "id": None})
+
+    sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
+    payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
+    if payment_info.get("status") != 200:
+        return JsonResponse(
+            {"status": "pending", "id": payment_id, "detail": "Aguardando confirmação."}
+        )
+
+    resposta = payment_info.get("response") or {}
+    status_mp = resposta.get("status") or "pending"
+    if status_mp == "approved":
+        if not _confirmar_fatura_paga(
+            fatura,
+            resposta.get("id") or payment_id,
+            resposta.get("transaction_amount"),
+        ):
+            return JsonResponse(
+                {
+                    "status": "rejected",
+                    "detail": "Valor do pagamento não confere com a fatura.",
+                }
+            )
+        _login_paciente_pos_pagamento(request, fatura.paciente)
+        return JsonResponse({"status": "approved", "id": resposta.get("id") or payment_id})
+
+    if status_mp in ("rejected", "cancelled", "canceled"):
+        return JsonResponse(
+            {
+                "status": "rejected",
+                "id": payment_id,
+                "detail": resposta.get("status_detail") or "Pagamento não aprovado.",
+            }
+        )
+
+    return JsonResponse({"status": status_mp, "id": payment_id})
+
 
 @csrf_exempt
 def mercadopago_webhook(request):

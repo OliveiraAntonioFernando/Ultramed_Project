@@ -44,6 +44,7 @@ urlpatterns = [
     
     # APIs (V1)
     path('api/v1/processar-pagamento/', views.processar_pagamento_brick, name='processar_pagamento_brick'),
+    path('api/v1/status-pagamento/', views.consultar_status_pagamento, name='status_pagamento'),
     path('api/v1/mp/webhook/', views.mercadopago_webhook, name='mp_webhook'),
     path('api/v1/mp/health/', views.mp_healthcheck, name='mp_healthcheck'),
     path('api/v1/solicitar-renovacao/', views.solicitar_renovacao_api, name='solicitar_renovacao_api'),

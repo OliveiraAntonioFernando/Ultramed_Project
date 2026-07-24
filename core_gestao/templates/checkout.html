@@ -48,6 +48,25 @@
             </div>
 
             <div id="paymentBrick_container"></div>
+
+            <div id="pixPanel" class="hidden text-center space-y-4">
+                <div class="bg-emerald-50 border border-emerald-100 rounded-2xl p-4">
+                    <p class="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-1">PIX gerado</p>
+                    <p class="text-xs text-gray-600 font-medium">Escaneie o QR Code ou copie o código abaixo. A confirmação é automática.</p>
+                </div>
+                <img id="pixQrImg" alt="QR Code PIX" class="mx-auto w-56 h-56 rounded-xl border border-gray-100 shadow-sm bg-white p-2 hidden">
+                <div id="pixCodeWrap" class="hidden text-left">
+                    <label class="text-[9px] font-black uppercase text-gray-400 tracking-widest ml-1">Pix Copia e Cola</label>
+                    <textarea id="pixCode" readonly rows="4" class="mt-1 w-full text-[10px] font-mono bg-gray-50 border border-gray-200 rounded-xl p-3 break-all resize-none outline-none"></textarea>
+                    <button type="button" id="pixCopyBtn" class="mt-2 w-full bg-[#700c15] hover:bg-[#9a111d] text-white py-3 rounded-xl text-[10px] font-black uppercase tracking-wide transition-colors">
+                        <i class="fas fa-copy mr-2"></i> Copiar código PIX
+                    </button>
+                </div>
+                <p id="pixWait" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">
+                    <i class="fas fa-spinner fa-spin mr-1"></i> Aguardando pagamento...
+                </p>
+            </div>
+
             {% if mp_sandbox %}
             <p class="text-center text-[10px] text-amber-900 bg-amber-50 rounded-xl px-3 py-3 mt-4 leading-relaxed">
                 <span class="font-black uppercase tracking-wide block mb-1">Modo teste</span>
@@ -65,11 +84,118 @@
     </div>
 
     <script>
+        const CSRF_TOKEN = "{{ csrf_token }}";
+        const CHECKOUT_TOKEN = "{{ checkout_token }}";
+        const FATURA_ID = "{{ fatura.id }}";
+        const PAINEL_URL = "{% url 'sistema_interno:painel_paciente' %}";
+        const STATUS_URL = "{% url 'sistema_interno:status_pagamento' %}";
+        let pixPollTimer = null;
+
         const mp = new MercadoPago('{{ public_key }}', {
             locale: 'pt-BR'
         });
 
         const bricksBuilder = mp.bricks();
+
+        function irPainel(status) {
+            window.location.href = PAINEL_URL + "?status=" + encodeURIComponent(status);
+        }
+
+        function pararPollingPix() {
+            if (pixPollTimer) {
+                clearInterval(pixPollTimer);
+                pixPollTimer = null;
+            }
+        }
+
+        async function consultarStatusPix(paymentId) {
+            const response = await fetch(STATUS_URL, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRFToken": CSRF_TOKEN
+                },
+                body: JSON.stringify({
+                    external_reference: FATURA_ID,
+                    checkout_token: CHECKOUT_TOKEN,
+                    payment_id: paymentId
+                }),
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.detail || result.message || "Erro ao consultar PIX");
+            }
+            return result;
+        }
+
+        function iniciarPollingPix(paymentId) {
+            pararPollingPix();
+            pixPollTimer = setInterval(async () => {
+                try {
+                    const result = await consultarStatusPix(paymentId);
+                    if (result.status === "approved") {
+                        pararPollingPix();
+                        const wait = document.getElementById("pixWait");
+                        if (wait) {
+                            wait.innerHTML = '<i class="fas fa-check-circle mr-1 text-emerald-600"></i> Pagamento confirmado!';
+                            wait.classList.remove("text-gray-400");
+                            wait.classList.add("text-emerald-600");
+                        }
+                        setTimeout(() => irPainel("pago"), 800);
+                    } else if (result.status === "rejected") {
+                        pararPollingPix();
+                        alert("Pagamento não aprovado: " + (result.detail || "Tente novamente."));
+                    }
+                } catch (err) {
+                    console.error("Polling PIX:", err);
+                }
+            }, 3500);
+        }
+
+        function mostrarPainelPix(result) {
+            const brick = document.getElementById("paymentBrick_container");
+            const panel = document.getElementById("pixPanel");
+            if (brick) brick.classList.add("hidden");
+            if (panel) panel.classList.remove("hidden");
+
+            const img = document.getElementById("pixQrImg");
+            if (result.qr_code_base64 && img) {
+                img.src = result.qr_code_base64;
+                img.classList.remove("hidden");
+            }
+
+            const code = result.qr_code || "";
+            const wrap = document.getElementById("pixCodeWrap");
+            const textarea = document.getElementById("pixCode");
+            if (code && wrap && textarea) {
+                textarea.value = code;
+                wrap.classList.remove("hidden");
+            }
+
+            if (!result.qr_code_base64 && !code) {
+                alert("PIX criado, mas o QR não veio do Mercado Pago. Tente novamente ou use cartão.");
+            }
+
+            const copyBtn = document.getElementById("pixCopyBtn");
+            if (copyBtn && textarea) {
+                copyBtn.onclick = async () => {
+                    try {
+                        await navigator.clipboard.writeText(textarea.value);
+                        copyBtn.innerHTML = '<i class="fas fa-check mr-2"></i> Código copiado';
+                        setTimeout(() => {
+                            copyBtn.innerHTML = '<i class="fas fa-copy mr-2"></i> Copiar código PIX';
+                        }, 2000);
+                    } catch (_) {
+                        textarea.select();
+                        document.execCommand("copy");
+                    }
+                };
+            }
+
+            if (result.id) {
+                iniciarPollingPix(result.id);
+            }
+        }
 
         const renderPaymentBrick = async (bricksBuilder) => {
             const cleanAmount = parseFloat("{{ fatura.valor }}".replace(',', '.'));
@@ -96,8 +222,8 @@
                 callbacks: {
                     onReady: () => { console.log("Checkout Pronto"); },
                     onSubmit: ({ selectedPaymentMethod, formData }) => {
-                        formData.external_reference = "{{ fatura.id }}";
-                        formData.checkout_token = "{{ checkout_token }}";
+                        formData.external_reference = FATURA_ID;
+                        formData.checkout_token = CHECKOUT_TOKEN;
                         formData.transaction_amount = cleanAmount;
                         formData.description = "Plano {{ plano.nome|escapejs }} - {{ paciente.nome_completo|escapejs }}";
 
@@ -106,7 +232,7 @@
                                 method: "POST",
                                 headers: {
                                     "Content-Type": "application/json",
-                                    "X-CSRFToken": "{{ csrf_token }}"
+                                    "X-CSRFToken": CSRF_TOKEN
                                 },
                                 body: JSON.stringify(formData),
                             })
@@ -119,14 +245,24 @@
                                 return result;
                             })
                             .then((result) => {
-                                if (result.status === 'approved' || result.status === 'pending') {
+                                if (result.status === "approved") {
                                     resolve();
-                                    const q = result.status === 'approved' ? 'pago' : 'pendente';
-                                    window.location.href = "{% url 'sistema_interno:painel_paciente' %}?status=" + encodeURIComponent(q);
-                                } else {
-                                    alert("Pagamento não aprovado: " + (result.detail || result.message || "Verifique os dados."));
-                                    resolve();
+                                    irPainel("pago");
+                                    return;
                                 }
+                                if (result.status === "pending" && (result.qr_code || result.qr_code_base64 || result.id)) {
+                                    resolve();
+                                    mostrarPainelPix(result);
+                                    return;
+                                }
+                                if (result.status === "pending") {
+                                    resolve();
+                                    alert("Pagamento pendente. Se pagou via PIX, aguarde a confirmação no painel.");
+                                    irPainel("pendente");
+                                    return;
+                                }
+                                alert("Pagamento não aprovado: " + (result.detail || result.message || "Verifique os dados."));
+                                resolve();
                             })
                             .catch((error) => {
                                 console.error("Erro:", error);
@@ -146,6 +282,7 @@
         };
 
         renderPaymentBrick(bricksBuilder);
+        window.addEventListener("beforeunload", pararPollingPix);
     </script>
 </body>
 </html>
