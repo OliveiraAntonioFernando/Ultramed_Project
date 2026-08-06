@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Planos a vencer | Ultramed{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen pb-16">
+    <nav class="bg-marsala-700 p-6 sm:p-8 rounded-b-[2.5rem] shadow-xl text-white mb-8" style="background-color: #700c15;">
+        <div class="max-w-5xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Operação Ultramed</p>
+                <h1 class="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">Planos a vencer</h1>
+                <p class="text-xs opacity-80 mt-1">Próximos 30 dias · aviso por WhatsApp</p>
+            </div>
+            <a href="{{ voltar_url }}" class="bg-white text-marsala-700 px-4 py-2 rounded-full text-[10px] font-black uppercase no-underline">Voltar</a>
+        </div>
+    </nav>
+
+    <main class="max-w-5xl mx-auto px-4 space-y-10">
+        <section>
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-amber-700">A vencer (30 dias)</h2>
+                <span class="text-[10px] font-black bg-amber-100 text-amber-800 px-3 py-1 rounded-full">{{ linhas_vencer|length }}</span>
+            </div>
+            <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+                {% for item in linhas_vencer %}
+                <div class="p-5 sm:p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm font-black uppercase italic text-gray-800">{{ item.paciente.nome_completo }}</p>
+                        <p class="text-xs text-marsala-700 font-bold mt-1">{{ item.paciente.telefone }}</p>
+                        <p class="text-[10px] text-gray-500 font-bold uppercase mt-2">
+                            {{ item.paciente.plano.get_nome_display|default:"Sem plano" }}
+                            · vence {{ item.paciente.vencimento_plano|date:"d/m/Y" }}
+                            {% if item.dias is not None %}
+                                · {% if item.dias == 0 %}hoje{% elif item.dias == 1 %}em 1 dia{% else %}em {{ item.dias }} dias{% endif %}
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 shrink-0">
+                        {% if item.whatsapp_url %}
+                        <a href="{{ item.whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                           class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase no-underline inline-flex items-center gap-2">
+                            <i class="fab fa-whatsapp"></i> Avisar no WhatsApp
+                        </a>
+                        {% endif %}
+                        {% if item.renovacao_url %}
+                        <a href="{{ item.renovacao_url }}" target="_blank" rel="noopener noreferrer"
+                           class="bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase no-underline">
+                            Link renovar
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="p-12 text-center text-[10px] font-black uppercase italic text-gray-300">Nenhum titular a vencer nos próximos 30 dias</p>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section>
+            <div class="flex items-center justify-between mb-4 px-1">
+                <h2 class="text-[10px] font-black uppercase tracking-widest text-red-700">Vencidos (últimos 30 dias)</h2>
+                <span class="text-[10px] font-black bg-red-100 text-red-800 px-3 py-1 rounded-full">{{ linhas_vencidos|length }}</span>
+            </div>
+            <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm overflow-hidden">
+                {% for item in linhas_vencidos %}
+                <div class="p-5 sm:p-6 border-b border-gray-50 flex flex-col sm:flex-row sm:items-center gap-4 justify-between">
+                    <div class="min-w-0">
+                        <p class="text-sm font-black uppercase italic text-gray-800">{{ item.paciente.nome_completo }}</p>
+                        <p class="text-xs text-marsala-700 font-bold mt-1">{{ item.paciente.telefone }}</p>
+                        <p class="text-[10px] text-red-600 font-bold uppercase mt-2">
+                            {{ item.paciente.plano.get_nome_display|default:"Sem plano" }}
+                            · venceu {{ item.paciente.vencimento_plano|date:"d/m/Y" }}
+                            {% if item.dias_atraso is not None %} · há {{ item.dias_atraso }} dia{% if item.dias_atraso != 1 %}s{% endif %}{% endif %}
+                        </p>
+                    </div>
+                    <div class="flex flex-wrap gap-2 shrink-0">
+                        {% if item.whatsapp_url %}
+                        <a href="{{ item.whatsapp_url }}" target="_blank" rel="noopener noreferrer"
+                           class="bg-emerald-500 hover:bg-emerald-600 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase no-underline inline-flex items-center gap-2">
+                            <i class="fab fa-whatsapp"></i> Avisar no WhatsApp
+                        </a>
+                        {% endif %}
+                        {% if item.renovacao_url %}
+                        <a href="{{ item.renovacao_url }}" target="_blank" rel="noopener noreferrer"
+                           class="bg-marsala-700 hover:bg-marsala-800 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase no-underline">
+                            Link renovar
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% empty %}
+                <p class="p-12 text-center text-[10px] font-black uppercase italic text-gray-300">Nenhum vencido recente</p>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

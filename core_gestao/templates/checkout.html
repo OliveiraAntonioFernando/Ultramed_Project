@@ -89,6 +89,7 @@
         const FATURA_ID = "{{ fatura.id }}";
         const PAINEL_URL = "{% url 'sistema_interno:painel_paciente' %}";
         const STATUS_URL = "{% url 'sistema_interno:status_pagamento' %}";
+        const COMPROVANTE_TMPL = "{% url 'sistema_interno:comprovante_fatura' 999001999 %}";
         let pixPollTimer = null;
 
         const mp = new MercadoPago('{{ public_key }}', {
@@ -99,6 +100,14 @@
 
         function irPainel(status) {
             window.location.href = PAINEL_URL + "?status=" + encodeURIComponent(status);
+        }
+
+        function irComprovante(result) {
+            const faturaId = result.fatura_id || FATURA_ID;
+            const token = result.checkout_token || CHECKOUT_TOKEN;
+            let url = COMPROVANTE_TMPL.replace("999001999", String(faturaId));
+            if (token) url += "?t=" + encodeURIComponent(token);
+            window.location.href = url;
         }
 
         function pararPollingPix() {
@@ -141,7 +150,7 @@
                             wait.classList.remove("text-gray-400");
                             wait.classList.add("text-emerald-600");
                         }
-                        setTimeout(() => irPainel("pago"), 800);
+                        setTimeout(() => irComprovante(result), 800);
                     } else if (result.status === "rejected") {
                         pararPollingPix();
                         alert("Pagamento não aprovado: " + (result.detail || "Tente novamente."));
@@ -247,7 +256,7 @@
                             .then((result) => {
                                 if (result.status === "approved") {
                                     resolve();
-                                    irPainel("pago");
+                                    irComprovante(result);
                                     return;
                                 }
                                 if (result.status === "pending" && (result.qr_code || result.qr_code_base64 || result.id)) {

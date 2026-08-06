@@ -1,0 +1,92 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if invalido %}Carteirinha inválida{% else %}{{ paciente.nome_completo }} · {{ status.plano_nome }}{% endif %} | Ultramed</title>
+    <link rel="icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { marsala: { 700: '#700c15', 800: '#5c0a11' } } } } }
+    </script>
+</head>
+<body class="bg-gray-100 min-h-screen flex items-center justify-center p-4">
+    <div class="w-full max-w-md">
+        <p class="text-center text-[10px] font-black uppercase tracking-[0.2em] text-marsala-700 mb-4">
+            Ultramed · Validação de carteirinha{% if modo_farmacia %} · Farmácia{% endif %}
+        </p>
+
+        {% if invalido %}
+        <div class="bg-white rounded-3xl shadow-xl border border-red-100 p-8 text-center">
+            <div class="w-16 h-16 mx-auto rounded-full bg-red-100 text-red-600 flex items-center justify-center text-2xl mb-4">
+                <i class="fas fa-times"></i>
+            </div>
+            <h1 class="text-xl font-black uppercase italic text-gray-800">QR inválido</h1>
+            <p class="text-sm text-gray-500 mt-2">Peça ao paciente abrir o Meu Espaço e mostrar a carteirinha atualizada.</p>
+        </div>
+        {% else %}
+        <article class="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+            <div class="p-6 text-center {% if status.ativo %}bg-emerald-600{% elif status.situacao == 'VENCIDO' %}bg-amber-500{% else %}bg-gray-600{% endif %} text-white">
+                <p class="text-[10px] font-black uppercase tracking-widest text-white/80">
+                    {% if status.ativo %}Plano ativo{% else %}{{ status.situacao_label }}{% endif %}
+                </p>
+                <h1 class="text-2xl font-black italic uppercase tracking-tighter mt-2">{{ status.plano_nome }}</h1>
+                {% if status.vencimento %}
+                <p class="text-xs font-bold mt-2 text-white/90">
+                    Válido até {{ status.vencimento|date:"d/m/Y" }}
+                    {% if status.dias_restantes is not None %}
+                        · {{ status.dias_restantes }} dia{% if status.dias_restantes != 1 %}s{% endif %}
+                    {% endif %}
+                </p>
+                {% endif %}
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <p class="text-[9px] font-black uppercase text-gray-400 tracking-widest">Beneficiário</p>
+                    <p class="text-lg font-black uppercase text-gray-800 italic leading-tight">{{ paciente.nome_completo }}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <p class="text-[9px] font-black uppercase text-gray-400">Tipo</p>
+                        <p class="text-sm font-bold text-gray-700 uppercase">
+                            {% if status.is_titular %}Titular{% else %}Dependente{% endif %}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-[9px] font-black uppercase text-gray-400">CPF</p>
+                        <p class="text-sm font-bold text-gray-700">{{ paciente.cpf }}</p>
+                    </div>
+                </div>
+                {% if not status.is_titular and paciente.responsavel %}
+                <div>
+                    <p class="text-[9px] font-black uppercase text-gray-400">Titular responsável</p>
+                    <p class="text-sm font-bold text-gray-700 uppercase">{{ paciente.responsavel.nome_completo }}</p>
+                </div>
+                {% endif %}
+                <div class="rounded-2xl p-4 text-center text-xs font-bold
+                    {% if status.ativo %}bg-emerald-50 text-emerald-800 border border-emerald-100
+                    {% elif status.situacao == 'VENCIDO' %}bg-amber-50 text-amber-900 border border-amber-100
+                    {% else %}bg-gray-50 text-gray-600 border border-gray-100{% endif %}">
+                    {% if status.ativo %}
+                        Liberado para atendimento / benefícios do plano.
+                    {% elif status.situacao == 'VENCIDO' %}
+                        Plano vencido — orientar renovação na recepção.
+                    {% else %}
+                        Sem plano ativo — atendimento particular.
+                    {% endif %}
+                </div>
+            </div>
+        </article>
+        {% endif %}
+
+        <p class="text-center mt-6">
+            <a href="{% url 'sistema_interno:ler_carteirinha' %}{% if modo_farmacia %}?modo=farmacia{% endif %}"
+               class="text-[10px] font-black uppercase text-marsala-700 no-underline">
+                Abrir leitor da equipe
+            </a>
+        </p>
+    </div>
+</body>
+</html>

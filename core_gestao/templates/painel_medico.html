@@ -9,6 +9,9 @@
             <span class="text-[10px] font-black bg-white/20 px-4 py-2 rounded-full uppercase italic tracking-widest">
                 Dr(a). {{ request.user.username }}
             </span>
+            <a href="{% url 'sistema_interno:ajuda_equipe' %}" class="bg-white/20 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase italic no-underline hover:bg-white/30" title="Central da Equipe">
+                <i class="fas fa-book-open mr-1"></i> Ajuda
+            </a>
             <a href="{% url 'sistema_interno:logout' %}" class="bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg hover:bg-marsala-100 transition-all">
                 <i class="fas fa-power-off text-sm"></i>
             </a>

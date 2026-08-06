@@ -16,6 +16,9 @@
                     <p class="text-[8px] font-black uppercase opacity-60 text-white/60">Paciente logado</p>
                     <p class="text-xs font-bold text-white">{{ paciente.nome_completo }}</p>
                 </div>
+                <a href="{% url 'ajuda_paciente' %}" class="bg-white/20 p-4 rounded-3xl hover:bg-white/30 transition-all text-white no-underline" title="Ajuda">
+                    <i class="fas fa-circle-question text-sm"></i>
+                </a>
                 <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 p-4 rounded-3xl hover:bg-white/30 transition-all text-white no-underline">
                     <i class="fas fa-power-off text-sm"></i>
                 </a>
@@ -23,29 +26,56 @@
         </div>
     </nav>
 
-    <main class="max-w-5xl mx-auto px-4 grid grid-cols-1 lg:grid-cols-3 gap-10">
-        
+    <main class="max-w-5xl mx-auto px-4">
+        {% if pagamento_ok and ultimo_comprovante_id %}
+        <div class="mb-8 bg-emerald-50 border border-emerald-200 rounded-3xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+                <p class="text-[10px] font-black uppercase text-emerald-700 tracking-widest">Pagamento confirmado</p>
+                <p class="text-sm font-bold text-gray-700 mt-1">Seu plano foi liberado. Guarde o comprovante.</p>
+            </div>
+            <a href="{% url 'sistema_interno:comprovante_fatura' ultimo_comprovante_id %}"
+               class="bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-3 rounded-2xl text-[10px] font-black uppercase italic no-underline text-center shrink-0">
+                <i class="fas fa-receipt mr-2"></i> Ver comprovante
+            </a>
+        </div>
+        {% endif %}
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
         <div class="space-y-6">
-            <div class="bg-marsala-800 rounded-[2.5rem] p-8 shadow-2xl relative overflow-hidden text-white aspect-[1.6/1] flex flex-col justify-between border border-white/5">
-                <div class="flex justify-between items-start">
-                    <span class="font-black italic text-xl uppercase tracking-tighter text-white">Ultramed</span>
-                    <i class="fas fa-id-card text-3xl opacity-20"></i>
+            <div class="bg-marsala-800 rounded-[2.5rem] p-6 sm:p-8 shadow-2xl relative overflow-hidden text-white border border-white/5">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <span class="font-black italic text-xl uppercase tracking-tighter text-white">Ultramed</span>
+                        <p class="text-[8px] font-black uppercase tracking-widest text-white/60 mt-1">Carteirinha digital</p>
+                    </div>
+                    <span class="text-[8px] font-black uppercase px-2 py-1 rounded-lg
+                        {% if carteirinha_status.ativo %}bg-emerald-400 text-emerald-950{% else %}bg-amber-300 text-amber-950{% endif %}">
+                        {{ carteirinha_status.situacao_label }}
+                    </span>
                 </div>
-                <div>
-                    <p class="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1 text-white/60">Beneficiário Titular</p>
+                <div class="mb-6">
+                    <p class="text-[8px] font-black uppercase opacity-60 tracking-widest mb-1 text-white/60">
+                        {% if paciente.is_titular %}Beneficiário titular{% else %}Dependente{% endif %}
+                    </p>
                     <h3 class="text-lg font-bold uppercase tracking-tight leading-tight text-white">{{ paciente.nome_completo }}</h3>
                 </div>
-                <div class="flex justify-between items-end">
-                    <div>
-                        <p class="text-[8px] font-black uppercase opacity-60 tracking-widest text-white/60">Plano Ativo</p>
-                        <p class="text-xs font-black italic uppercase text-white">{{ paciente.plano.nome|default:"PARTICULAR" }}</p>
+                <div class="flex justify-between items-end gap-4">
+                    <div class="min-w-0">
+                        <p class="text-[8px] font-black uppercase opacity-60 tracking-widest text-white/60">Plano</p>
+                        <p class="text-xs font-black italic uppercase text-white">{{ carteirinha_status.plano_nome }}</p>
+                        {% if paciente.vencimento_plano %}
+                        <p class="text-[9px] font-bold text-white/70 mt-2">Até {{ paciente.vencimento_plano|date:"d/m/Y" }}</p>
+                        {% endif %}
+                        <p class="text-[8px] text-white/50 mt-3 font-bold uppercase">Mostre o QR na recepção ou farmácia</p>
                     </div>
-                    <div class="bg-white p-2 rounded-xl shadow-inner">
-                        <div class="w-10 h-10 bg-gray-100 flex items-center justify-center">
-                             <i class="fas fa-qrcode text-black text-2xl"></i>
-                        </div>
+                    <div class="bg-white p-3 rounded-2xl shadow-inner shrink-0">
+                        <div id="carteirinhaQr" class="w-[112px] h-[112px]"></div>
                     </div>
                 </div>
+                <a href="{{ carteirinha_url }}" target="_blank" rel="noopener"
+                   class="mt-5 block text-center text-[9px] font-black uppercase tracking-widest text-white/70 no-underline hover:text-white">
+                    Abrir validação pública →
+                </a>
             </div>
 
             {% if paciente.plano and paciente.vencimento_plano %}
@@ -173,7 +203,29 @@
                     {% endfor %}
                 </div>
             </div>
+
+            {% if faturas_pagas %}
+            <div class="bg-white rounded-[3rem] shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-8 bg-marsala-50/40 border-b">
+                    <h3 class="text-xs font-black uppercase italic text-marsala-700 tracking-widest">Meus comprovantes</h3>
+                </div>
+                <div class="p-6 space-y-3">
+                    {% for f in faturas_pagas %}
+                    <div class="flex justify-between items-center gap-3 p-4 bg-gray-50 rounded-2xl border border-gray-100">
+                        <div class="text-left min-w-0">
+                            <p class="text-[10px] font-black text-gray-800 uppercase">Recibo #{{ f.id }} · R$ {{ f.valor|floatformat:2 }}</p>
+                            <p class="text-[8px] font-bold text-gray-400 uppercase mt-1">{{ f.data_pagamento|date:"d/m/Y"|default:"—" }} · {{ f.get_metodo_pagamento_display|default:f.metodo_pagamento|default:"—" }}</p>
+                        </div>
+                        <a href="{% url 'sistema_interno:comprovante_fatura' f.id %}" class="shrink-0 bg-marsala-700 text-white px-4 py-2 rounded-xl text-[8px] font-black uppercase italic no-underline">
+                            Ver
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
+    </div>
     </main>
 </div>
 
@@ -197,7 +249,21 @@
     </div>
 </div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script>
+    (function () {
+        const el = document.getElementById("carteirinhaQr");
+        const url = "{{ carteirinha_url|escapejs }}";
+        if (el && url && window.QRCode) {
+            new QRCode(el, {
+                text: url,
+                width: 112,
+                height: 112,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+        }
+    })();
+
     function abrirReceitaModal(id) {
         const div = document.getElementById('data-rec-' + id);
         const medico = div.getAttribute('data-medico');

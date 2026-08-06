@@ -1,0 +1,140 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ajuda do Paciente | Ultramed</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { marsala: { 50: '#fcf4f4', 100: '#f9e9e9', 700: '#700c15', 800: '#5c0a11' } } } } }
+    </script>
+</head>
+<body class="bg-gray-50 text-gray-800 min-h-screen">
+    <header class="bg-gradient-to-r from-marsala-700 to-marsala-800 text-white">
+        <div class="max-w-3xl mx-auto px-4 py-8 flex flex-wrap items-center justify-between gap-4">
+            <div>
+                <p class="text-[10px] font-black uppercase tracking-[0.2em] text-white/70">Ultramed Clínica Médica</p>
+                <h1 class="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">Ajuda do Paciente</h1>
+                <p class="text-sm text-white/80 mt-1">Como contratar, pagar e usar o Meu Espaço</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'home' %}" class="bg-white/15 hover:bg-white/25 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase no-underline">Início</a>
+                <a href="{% url 'sistema_interno:login' %}" class="bg-white text-marsala-700 px-4 py-2 rounded-full text-[10px] font-black uppercase no-underline">Entrar</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-3xl mx-auto px-4 py-10 space-y-8">
+        <nav class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+            <p class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-3">Nesta página</p>
+            <div class="flex flex-wrap gap-2 text-xs font-bold">
+                <a href="#contratar" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Contratar plano</a>
+                <a href="#pagar" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Pagar PIX ou cartão</a>
+                <a href="#meu-espaco" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Meu Espaço</a>
+                <a href="#faq" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Perguntas frequentes</a>
+            </div>
+        </nav>
+
+        <section id="contratar" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700 tracking-tight">1. Contratar um plano</h2>
+            <ol class="list-decimal pl-5 space-y-2 text-sm text-gray-700">
+                <li>No site, abra <strong>Planos</strong> e toque em <strong>Contratar Agora</strong> (Essencial ou Master). Empresarial: use <strong>Solicitar Orçamento</strong>.</li>
+                <li>Preencha a tela <strong>Venda de Plano</strong> com os dados do titular.</li>
+                <li>Inclua os dependentes, se houver (limite conforme o plano).</li>
+                <li>Toque em <strong>FINALIZAR E PAGAR</strong>.</li>
+            </ol>
+            <p class="text-xs text-gray-500 bg-gray-50 rounded-xl p-3">A cobrança no checkout é a <strong>anuidade (12 meses)</strong> — valor integral do plano.</p>
+        </section>
+
+        <section id="pagar" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700 tracking-tight">2. Pagar com PIX ou cartão</h2>
+            <p class="text-sm text-gray-700">Na tela <strong>Finalizar Assinatura</strong> escolha a forma de pagamento:</p>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div class="rounded-2xl border border-emerald-100 bg-emerald-50/50 p-4">
+                    <p class="text-[10px] font-black uppercase text-emerald-700 mb-2"><i class="fas fa-qrcode mr-1"></i> PIX</p>
+                    <ul class="text-xs text-gray-700 space-y-1 list-disc pl-4">
+                        <li>Aparece o <strong>QR Code</strong> e o <strong>Pix Copia e Cola</strong></li>
+                        <li>Pague no app do seu banco</li>
+                        <li>Aguarde <strong>Aguardando pagamento...</strong> — a confirmação é automática</li>
+                    </ul>
+                </div>
+                <div class="rounded-2xl border border-blue-100 bg-blue-50/50 p-4">
+                    <p class="text-[10px] font-black uppercase text-blue-700 mb-2"><i class="fas fa-credit-card mr-1"></i> Cartão</p>
+                    <ul class="text-xs text-gray-700 space-y-1 list-disc pl-4">
+                        <li>Preencha os dados no formulário seguro do Mercado Pago</li>
+                        <li>Se aprovado, o plano libera na hora</li>
+                    </ul>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500">O valor vai para a conta Mercado Pago da Ultramed. Se o PIX não mostrar o QR, fale com a clínica pelo WhatsApp.</p>
+        </section>
+
+        <section id="meu-espaco" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700 tracking-tight">3. Meu Espaço (área do cliente)</h2>
+            <ol class="list-decimal pl-5 space-y-2 text-sm text-gray-700">
+                <li>Em <a href="{% url 'sistema_interno:login' %}" class="text-marsala-700 font-bold underline">Entrar no Sistema</a>, use seu <strong>CPF</strong> e a senha (no cadastro, a senha costuma ser o CPF só com números).</li>
+                <li>Você entra no <strong>Meu Espaço</strong>.</li>
+            </ol>
+            <ul class="text-sm text-gray-700 space-y-2">
+                <li><i class="fas fa-id-card text-marsala-700 w-5"></i> Carteirinha digital com QR (recepção e farmácia)</li>
+                <li><i class="fas fa-shield-alt text-marsala-700 w-5"></i> Ver plano ativo e validade</li>
+                <li><i class="fas fa-users text-marsala-700 w-5"></i> Dependentes vinculados</li>
+                <li><i class="fas fa-calendar-check text-marsala-700 w-5"></i> Histórico de consultas</li>
+                <li><i class="fas fa-file-medical text-marsala-700 w-5"></i> Meus Exames e Laudos (baixar)</li>
+                <li><i class="fas fa-prescription text-marsala-700 w-5"></i> Receitas e <strong>Solicitar Renovação</strong></li>
+                <li><i class="fas fa-sync text-marsala-700 w-5"></i> <strong>Renovar Plano Agora</strong>, quando disponível</li>
+            </ul>
+        </section>
+
+        <section id="faq" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-5">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700 tracking-tight">Perguntas frequentes</h2>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">Não consigo entrar com o CPF</summary>
+                <p class="text-xs text-gray-600 mt-2">Confira se digitou só números (ou o formato que a clínica usou no cadastro). A senha inicial costuma ser o CPF sem pontos. Se não lembrar, fale com a recepção.</p>
+            </details>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">O PIX não mostrou o QR Code</summary>
+                <p class="text-xs text-gray-600 mt-2">Feche e tente de novo. Se continuar sem QR, entre em contato com a clínica — o pagamento online depende da conta Mercado Pago estar liberada para PIX.</p>
+            </details>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">Paguei no cartão e o plano não liberou</summary>
+                <p class="text-xs text-gray-600 mt-2">Aguarde alguns segundos e entre de novo no Meu Espaço. Se o banco aprovou e o plano não apareceu, avise a recepção com o comprovante.</p>
+            </details>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">Meu dependente não aparece</summary>
+                <p class="text-xs text-gray-600 mt-2">Dependentes são cadastrados no titular. Peça à recepção para conferir o vínculo e o limite do seu plano.</p>
+            </details>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">Como renovar o plano?</summary>
+                <p class="text-xs text-gray-600 mt-2">No Meu Espaço, em Status da Assinatura, use <strong>Renovar Plano Agora</strong> e conclua o pagamento. Ou fale com a recepção para lançar o pagamento na clínica.</p>
+            </details>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">Como renovar uma receita?</summary>
+                <p class="text-xs text-gray-600 mt-2">No Meu Espaço, use <strong>Solicitar Renovação</strong>. A equipe recebe o pedido e entra em contato.</p>
+            </details>
+            <details class="group border border-gray-100 rounded-2xl p-4">
+                <summary class="font-bold text-sm cursor-pointer text-gray-800">O link de pagamento expirou</summary>
+                <p class="text-xs text-gray-600 mt-2">Peça um novo link à clínica. Links de checkout são seguros e têm prazo de validade.</p>
+            </details>
+        </section>
+
+        <section class="bg-marsala-700 text-white rounded-3xl p-6 sm:p-8 text-center space-y-3">
+            <p class="text-[10px] font-black uppercase tracking-widest text-white/70">Precisa de ajuda?</p>
+            <p class="text-sm font-bold">Fale com a Ultramed pelo WhatsApp</p>
+            <a href="https://wa.me/{{ whatsapp_clinica }}" class="inline-flex items-center gap-2 bg-white text-marsala-700 px-6 py-3 rounded-full text-xs font-black uppercase no-underline shadow-lg">
+                <i class="fab fa-whatsapp text-lg"></i> {{ whatsapp_display }}
+            </a>
+            <p class="text-[10px] text-white/60 pt-2">São Félix do Xingu · PA</p>
+        </section>
+    </main>
+
+    <footer class="text-center text-[10px] text-gray-400 py-8 uppercase tracking-widest font-bold">
+        <a href="{% url 'home' %}" class="text-marsala-700 no-underline">Voltar ao site</a>
+        <span class="mx-2">·</span>
+        Ultramed Clínica Médica
+    </footer>
+</body>
+</html>

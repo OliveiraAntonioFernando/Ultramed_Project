@@ -1,0 +1,154 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Central da Equipe | Ultramed{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen pb-16 text-left">
+    <nav class="bg-marsala-700 p-6 sm:p-8 rounded-b-[2.5rem] shadow-xl text-white mb-8" style="background-color: #700c15;">
+        <div class="max-w-4xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">Uso interno · Ultramed</p>
+                <h1 class="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">Central da Equipe</h1>
+                <p class="text-xs opacity-80 mt-1">Recepção · Médico · Administrativo</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ voltar_url }}" class="bg-white text-marsala-700 px-4 py-2 rounded-full text-[10px] font-black uppercase no-underline">Voltar ao painel</a>
+                <a href="{% url 'sistema_interno:logout' %}" class="bg-white/20 hover:bg-white/30 text-white w-10 h-10 flex items-center justify-center rounded-full no-underline" title="Sair">
+                    <i class="fas fa-power-off text-sm"></i>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-4xl mx-auto px-4 space-y-8">
+        <div class="bg-amber-50 border border-amber-100 rounded-2xl p-4 text-xs text-amber-900">
+            <strong class="uppercase tracking-wide text-[10px]">Aviso</strong>
+            <p class="mt-1">Esta página é só para a equipe logada. Não compartilhe o link com pacientes — para eles use a <a href="{% url 'ajuda_paciente' %}" class="font-bold underline" target="_blank">Ajuda do Paciente</a>.</p>
+        </div>
+
+        <nav class="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 flex flex-wrap gap-2 text-xs font-bold">
+            <a href="#recepcao" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Recepção</a>
+            <a href="#medico" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Médico</a>
+            <a href="#admin" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Administrativo</a>
+            <a href="#pagamento" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Pagamentos</a>
+            <a href="#dia" class="px-3 py-2 rounded-xl bg-marsala-50 text-marsala-700 no-underline">Fluxo do dia</a>
+        </nav>
+
+        <section id="recepcao" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700">Recepção — Painel Operacional</h2>
+            <div class="space-y-4 text-sm text-gray-700">
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Gestão de Pacientes</h3>
+                    <ol class="list-decimal pl-5 space-y-1">
+                        <li>Abra <strong>Gestão de Pacientes</strong> / <strong>Gestão Ultramed</strong>.</li>
+                        <li>Use <strong>Novo Registro</strong> para titular e dependentes.</li>
+                        <li>Senha do paciente no cadastro: CPF só com números.</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Agenda e check-in</h3>
+                    <ol class="list-decimal pl-5 space-y-1">
+                        <li><strong>Novo Agendamento</strong> — busque o paciente e escolha o procedimento.</li>
+                        <li>O sistema indica cobertura/desconto do plano (ou particular se vencido).</li>
+                        <li>No dia, use <strong>Fazer Check-in</strong> → status <strong>Em Espera</strong>.</li>
+                        <li>O paciente aparece na <strong>Sala de Espera</strong> do médico.</li>
+                    </ol>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Leads do site</h3>
+                    <p>Em <strong>Interessados (Site)</strong>, use <strong>Atender</strong> para marcar o lead e abrir o WhatsApp.</p>
+                </div>
+                <div>
+                    <h3 class="text-[10px] font-black uppercase tracking-widest text-gray-400 mb-2">Exames / laudos</h3>
+                    <p>Anexe o arquivo na gestão de pacientes. O titular vê e baixa em <strong>Meus Exames e Laudos</strong> no Meu Espaço.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="medico" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700">Médico — Consultório</h2>
+            <ol class="list-decimal pl-5 space-y-2 text-sm text-gray-700">
+                <li>Abra a <strong>Sala de Espera</strong> (pacientes com check-in de hoje).</li>
+                <li>Toque em <strong>Chamar Paciente</strong> / abrir o prontuário.</li>
+                <li>Preencha <strong>1. Evolução Clínica</strong>.</li>
+                <li>Em <strong>2. Prescrição / Receita</strong>: use <strong>Puxar Última</strong> se quiser, depois <strong>Gerar Receita</strong> / imprimir.</li>
+                <li>Se for o caso, use <strong>Classificar Crônico</strong>.</li>
+                <li>Finalize com <strong>Finalizar Atendimento e Salvar</strong>.</li>
+            </ol>
+        </section>
+
+        <section id="admin" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700">Administrativo — Master Control</h2>
+            <ul class="text-sm text-gray-700 space-y-2 list-disc pl-5">
+                <li>Acompanhe <strong>Faturamento (recebido)</strong> e <strong>Titulares à vencer</strong>.</li>
+                <li>Veja <strong>Leads do site</strong> e contatos WhatsApp.</li>
+                <li>Use filtros de <strong>pacientes crônicos</strong> para campanhas (quando aplicável).</li>
+                <li>Atalhos: <strong>Agenda</strong>, <strong>Lançar pagamento</strong>, <strong>Clientes</strong>.</li>
+                <li>Baixa manual de fatura quando o pagamento foi fora do online.</li>
+            </ul>
+        </section>
+
+        <section id="pagamento" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700">Pagamentos</h2>
+            <div class="grid sm:grid-cols-2 gap-4 text-sm text-gray-700">
+                <div class="rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2">
+                    <p class="text-[10px] font-black uppercase text-gray-400">Online (paciente)</p>
+                    <p>Checkout <strong>Finalizar Assinatura</strong>: PIX (QR + copia e cola) ou cartão. Após aprovado, ativa plano e vencimento (+365 dias) no titular e dependentes.</p>
+                </div>
+                <div class="rounded-2xl bg-gray-50 border border-gray-100 p-4 space-y-2">
+                    <p class="text-[10px] font-black uppercase text-gray-400">Presencial (equipe)</p>
+                    <p><strong>Lançar Pagamento</strong> / <strong>Registrar Pagamento</strong>: escolha paciente, PIX ou cartão, valor, confirme e <strong>Confirmar e Ativar Plano</strong>.</p>
+                </div>
+            </div>
+            <p class="text-xs text-gray-500 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                PIX online precisa de chave PIX ativa na conta Mercado Pago da clínica. Se o QR não gerar, o bloqueio costuma ser na conta MP — não no cadastro do paciente.
+            </p>
+        </section>
+
+        <section id="dia" class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8 space-y-4">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700">Fluxo do dia</h2>
+            <p class="text-sm text-gray-700 leading-relaxed">
+                Paciente chega → Recepção agenda / faz <strong>Check-in</strong> →
+                Médico atende (prontuário + receita) →
+                Equipe anexa exames →
+                Paciente consulta no <strong>Meu Espaço</strong> →
+                Renovação de plano ou receita quando precisar.
+            </p>
+        </section>
+
+        <section class="bg-white rounded-3xl border border-gray-100 shadow-sm p-6 sm:p-8">
+            <h2 class="text-lg font-black uppercase italic text-marsala-700 mb-4">Checklist rápido</h2>
+            <div class="grid sm:grid-cols-3 gap-4 text-xs text-gray-700">
+                <div class="rounded-2xl border border-gray-100 p-4">
+                    <p class="font-black uppercase text-marsala-700 mb-2">Recepção</p>
+                    <ul class="space-y-1 list-disc pl-4">
+                        <li>Cadastro / agenda</li>
+                        <li>Check-in</li>
+                        <li>Leads Atender</li>
+                        <li>Lançar pagamento</li>
+                    </ul>
+                </div>
+                <div class="rounded-2xl border border-gray-100 p-4">
+                    <p class="font-black uppercase text-marsala-700 mb-2">Médico</p>
+                    <ul class="space-y-1 list-disc pl-4">
+                        <li>Sala de Espera</li>
+                        <li>Evolução</li>
+                        <li>Receita</li>
+                        <li>Finalizar</li>
+                    </ul>
+                </div>
+                <div class="rounded-2xl border border-gray-100 p-4">
+                    <p class="font-black uppercase text-marsala-700 mb-2">Admin</p>
+                    <ul class="space-y-1 list-disc pl-4">
+                        <li>Faturamento</li>
+                        <li>À vencer</li>
+                        <li>Leads</li>
+                        <li>Baixa fatura</li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

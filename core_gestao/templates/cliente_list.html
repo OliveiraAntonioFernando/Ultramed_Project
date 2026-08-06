@@ -70,7 +70,7 @@
                                 <i class="fas fa-paperclip mr-1"></i> Anexar Exame
                              </button>
 
-                             {% if user.username != 'recepcao' %}
+                             {% if user.username == 'medico' or user.username == 'master' or user.is_superuser %}
                                 <a href="{% url 'sistema_interno:prontuario_view' p.id %}" class="bg-marsala-700 text-white px-6 py-2.5 rounded-xl text-[10px] font-black uppercase italic no-underline shadow-md">Prontuário</a>
                              {% endif %}
                         </td>

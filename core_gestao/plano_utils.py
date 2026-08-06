@@ -13,6 +13,8 @@ from core_gestao.procedimentos_catalogo import (
 
 CHECKOUT_SALT = "ultramed-checkout-v1"
 CHECKOUT_MAX_AGE = 86400 * 2  # 48h
+CARTEIRINHA_SALT = "ultramed-carteirinha-v1"
+CARTEIRINHA_MAX_AGE = 86400 * 400  # ~13 meses
 
 PLANO_TIPO_MAP = {
     "essencial": "ESSENCIAL",
@@ -316,6 +318,52 @@ def valor_checkout_plano(plano: Plano) -> float:
     if valor < 100:
         valor = valor * 12
     return round(valor, 2)
+
+
+def gerar_carteirinha_token(paciente_id: int) -> str:
+    return signing.dumps({"p": int(paciente_id)}, salt=CARTEIRINHA_SALT)
+
+
+def ler_carteirinha_token(token: str) -> int | None:
+    if not token:
+        return None
+    try:
+        data = signing.loads(
+            token, salt=CARTEIRINHA_SALT, max_age=CARTEIRINHA_MAX_AGE
+        )
+        return int(data.get("p"))
+    except (signing.BadSignature, TypeError, ValueError):
+        return None
+
+
+def status_plano_carteirinha(paciente) -> dict:
+    """Resumo do plano para validação de carteirinha (recepção/farmácia)."""
+    hoje = timezone.now().date()
+    plano = paciente.plano
+    venc = paciente.vencimento_plano
+    ativo = bool(plano and venc and venc >= hoje)
+    if not plano:
+        situacao = "SEM_PLANO"
+        situacao_label = "Sem plano ativo"
+    elif not venc:
+        situacao = "SEM_VALIDADE"
+        situacao_label = "Plano sem validade cadastrada"
+    elif venc < hoje:
+        situacao = "VENCIDO"
+        situacao_label = "Plano vencido"
+    else:
+        situacao = "ATIVO"
+        situacao_label = "Plano ativo"
+    return {
+        "ativo": ativo,
+        "situacao": situacao,
+        "situacao_label": situacao_label,
+        "plano_nome": plano.get_nome_display() if plano else "Particular",
+        "plano_codigo": plano.nome if plano else "",
+        "vencimento": venc,
+        "is_titular": bool(paciente.is_titular),
+        "dias_restantes": (venc - hoje).days if venc and venc >= hoje else None,
+    }
 
 
 def gerar_acesso_checkout(paciente_id: int, plano_id: int) -> str:

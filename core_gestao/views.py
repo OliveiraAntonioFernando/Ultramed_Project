@@ -15,6 +15,7 @@ import calendar as cal_module
 from django.contrib import messages
 from django.conf import settings
 from django.urls import reverse
+from urllib.parse import quote
 import mercadopago
 from mercadopago.config import RequestOptions
 import json
@@ -30,11 +31,14 @@ from .plano_utils import (
     avaliar_desconto_procedimento,
     calcular_valor_com_desconto,
     gerar_acesso_checkout,
+    gerar_carteirinha_token,
     gerar_checkout_token,
+    ler_carteirinha_token,
     max_dependentes_plano,
     normalizar_cpf,
     percentual_desconto,
     resolver_plano,
+    status_plano_carteirinha,
     validar_acesso_checkout,
     validar_checkout_token,
     valor_checkout_plano,
@@ -424,6 +428,36 @@ def _login_paciente_pos_pagamento(request, paciente):
     return False
 
 
+def _telefone_whatsapp(telefone: str) -> str:
+    digitos = re.sub(r"\D", "", telefone or "")
+    if digitos.startswith("55") and len(digitos) >= 12:
+        return digitos
+    if len(digitos) >= 10:
+        return "55" + digitos
+    return digitos
+
+
+def _link_whatsapp(telefone: str, mensagem: str) -> str:
+    numero = _telefone_whatsapp(telefone)
+    if not numero:
+        return ""
+    return f"https://wa.me/{numero}?text={quote(mensagem)}"
+
+
+def _pode_ver_comprovante(request, fatura) -> bool:
+    if request.user.is_authenticated:
+        if _is_staff_user(request.user):
+            return True
+        if _pode_ver_dados_clinicos_paciente(request.user, fatura.paciente_id):
+            return True
+    token = (request.GET.get("t") or "").strip()
+    if token:
+        return validar_checkout_token(
+            token, fatura.id, fatura.paciente_id, fatura.plano_id
+        )
+    return False
+
+
 # =================================================================
 # 2. SISTEMA DE ACESSO
 # =================================================================
@@ -444,6 +478,42 @@ def login_view(request):
 def logout_view(request):
     logout(request)
     return redirect('sistema_interno:login')
+
+
+def ajuda_paciente(request):
+    """Manual público: contratar, pagar, Meu Espaço. Sem fluxos da equipe."""
+    return render(
+        request,
+        "ajuda_paciente.html",
+        {
+            "whatsapp_clinica": "5594984496349",
+            "whatsapp_display": "(94) 98449-6349",
+        },
+    )
+
+
+def termos_uso(request):
+    return render(request, "termos.html")
+
+
+def privacidade(request):
+    return render(request, "privacidade.html")
+
+
+@login_required
+@staff_member_required
+def ajuda_equipe(request):
+    """Central da equipe: recepção, médico e administrativo."""
+    voltar = _staff_home_redirect(request.user)
+    return render(
+        request,
+        "ajuda_equipe.html",
+        {
+            "voltar_url": voltar.url,
+            "perfil": getattr(request.user, "username", "") or "equipe",
+        },
+    )
+
 
 # =================================================================
 # 3. GESTÃO DE PACIENTES E UPLOAD DE EXAMES
@@ -584,9 +654,9 @@ def checkout_pagamento(request, paciente_id, plano_id):
             status="PENDENTE",
             metodo_pagamento="PIX/CARTAO",
         )
-    elif abs(float(fatura.valor) - valor_a_cobrar) > 0.02:
-        fatura.valor = valor_a_cobrar
-        fatura.save()
+    else:
+        # Mantém valor já emitido na fatura pendente (cobrança/teste manual).
+        valor_a_cobrar = float(fatura.valor)
 
     checkout_token = gerar_checkout_token(fatura.id, paciente.id, plano.id)
     webhook_url = request.build_absolute_uri(reverse("sistema_interno:mp_webhook"))
@@ -786,13 +856,23 @@ def processar_pagamento_brick(request):
                         )
                     _login_paciente_pos_pagamento(request, paciente)
                     return JsonResponse(
-                        {"status": status_mp, "id": payment.get("id")}
+                        {
+                            "status": status_mp,
+                            "id": payment.get("id"),
+                            "fatura_id": fatura.id,
+                            "checkout_token": checkout_token,
+                        }
                     )
 
                 if status_mp == "pending":
                     fatura.mercadopago_id = str(payment.get("id"))
                     fatura.save(update_fields=["mercadopago_id"])
-                    payload = {"status": status_mp, "id": payment.get("id")}
+                    payload = {
+                        "status": status_mp,
+                        "id": payment.get("id"),
+                        "fatura_id": fatura.id,
+                        "checkout_token": checkout_token,
+                    }
                     if pm_id == "pix":
                         pix = _mp_extrair_dados_pix(payment)
                         if not pix.get("qr_code") and not pix.get("qr_code_base64"):
@@ -803,7 +883,13 @@ def processar_pagamento_brick(request):
                         payload.update(pix)
                     return JsonResponse(payload)
 
-                return JsonResponse({"status": status_mp, "id": payment.get("id")})
+                return JsonResponse(
+                    {
+                        "status": status_mp,
+                        "id": payment.get("id"),
+                        "fatura_id": fatura.id,
+                    }
+                )
             
             detalhe = (
                 payment.get("status_detail")
@@ -864,18 +950,28 @@ def consultar_status_pagamento(request):
     if fatura.status == "PAGO":
         _login_paciente_pos_pagamento(request, fatura.paciente)
         return JsonResponse(
-            {"status": "approved", "id": fatura.mercadopago_id or payment_id}
+            {
+                "status": "approved",
+                "id": fatura.mercadopago_id or payment_id,
+                "fatura_id": fatura.id,
+                "checkout_token": checkout_token,
+            }
         )
 
     payment_id = payment_id or fatura.mercadopago_id
     if not payment_id:
-        return JsonResponse({"status": "pending", "id": None})
+        return JsonResponse({"status": "pending", "id": None, "fatura_id": fatura.id})
 
     sdk = mercadopago.SDK(settings.MERCADO_PAGO_ACCESS_TOKEN)
     payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
     if payment_info.get("status") != 200:
         return JsonResponse(
-            {"status": "pending", "id": payment_id, "detail": "Aguardando confirmação."}
+            {
+                "status": "pending",
+                "id": payment_id,
+                "fatura_id": fatura.id,
+                "detail": "Aguardando confirmação.",
+            }
         )
 
     resposta = payment_info.get("response") or {}
@@ -893,7 +989,14 @@ def consultar_status_pagamento(request):
                 }
             )
         _login_paciente_pos_pagamento(request, fatura.paciente)
-        return JsonResponse({"status": "approved", "id": resposta.get("id") or payment_id})
+        return JsonResponse(
+            {
+                "status": "approved",
+                "id": resposta.get("id") or payment_id,
+                "fatura_id": fatura.id,
+                "checkout_token": checkout_token,
+            }
+        )
 
     if status_mp in ("rejected", "cancelled", "canceled"):
         return JsonResponse(
@@ -1015,6 +1118,7 @@ def fatura_store(request):
 
         if status == 'PAGO':
             _ativar_vencimento_e_plano_pos_pagamento(paciente, fatura)
+            return redirect("sistema_interno:comprovante_fatura", fatura_id=fatura.id)
 
     destino = (
         "sistema_interno:master_dashboard"
@@ -1022,6 +1126,60 @@ def fatura_store(request):
         else "sistema_interno:painel_colaborador"
     )
     return redirect(destino)
+
+def _realizar_checkin_agenda(ag, hoje=None):
+    """Marca CHEGOU e garante data = hoje (fila do médico)."""
+    hoje = hoje or timezone.now().date()
+    ag.status = "CHEGOU"
+    if ag.data != hoje:
+        ag.data = hoje
+    ag.save(update_fields=["status", "data"])
+    return ag
+
+
+def _checkin_paciente_recepcao(paciente, hoje=None):
+    """
+    Check-in na recepção: usa agendamento AGENDADO de hoje (ou próximo),
+    ou cria entrada espontânea na fila.
+    Retorna (agenda, mensagem, ja_estava).
+    """
+    hoje = hoje or timezone.now().date()
+    ja = (
+        Agenda.objects.filter(paciente=paciente, data=hoje, status="CHEGOU")
+        .order_by("hora")
+        .first()
+    )
+    if ja:
+        return ja, f"{paciente.nome_completo} já está na fila do médico.", True
+
+    ag = (
+        Agenda.objects.filter(paciente=paciente, data=hoje, status="AGENDADO")
+        .order_by("hora")
+        .first()
+    )
+    if not ag:
+        ag = (
+            Agenda.objects.filter(
+                paciente=paciente, status="AGENDADO", data__gte=hoje
+            )
+            .order_by("data", "hora")
+            .first()
+        )
+    if ag:
+        _realizar_checkin_agenda(ag, hoje)
+        return ag, f"Check-in de {paciente.nome_completo} realizado.", False
+
+    agora = timezone.localtime().time().replace(microsecond=0)
+    ag = Agenda.objects.create(
+        paciente=paciente,
+        data=hoje,
+        hora=agora,
+        tipo="CONSULTA",
+        status="CHEGOU",
+        observacoes="Check-in na recepção (sem agendamento prévio)",
+    )
+    return ag, f"Check-in de {paciente.nome_completo} (entrada espontânea).", False
+
 
 @never_cache
 @login_required
@@ -1033,10 +1191,19 @@ def agenda_view(request):
 
     if request.method == 'POST' and request.POST.get('agenda_checkin_id'):
         ag = get_object_or_404(Agenda, id=request.POST.get('agenda_checkin_id'))
-        ag.status = 'CHEGOU'
-        ag.save()
-        data_redirect = request.POST.get('data') or ag.data.isoformat()
-        return redirect(f"{reverse('sistema_interno:agenda_view')}?data={data_redirect}")
+        _realizar_checkin_agenda(ag, hoje)
+        messages.success(request, f"Check-in de {ag.paciente.nome_completo} realizado.")
+        next_url = (request.POST.get("next") or "").strip()
+        if next_url == "painel":
+            return redirect("sistema_interno:painel_colaborador")
+        return redirect(f"{reverse('sistema_interno:agenda_view')}?data={hoje.isoformat()}")
+
+    # Check-in pelo atalho do painel da recepção (?status=CHEGOU&id=...)
+    if agendamento_id and novo_status == 'CHEGOU':
+        ag = get_object_or_404(Agenda, id=agendamento_id)
+        _realizar_checkin_agenda(ag, hoje)
+        messages.success(request, f"Check-in de {ag.paciente.nome_completo} realizado.")
+        return redirect('sistema_interno:painel_colaborador')
 
     if agendamento_id and novo_status:
         return redirect(f"{reverse('sistema_interno:agenda_view')}?data={hoje.isoformat()}")
@@ -1241,11 +1408,30 @@ def master_dashboard(request):
 @recepcao_ou_master_required
 def painel_colaborador(request):
     hoje = timezone.now().date()
+
+    # Check-in direto no painel da recepção (não depende só da agenda)
+    if request.method == "POST" and request.POST.get("agenda_checkin_id"):
+        ag = get_object_or_404(Agenda, id=request.POST.get("agenda_checkin_id"))
+        _realizar_checkin_agenda(ag, hoje)
+        messages.success(request, f"Check-in de {ag.paciente.nome_completo} realizado.")
+        return redirect("sistema_interno:painel_colaborador")
+
+    if request.method == "POST" and request.POST.get("checkin_paciente_id"):
+        paciente = get_object_or_404(Paciente, id=request.POST.get("checkin_paciente_id"))
+        _, msg, ja = _checkin_paciente_recepcao(paciente, hoje)
+        if ja:
+            messages.info(request, msg)
+        else:
+            messages.success(request, msg)
+        return redirect("sistema_interno:painel_colaborador")
+
     leads = LeadSite.objects.filter(atendido=False).order_by('-data_solicitacao')
-    agendamentos_hoje = Agenda.objects.filter(data=hoje).order_by('hora')
+    agendamentos_hoje = Agenda.objects.filter(data=hoje).exclude(status='CANCELADO').order_by('hora')
+    na_fila = agendamentos_hoje.filter(status='CHEGOU').count()
     return render(request, 'painel_colaborador.html', {
         'leads_recentes': leads,
-        'agendamentos_hoje': agendamentos_hoje
+        'agendamentos_hoje': agendamentos_hoje,
+        'na_fila': na_fila,
     })
 
 @login_required
@@ -1267,12 +1453,28 @@ def painel_paciente(request):
     if paciente.vencimento_plano:
         is_vencendo_ou_vencido = paciente.vencimento_plano <= (hoje + timedelta(days=10))
 
+    faturas_pagas = (
+        Fatura.objects.filter(paciente=paciente, status="PAGO")
+        .select_related("plano")
+        .order_by("-data_pagamento", "-id")[:8]
+    )
+    carteirinha_token = gerar_carteirinha_token(paciente.id)
+    carteirinha_path = reverse(
+        "sistema_interno:validar_carteirinha",
+        kwargs={"token": carteirinha_token},
+    )
     context = {
         'paciente': paciente,
         'is_vencendo_ou_vencido': is_vencendo_ou_vencido,
         'exames': Exame.objects.filter(paciente=paciente).order_by('-data_solicitacao'),
         'receitas': Receita.objects.filter(paciente=paciente).order_by('-data_emissao'),
         'consultas': Agenda.objects.filter(paciente=paciente).order_by('-data', '-hora'),
+        'faturas_pagas': faturas_pagas,
+        'pagamento_ok': request.GET.get("status") == "pago",
+        'ultimo_comprovante_id': faturas_pagas[0].id if faturas_pagas else None,
+        'carteirinha_token': carteirinha_token,
+        'carteirinha_url': request.build_absolute_uri(carteirinha_path),
+        'carteirinha_status': status_plano_carteirinha(paciente),
     }
     if paciente.plano_id:
         token = gerar_acesso_checkout(paciente.id, paciente.plano_id)
@@ -1288,12 +1490,25 @@ def painel_paciente(request):
 @login_required
 @recepcao_ou_master_required
 def baixar_lead(request, lead_id):
+    """Marca lead como atendido (contato feito). Aceita GET ou POST; JSON se for AJAX."""
+    if request.method not in ("GET", "POST"):
+        return JsonResponse({"success": False, "detail": "Método não permitido."}, status=405)
     lead = get_object_or_404(LeadSite, id=lead_id)
     lead.atendido = True
-    lead.save()
+    lead.save(update_fields=["atendido"])
+
+    wants_json = (
+        request.headers.get("X-Requested-With") == "XMLHttpRequest"
+        or "application/json" in (request.headers.get("Accept") or "")
+    )
+    if wants_json:
+        return JsonResponse({"success": True, "id": lead.id})
+
     referer = request.META.get("HTTP_REFERER")
     if referer:
         return redirect(referer)
+    if _is_master_user(request.user):
+        return redirect("sistema_interno:master_dashboard")
     return redirect("sistema_interno:painel_colaborador")
 
 @login_required
@@ -1320,6 +1535,11 @@ def solicitar_renovacao_api(request):
 @login_required
 @staff_member_required
 def salvar_doencas_cronicas(request, paciente_id):
+    if not _is_medico_user(request.user):
+        return JsonResponse(
+            {"success": False, "detail": "Apenas médico pode classificar crônicos."},
+            status=403,
+        )
     if request.method == 'POST':
         paciente = get_object_or_404(Paciente, id=paciente_id)
         selecionadas = request.POST.getlist('doencas[]')
@@ -1335,7 +1555,8 @@ def salvar_doencas_cronicas(request, paciente_id):
 
 @login_required
 def api_ultima_receita(request, paciente_id):
-    if not _pode_ver_dados_clinicos_paciente(request.user, paciente_id):
+    # Conteúdo de receita: só médico/master (não recepção).
+    if not _is_medico_user(request.user):
         return JsonResponse(
             {"success": False, "detail": "Acesso negado."},
             status=403,
@@ -1436,7 +1657,245 @@ def fatura_baixar(request, fatura_id):
         f.data_pagamento = timezone.now().date()
         f.save()
         _ativar_vencimento_e_plano_pos_pagamento(f.paciente, f)
-    return redirect("sistema_interno:master_dashboard")
+    return redirect("sistema_interno:comprovante_fatura", fatura_id=f.id)
+
+
+def comprovante_fatura(request, fatura_id):
+    """Comprovante imprimível de fatura paga (paciente com login/token ou equipe)."""
+    fatura = get_object_or_404(
+        Fatura.objects.select_related("paciente", "plano"),
+        id=fatura_id,
+    )
+    if fatura.status != "PAGO":
+        return HttpResponse("Comprovante disponível apenas para faturas pagas.", status=400)
+    if not _pode_ver_comprovante(request, fatura):
+        if not request.user.is_authenticated:
+            return redirect(
+                f"{reverse('sistema_interno:login')}?next={request.path}"
+            )
+        return HttpResponse("Acesso negado a este comprovante.", status=403)
+
+    paciente = fatura.paciente
+    plano_nome = (
+        fatura.plano.get_nome_display()
+        if fatura.plano_id
+        else (paciente.plano.get_nome_display() if paciente.plano_id else "—")
+    )
+    voltar_url = reverse("home")
+    if request.user.is_authenticated:
+        if _is_staff_user(request.user):
+            voltar_url = reverse("sistema_interno:master_dashboard") if _is_master_user(request.user) else reverse("sistema_interno:painel_colaborador")
+        else:
+            voltar_url = reverse("sistema_interno:painel_paciente")
+
+    return render(
+        request,
+        "comprovante_fatura.html",
+        {
+            "fatura": fatura,
+            "paciente": paciente,
+            "plano_nome": plano_nome,
+            "voltar_url": voltar_url,
+        },
+    )
+
+
+def validar_carteirinha(request, token):
+    """
+    Leitura pública do QR da carteirinha (recepção/farmácia/câmera do celular).
+    Mostra nome, plano e se está ativo.
+    """
+    paciente_id = ler_carteirinha_token(token)
+    if not paciente_id:
+        return render(
+            request,
+            "validar_carteirinha.html",
+            {"invalido": True, "token": token},
+            status=400,
+        )
+    paciente = (
+        Paciente.objects.select_related("plano", "responsavel")
+        .filter(id=paciente_id)
+        .first()
+    )
+    if not paciente:
+        return render(
+            request,
+            "validar_carteirinha.html",
+            {"invalido": True, "token": token},
+            status=404,
+        )
+    status = status_plano_carteirinha(paciente)
+    return render(
+        request,
+        "validar_carteirinha.html",
+        {
+            "invalido": False,
+            "paciente": paciente,
+            "status": status,
+            "token": token,
+            "modo_farmacia": request.GET.get("origem") == "farmacia",
+        },
+    )
+
+
+@login_required
+@recepcao_ou_master_required
+def ler_carteirinha(request):
+    """Tela da recepção/farmácia: câmera ou colar link/token do QR."""
+    modo = (request.GET.get("modo") or request.POST.get("modo") or "recepcao").strip().lower()
+    if modo not in ("recepcao", "farmacia"):
+        modo = "recepcao"
+    resultado = None
+    erro = None
+    hoje = timezone.now().date()
+
+    # Check-in a partir do QR (modo recepção)
+    if (
+        request.method == "POST"
+        and request.POST.get("checkin_paciente_id")
+        and modo == "recepcao"
+    ):
+        paciente = get_object_or_404(Paciente, id=request.POST.get("checkin_paciente_id"))
+        _, msg, ja = _checkin_paciente_recepcao(paciente, hoje)
+        if ja:
+            messages.info(request, msg)
+        else:
+            messages.success(request, msg)
+        q = (request.POST.get("q") or "").strip()
+        url = reverse("sistema_interno:ler_carteirinha") + "?modo=recepcao"
+        if q:
+            url += f"&q={quote(q)}"
+        return redirect(url)
+
+    raw = (request.GET.get("q") or request.POST.get("q") or "").strip()
+    if request.method == "POST" or raw:
+        token = raw
+        if "/carteirinha/v/" in token:
+            token = token.rstrip("/").split("/carteirinha/v/")[-1].split("?")[0]
+        elif "/carteirinha/validar/" in token:
+            token = token.rstrip("/").split("/carteirinha/validar/")[-1].split("?")[0]
+        paciente_id = ler_carteirinha_token(token)
+        if not paciente_id:
+            erro = "QR inválido ou expirado. Peça ao paciente atualizar a carteirinha no Meu Espaço."
+        else:
+            paciente = (
+                Paciente.objects.select_related("plano", "responsavel")
+                .filter(id=paciente_id)
+                .first()
+            )
+            if not paciente:
+                erro = "Beneficiário não encontrado."
+            else:
+                na_fila = Agenda.objects.filter(
+                    paciente=paciente, data=hoje, status="CHEGOU"
+                ).exists()
+                resultado = {
+                    "paciente": paciente,
+                    "status": status_plano_carteirinha(paciente),
+                    "na_fila": na_fila,
+                    "token": token,
+                    "validar_url": request.build_absolute_uri(
+                        reverse(
+                            "sistema_interno:validar_carteirinha",
+                            kwargs={"token": token},
+                        )
+                    ),
+                }
+    voltar_url = (
+        reverse("sistema_interno:master_dashboard")
+        if _is_master_user(request.user)
+        else reverse("sistema_interno:painel_colaborador")
+    )
+    return render(
+        request,
+        "ler_carteirinha.html",
+        {
+            "modo": modo,
+            "resultado": resultado,
+            "erro": erro,
+            "voltar_url": voltar_url,
+            "scan_base": request.build_absolute_uri(
+                reverse("sistema_interno:ler_carteirinha")
+            ),
+        },
+    )
+
+
+@login_required
+@recepcao_ou_master_required
+def planos_a_vencer(request):
+    """Titulares com plano a vencer / vencido recente + WhatsApp de aviso."""
+    hoje = timezone.now().date()
+    a_vencer = (
+        Paciente.objects.filter(
+            is_titular=True,
+            vencimento_plano__range=[hoje, hoje + timedelta(days=30)],
+        )
+        .select_related("plano")
+        .order_by("vencimento_plano")
+    )
+    vencidos = (
+        Paciente.objects.filter(
+            is_titular=True,
+            vencimento_plano__lt=hoje,
+            vencimento_plano__gte=hoje - timedelta(days=30),
+        )
+        .select_related("plano")
+        .order_by("vencimento_plano")
+    )
+
+    def _montar_linha(p, vencido=False):
+        data_fmt = p.vencimento_plano.strftime("%d/%m/%Y") if p.vencimento_plano else "—"
+        plano_txt = p.plano.get_nome_display() if p.plano_id else "plano Ultramed"
+        if vencido:
+            msg = (
+                f"Olá {p.nome_completo.split()[0]}! Seu {plano_txt} na Ultramed venceu em {data_fmt}. "
+                f"Para renovar e manter os benefícios, fale conosco ou acesse Meu Espaço no site. "
+                f"WhatsApp Ultramed: (94) 98449-6349"
+            )
+        else:
+            msg = (
+                f"Olá {p.nome_completo.split()[0]}! Seu {plano_txt} na Ultramed vence em {data_fmt}. "
+                f"Renove com antecedência para não perder os benefícios. "
+                f"WhatsApp Ultramed: (94) 98449-6349"
+            )
+        renovacao_url = ""
+        if p.plano_id:
+            token = gerar_acesso_checkout(p.id, p.plano_id)
+            base = request.build_absolute_uri(
+                reverse(
+                    "sistema_interno:checkout_pagamento",
+                    kwargs={"paciente_id": p.id, "plano_id": p.plano_id},
+                )
+            )
+            renovacao_url = f"{base}?t={token}"
+            msg += f" Link direto para renovar: {renovacao_url}"
+        dias = (p.vencimento_plano - hoje).days if p.vencimento_plano else None
+        return {
+            "paciente": p,
+            "whatsapp_url": _link_whatsapp(p.telefone, msg),
+            "renovacao_url": renovacao_url,
+            "dias": dias,
+            "dias_atraso": abs(dias) if vencido and dias is not None else None,
+        }
+
+    linhas_vencer = [_montar_linha(p, False) for p in a_vencer]
+    linhas_vencidos = [_montar_linha(p, True) for p in vencidos]
+    voltar_url = (
+        reverse("sistema_interno:master_dashboard")
+        if _is_master_user(request.user)
+        else reverse("sistema_interno:painel_colaborador")
+    )
+    return render(
+        request,
+        "planos_a_vencer.html",
+        {
+            "linhas_vencer": linhas_vencer,
+            "linhas_vencidos": linhas_vencidos,
+            "voltar_url": voltar_url,
+        },
+    )
 
 
 @login_required

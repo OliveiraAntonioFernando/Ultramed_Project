@@ -1,0 +1,98 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprovante #{{ fatura.id }} | Ultramed</title>
+    <link rel="icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = { theme: { extend: { colors: { marsala: { 700: '#700c15', 800: '#5c0a11' } } } } }
+    </script>
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; }
+            .sheet { box-shadow: none !important; border: 1px solid #ddd !important; }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen py-8 px-4">
+    <div class="max-w-lg mx-auto no-print flex flex-wrap gap-2 justify-between mb-4">
+        <a href="{{ voltar_url }}" class="text-[10px] font-black uppercase text-marsala-700 no-underline">← Voltar</a>
+        <button type="button" onclick="window.print()" class="bg-marsala-700 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase border-none cursor-pointer">
+            <i class="fas fa-print mr-1"></i> Imprimir / PDF
+        </button>
+    </div>
+
+    <article class="sheet max-w-lg mx-auto bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
+        <header class="bg-gradient-to-r from-marsala-700 to-marsala-800 text-white p-8 text-center">
+            <img src="{% static 'sistema_interno/img/logo_ultramed.png' %}" alt="Ultramed" class="h-12 w-auto mx-auto mb-3 brightness-0 invert">
+            <p class="text-[10px] font-black uppercase tracking-[0.25em] text-white/70">Comprovante de pagamento</p>
+            <h1 class="text-xl font-black italic uppercase tracking-tighter mt-1">Ultramed Clínica Médica</h1>
+            <p class="text-xs text-white/80 mt-2">São Félix do Xingu · PA</p>
+        </header>
+
+        <div class="p-8 space-y-6">
+            <div class="flex justify-between items-start gap-4 border-b border-dashed border-gray-200 pb-5">
+                <div>
+                    <p class="text-[9px] font-black uppercase text-gray-400 tracking-widest">Nº do recibo</p>
+                    <p class="text-lg font-black text-marsala-700">#{{ fatura.id }}</p>
+                </div>
+                <span class="bg-emerald-100 text-emerald-700 text-[9px] font-black uppercase px-3 py-1.5 rounded-full border border-emerald-200">Pago</span>
+            </div>
+
+            <div class="space-y-3 text-sm">
+                <div class="flex justify-between gap-4">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Paciente</span>
+                    <span class="font-bold text-gray-800 text-right uppercase">{{ paciente.nome_completo }}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                    <span class="text-[10px] font-black uppercase text-gray-400">CPF</span>
+                    <span class="font-bold text-gray-700">{{ paciente.cpf }}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Plano</span>
+                    <span class="font-bold text-gray-800 text-right uppercase">{{ plano_nome }}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Método</span>
+                    <span class="font-bold text-gray-700 uppercase">{{ fatura.get_metodo_pagamento_display|default:fatura.metodo_pagamento|default:"—" }}</span>
+                </div>
+                <div class="flex justify-between gap-4">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Data pagamento</span>
+                    <span class="font-bold text-gray-700">{{ fatura.data_pagamento|date:"d/m/Y"|default:"—" }}</span>
+                </div>
+                {% if fatura.mercadopago_id %}
+                <div class="flex justify-between gap-4">
+                    <span class="text-[10px] font-black uppercase text-gray-400">Ref. Mercado Pago</span>
+                    <span class="font-mono text-[11px] text-gray-600">{{ fatura.mercadopago_id }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="bg-marsala-50 rounded-2xl p-6 flex justify-between items-center border border-marsala-100">
+                <span class="text-[10px] font-black uppercase text-marsala-700 tracking-widest">Valor pago</span>
+                <span class="text-2xl font-black text-marsala-700">R$ {{ fatura.valor|floatformat:2 }}</span>
+            </div>
+
+            {% if paciente.vencimento_plano %}
+            <p class="text-center text-xs text-gray-600">
+                Validade do plano atualizada para
+                <strong class="text-gray-800">{{ paciente.vencimento_plano|date:"d/m/Y" }}</strong>
+            </p>
+            {% endif %}
+
+            <p class="text-[9px] text-center text-gray-400 font-bold uppercase tracking-widest leading-relaxed">
+                Documento gerado pelo sistema Ultramed · Guarde este comprovante
+            </p>
+        </div>
+    </article>
+
+    <p class="no-print max-w-lg mx-auto text-center mt-6">
+        <a href="{% url 'sistema_interno:painel_paciente' %}" class="text-[10px] font-black uppercase text-gray-500 no-underline">Ir ao Meu Espaço</a>
+    </p>
+</body>
+</html>

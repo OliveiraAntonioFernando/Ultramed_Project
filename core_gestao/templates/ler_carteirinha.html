@@ -1,0 +1,123 @@
+{% extends 'base.html' %}
+{% block title %}{% if modo == 'farmacia' %}Farmácia{% else %}Recepção{% endif %} · Ler carteirinha | Ultramed{% endblock %}
+
+{% block content %}
+<div class="bg-gray-100 min-h-screen pb-16">
+    <nav class="bg-marsala-700 p-6 sm:p-8 rounded-b-[2.5rem] shadow-xl text-white mb-8" style="background-color: #700c15;">
+        <div class="max-w-3xl mx-auto flex flex-wrap justify-between items-center gap-4">
+            <div>
+                <p class="text-[10px] font-bold uppercase tracking-[0.2em] opacity-80">
+                    {% if modo == 'farmacia' %}Farmácia Ultramed{% else %}Recepção Ultramed{% endif %}
+                </p>
+                <h1 class="text-2xl sm:text-3xl font-black italic uppercase tracking-tighter">Ler carteirinha</h1>
+                <p class="text-xs opacity-80 mt-1">Aponte a câmera para o QR do paciente</p>
+            </div>
+            <div class="flex gap-2">
+                <a href="?modo=recepcao" class="px-3 py-2 rounded-full text-[9px] font-black uppercase no-underline {% if modo == 'recepcao' %}bg-white text-marsala-700{% else %}bg-white/20 text-white{% endif %}">Recepção</a>
+                <a href="?modo=farmacia" class="px-3 py-2 rounded-full text-[9px] font-black uppercase no-underline {% if modo == 'farmacia' %}bg-white text-marsala-700{% else %}bg-white/20 text-white{% endif %}">Farmácia</a>
+                <a href="{{ voltar_url }}" class="bg-white/20 text-white px-3 py-2 rounded-full text-[9px] font-black uppercase no-underline">Voltar</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-3xl mx-auto px-4 space-y-6">
+        <div class="bg-white rounded-[2rem] border border-gray-100 shadow-sm p-5 sm:p-6">
+            <div id="reader" class="w-full overflow-hidden rounded-2xl bg-black"></div>
+            <p id="scanHint" class="text-[10px] text-center text-gray-400 font-bold uppercase mt-3 tracking-widest">
+                Ou cole o link / token do QR abaixo
+            </p>
+            <form method="get" class="mt-4 flex flex-col sm:flex-row gap-2">
+                <input type="hidden" name="modo" value="{{ modo }}">
+                <input type="text" name="q" placeholder="Cole o link da carteirinha ou o token"
+                       class="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm font-bold outline-none focus:ring-2 focus:ring-marsala-700">
+                <button type="submit" class="bg-marsala-700 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase border-none cursor-pointer">
+                    Validar
+                </button>
+            </form>
+        </div>
+
+        {% if erro %}
+        <div class="bg-red-50 border border-red-100 text-red-800 rounded-2xl p-4 text-sm font-bold">{{ erro }}</div>
+        {% endif %}
+
+        {% if resultado %}
+        <div class="rounded-[2rem] overflow-hidden shadow-lg border border-gray-100
+            {% if resultado.status.ativo %}border-emerald-200{% elif resultado.status.situacao == 'VENCIDO' %}border-amber-200{% endif %}">
+            <div class="p-6 text-white text-center
+                {% if resultado.status.ativo %}bg-emerald-600{% elif resultado.status.situacao == 'VENCIDO' %}bg-amber-500{% else %}bg-gray-600{% endif %}">
+                <p class="text-[10px] font-black uppercase tracking-widest text-white/80">{{ resultado.status.situacao_label }}</p>
+                <h2 class="text-3xl font-black italic uppercase tracking-tighter mt-2">{{ resultado.status.plano_nome }}</h2>
+                {% if resultado.status.vencimento %}
+                <p class="text-sm font-bold mt-2">Até {{ resultado.status.vencimento|date:"d/m/Y" }}</p>
+                {% endif %}
+            </div>
+            <div class="bg-white p-6 space-y-3">
+                <p class="text-lg font-black uppercase italic text-gray-800">{{ resultado.paciente.nome_completo }}</p>
+                <p class="text-xs font-bold text-gray-500 uppercase">
+                    CPF {{ resultado.paciente.cpf }} ·
+                    {% if resultado.status.is_titular %}Titular{% else %}Dependente{% endif %}
+                </p>
+                {% if modo == 'recepcao' %}
+                    {% if resultado.na_fila %}
+                    <p class="mt-3 text-[10px] font-black uppercase italic text-emerald-600">
+                        <i class="fas fa-check-circle mr-1"></i> Já está na fila do médico
+                    </p>
+                    {% else %}
+                    <form method="post" action="{% url 'sistema_interno:ler_carteirinha' %}" class="mt-4">
+                        {% csrf_token %}
+                        <input type="hidden" name="modo" value="recepcao">
+                        <input type="hidden" name="q" value="{{ resultado.token }}">
+                        <input type="hidden" name="checkin_paciente_id" value="{{ resultado.paciente.id }}">
+                        <button type="submit" class="w-full bg-marsala-700 text-white px-5 py-4 rounded-2xl text-[11px] font-black uppercase italic border-none cursor-pointer shadow-md hover:bg-marsala-800">
+                            <i class="fas fa-user-check mr-2"></i> Fazer check-in · colocar na fila
+                        </button>
+                    </form>
+                    {% endif %}
+                {% endif %}
+                <a href="{{ resultado.validar_url }}{% if modo == 'farmacia' %}?origem=farmacia{% endif %}"
+                   class="inline-block mt-2 text-[10px] font-black uppercase text-marsala-700 no-underline">
+                    Abrir tela cheia de validação →
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</div>
+
+<script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+<script>
+(function () {
+    const modo = "{{ modo|escapejs }}";
+    function goWithPayload(decoded) {
+        const url = new URL(window.location.href);
+        url.searchParams.set("modo", modo);
+        url.searchParams.set("q", decoded);
+        window.location.href = url.toString();
+    }
+    if (!window.Html5Qrcode) {
+        document.getElementById("scanHint").textContent = "Câmera indisponível neste navegador — use colar o link.";
+        return;
+    }
+    const scanner = new Html5Qrcode("reader");
+    Html5Qrcode.getCameras().then(cameras => {
+        if (!cameras || !cameras.length) {
+            document.getElementById("scanHint").textContent = "Nenhuma câmera encontrada — cole o link do QR.";
+            return;
+        }
+        const camId = cameras[cameras.length - 1].id;
+        scanner.start(
+            camId,
+            { fps: 8, qrbox: { width: 240, height: 240 } },
+            (decoded) => {
+                scanner.stop().finally(() => goWithPayload(decoded));
+            },
+            () => {}
+        ).catch(() => {
+            document.getElementById("scanHint").textContent = "Permita a câmera ou cole o link do QR.";
+        });
+    }).catch(() => {
+        document.getElementById("scanHint").textContent = "Permita a câmera ou cole o link do QR.";
+    });
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,213 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#700c15" />
+  <title>Política de Privacidade — Ultramed</title>
+  <link rel="icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3" />
+  <style>
+    :root { --accent: #700c15; --text: #1f1113; --muted: #6b7280; --bg: #faf7f7; --border: rgba(112,12,21,.18); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 800; margin: 0 0 8px; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+    h2 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 28px 0 10px; font-weight: 800; }
+    h3 { font-size: 15px; font-weight: 700; color: var(--text); margin: 18px 0 8px; }
+    p, li { font-size: 15px; color: #374151; }
+    ul { padding-left: 1.2rem; }
+    a { color: var(--accent); }
+    .foot { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+    .mono { font-size: 12px; letter-spacing: .04em; }
+    .related { margin-top: 32px; padding: 16px 18px; border-radius: 12px; background: #fff; border: 1px solid var(--border); }
+    .related p { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--text); }
+    .related ul { margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="mono" style="margin:0 0 16px;"><a href="{% url 'home' %}">← Ultramed</a></p>
+
+    <h1>Política de Privacidade – Ultramed</h1>
+    <p class="sub">
+      <strong>Versão 1.0</strong><br />
+      <strong>Última atualização:</strong> 5 de agosto de 2026
+    </p>
+
+    <h2>1. Introdução</h2>
+    <p>
+      Esta Política descreve como a <strong>Ultramed Clínica Médica</strong> (Ultramed Saúde Xingu) coleta, utiliza,
+      armazena, compartilha e protege dados pessoais tratados por meio do site
+      <strong>ultramedsaudexingu.com.br</strong>, formulários de contato, contratação de planos, área do paciente
+      (“Meu Espaço”) e sistema interno da clínica.
+    </p>
+    <p>
+      Ao utilizar esses canais, o titular declara estar ciente das práticas descritas nesta Política.
+    </p>
+
+    <h2>2. Controlador dos dados</h2>
+    <p>
+      A Ultramed atua como controladora dos dados pessoais tratados para as finalidades da clínica (cadastro,
+      planos, atendimento, comunicação e operação do sistema).
+    </p>
+    <p>
+      Contato: WhatsApp <a href="https://wa.me/5594984496349">(94) 98449-6349</a> · São Félix do Xingu – PA.
+    </p>
+
+    <h2>3. Dados coletados</h2>
+    <p>Conforme a funcionalidade utilizada, poderão ser tratados:</p>
+
+    <h3>Dados cadastrais</h3>
+    <ul>
+      <li>Nome completo;</li>
+      <li>CPF;</li>
+      <li>Telefone / WhatsApp;</li>
+      <li>Data de nascimento e sexo;</li>
+      <li>Endereço (quando informado);</li>
+      <li>Dados de dependentes vinculados ao titular;</li>
+      <li>Credenciais de acesso à área do paciente ou à equipe.</li>
+    </ul>
+
+    <h3>Dados de saúde e atendimento</h3>
+    <ul>
+      <li>Informações de plano, vencimento e histórico de consultas/agendamentos;</li>
+      <li>Prontuário, evolução clínica, receitas e exames/laudos, quando gerados ou anexados no sistema;</li>
+      <li>Classificações clínicas necessárias à assistência e à gestão da clínica (ex.: condições crônicas), quando registradas pela equipe.</li>
+    </ul>
+    <p>
+      Dados de saúde são tratados com cuidado especial, conforme a LGPD, para finalidades de assistência e gestão
+      do atendimento.
+    </p>
+
+    <h3>Dados de contato / leads</h3>
+    <ul>
+      <li>Nome, telefone e interesse informados em formulários do site (ex.: solicitar contato, orçamento, exames).</li>
+    </ul>
+
+    <h3>Dados financeiros</h3>
+    <p>
+      Pagamentos online podem ser processados pelo Mercado Pago. A Ultramed pode manter registros de fatura,
+      status, valor, método e identificadores da transação necessários à conciliação. Dados completos de cartão
+      não são armazenados pela Ultramed — ficam com o intermediador de pagamento.
+    </p>
+
+    <h3>Dados técnicos</h3>
+    <ul>
+      <li>Endereço IP, data/hora de acesso;</li>
+      <li>Informações de navegador ou dispositivo;</li>
+      <li>Sessão autenticada, logs de erro e eventos de segurança.</li>
+    </ul>
+
+    <h2>4. Finalidades do tratamento</h2>
+    <ul>
+      <li>cadastrar pacientes, titulares e dependentes;</li>
+      <li>contratar, renovar e administrar planos;</li>
+      <li>processar pagamentos e emitir/controlar faturas;</li>
+      <li>agendar atendimentos e apoiar a operação da clínica;</li>
+      <li>registrar prontuário, receitas e exames;</li>
+      <li>responder solicitações e leads do site (WhatsApp/contato);</li>
+      <li>autenticar usuários e controlar acessos;</li>
+      <li>cumprir obrigações legais e regulatórias;</li>
+      <li>prevenir fraude e usos indevidos;</li>
+      <li>melhorar a segurança e o funcionamento do sistema.</li>
+    </ul>
+
+    <h2>5. Bases legais</h2>
+    <p>O tratamento pode fundamentar-se, conforme o caso, em:</p>
+    <ul>
+      <li>execução de contrato ou procedimentos preliminares;</li>
+      <li>cumprimento de obrigação legal ou regulatória;</li>
+      <li>tutela da saúde, em procedimentos realizados por profissionais de saúde ou entidades autorizadas;</li>
+      <li>legítimo interesse, quando cabível e respeitados os direitos do titular;</li>
+      <li>consentimento, quando esta for a base aplicável.</li>
+    </ul>
+
+    <h2>6. Compartilhamento de dados</h2>
+    <p>Os dados poderão ser compartilhados apenas quando necessário, por exemplo com:</p>
+    <ul>
+      <li>equipe autorizada da Ultramed (recepção, médico, administrativo);</li>
+      <li>intermediador de pagamento (Mercado Pago);</li>
+      <li>provedores de hospedagem, infraestrutura e manutenção do sistema;</li>
+      <li>autoridades públicas, quando exigido por lei ou ordem judicial.</li>
+    </ul>
+    <p>
+      A Ultramed <strong>não vende</strong> cadastros nem comercializa dados pessoais a terceiros para fins de marketing
+      de terceiros.
+    </p>
+
+    <h2>7. Retenção e eliminação</h2>
+    <p>
+      Os dados são mantidos pelo tempo necessário às finalidades desta Política, às obrigações legais (incluindo
+      registros de saúde e fiscais, quando aplicável) e à defesa de direitos.
+    </p>
+    <p>
+      Quando não houver mais necessidade de conservação, poderão ser eliminados ou anonimizados, observadas as
+      exigências legais.
+    </p>
+
+    <h2>8. Direitos dos titulares</h2>
+    <p>Nos termos da LGPD, o titular pode solicitar, quando aplicável:</p>
+    <ul>
+      <li>confirmação da existência de tratamento;</li>
+      <li>acesso aos dados;</li>
+      <li>correção de dados incompletos, inexatos ou desatualizados;</li>
+      <li>anonimização, bloqueio ou eliminação de dados desnecessários;</li>
+      <li>informações sobre compartilhamentos;</li>
+      <li>revogação do consentimento, quando esta for a base legal utilizada.</li>
+    </ul>
+    <p>
+      Solicitações podem ser feitas pelo WhatsApp <a href="https://wa.me/5594984496349">(94) 98449-6349</a>
+      ou presencialmente na clínica.
+    </p>
+
+    <h2>9. Segurança da informação</h2>
+    <p>
+      A Ultramed adota medidas técnicas e administrativas compatíveis com o serviço (controle de acesso por perfil,
+      autenticação, comunicação segura quando aplicável e práticas de proteção dos ambientes digitais).
+    </p>
+    <p>
+      Nenhum sistema é totalmente imune a riscos; recomenda-se ao usuário proteger suas senhas e dispositivos.
+    </p>
+
+    <h2>10. Cookies e tecnologias semelhantes</h2>
+    <p>
+      O site e o sistema podem utilizar cookies ou armazenamento de sessão para manter login, preferências e
+      funcionamento adequado das páginas.
+    </p>
+
+    <h2>11. Transferência internacional</h2>
+    <p>
+      Quando necessário à operação (ex.: infraestrutura ou meios de pagamento), poderão ser utilizados provedores
+      com processamento fora do Brasil, observadas as exigências legais e medidas adequadas de proteção.
+    </p>
+
+    <h2>12. Alterações desta Política</h2>
+    <p>
+      Esta Política poderá ser atualizada para refletir mudanças legais ou operacionais. A versão vigente permanece
+      disponível neste endereço.
+    </p>
+
+    <h2>13. Contato</h2>
+    <p>
+      Dúvidas sobre privacidade ou exercício de direitos LGPD: Ultramed Clínica Médica —
+      WhatsApp <a href="https://wa.me/5594984496349">(94) 98449-6349</a> · São Félix do Xingu – PA.
+    </p>
+
+    <div class="related">
+      <p>Documentos relacionados</p>
+      <ul>
+        <li><a href="{% url 'termos' %}">Termos de Uso</a></li>
+        <li><a href="{% url 'ajuda_paciente' %}">Ajuda do Paciente</a></li>
+      </ul>
+    </div>
+
+    <div class="foot">
+      <a href="{% url 'termos' %}">Termos de Uso</a> ·
+      <a href="{% url 'ajuda_paciente' %}">Ajuda</a> ·
+      <a href="{% url 'home' %}">Início</a>
+    </div>
+  </div>
+</body>
+</html>

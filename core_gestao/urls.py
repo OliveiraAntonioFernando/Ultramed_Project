@@ -9,6 +9,7 @@ urlpatterns = [
     # Acesso e Painéis
     path('login/', views.login_view, name='login'),
     path('logout/', views.logout_view, name='logout'),
+    path('ajuda/', views.ajuda_equipe, name='ajuda_equipe'),
     
     # Painéis
     path('paciente/painel/', views.painel_paciente, name='painel_paciente'),
@@ -38,6 +39,10 @@ urlpatterns = [
     path('financeiro/fatura/nova/', views.fatura_create, name='fatura_create'),
     path('financeiro/fatura/salvar/', views.fatura_store, name='fatura_store'),
     path('financeiro/fatura/baixar/<int:fatura_id>/', views.fatura_baixar, name='fatura_baixar'),
+    path('financeiro/comprovante/<int:fatura_id>/', views.comprovante_fatura, name='comprovante_fatura'),
+    path('planos/a-vencer/', views.planos_a_vencer, name='planos_a_vencer'),
+    path('carteirinha/v/<str:token>/', views.validar_carteirinha, name='validar_carteirinha'),
+    path('carteirinha/ler/', views.ler_carteirinha, name='ler_carteirinha'),
     
     # Checkout
     path('checkout/pagamento/<int:paciente_id>/<int:plano_id>/', views.checkout_pagamento, name='checkout_pagamento'),

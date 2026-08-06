@@ -8,6 +8,7 @@ from datetime import date, time
 from django.contrib.auth.models import User
 from django.test import TestCase
 from django.urls import reverse
+from django.utils import timezone
 
 from core_gestao.models import Agenda, Paciente, Plano
 
@@ -141,6 +142,48 @@ class MedicoAccessTests(StaffUserMixin, TestCase):
         r = self.client.get(reverse("sistema_interno:fatura_create"))
         self.assertEqual(r.status_code, 302)
 
+    def test_master_dashboard_forbidden(self):
+        r = self.client.get(reverse("sistema_interno:master_dashboard"))
+        self.assertEqual(r.status_code, 302)
+
+
+class ReceptionClinicalLockTests(StaffUserMixin, TestCase):
+    """Recepção não deve acessar dados clínicos sensíveis via API."""
+
+    def setUp(self):
+        self.client.login(username="recepcao", password=self.password)
+        self.paciente = Paciente.objects.create(
+            nome_completo="Paciente Clinico",
+            cpf="55544433322",
+            telefone="94000000009",
+            data_nascimento=date(1990, 1, 1),
+            sexo="M",
+            is_titular=True,
+        )
+
+    def test_recepcao_nao_le_ultima_receita(self):
+        r = self.client.get(
+            reverse("sistema_interno:api_ultima_receita", args=[self.paciente.id])
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_recepcao_nao_classifica_cronico(self):
+        r = self.client.post(
+            reverse("sistema_interno:salvar_doencas", args=[self.paciente.id]),
+            {"doencas[]": ["DIABETES"]},
+        )
+        self.assertEqual(r.status_code, 403)
+
+    def test_recepcao_nao_abre_prontuario(self):
+        r = self.client.get(
+            reverse("sistema_interno:prontuario_view", args=[self.paciente.id])
+        )
+        self.assertEqual(r.status_code, 302)
+
+    def test_recepcao_nao_abre_master(self):
+        r = self.client.get(reverse("sistema_interno:master_dashboard"))
+        self.assertEqual(r.status_code, 302)
+
 
 class PacienteAccessTests(StaffUserMixin, TestCase):
     def setUp(self):
@@ -220,6 +263,27 @@ class AgendaCheckinTests(StaffUserMixin, TestCase):
             },
         )
         self.assertEqual(r.status_code, 302)
-        self.assertIn("data=2026-06-10", r.url)
+        self.ag.refresh_from_db()
+        self.assertEqual(self.ag.status, "CHEGOU")
+        # Check-in coloca o paciente na fila do dia corrente
+        self.assertEqual(self.ag.data, timezone.now().date())
+
+    def test_checkin_get_atalho_recepcao(self):
+        url = reverse("sistema_interno:agenda_view")
+        r = self.client.get(url, {"status": "CHEGOU", "id": str(self.ag.id)})
+        self.assertEqual(r.status_code, 302)
+        self.ag.refresh_from_db()
+        self.assertEqual(self.ag.status, "CHEGOU")
+        self.assertEqual(self.ag.data, timezone.now().date())
+
+    def test_checkin_no_painel_recepcao(self):
+        url = reverse("sistema_interno:painel_colaborador")
+        # garante agendamento de hoje
+        self.ag.data = timezone.now().date()
+        self.ag.status = "AGENDADO"
+        self.ag.save()
+        r = self.client.post(url, {"agenda_checkin_id": str(self.ag.id)})
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, url)
         self.ag.refresh_from_db()
         self.assertEqual(self.ag.status, "CHEGOU")

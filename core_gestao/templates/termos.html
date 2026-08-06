@@ -1,0 +1,156 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#700c15" />
+  <title>Termos de Uso — Ultramed</title>
+  <link rel="icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3" />
+  <style>
+    :root { --accent: #700c15; --text: #1f1113; --muted: #6b7280; --bg: #faf7f7; --border: rgba(112,12,21,.18); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); line-height: 1.65; }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: clamp(1.35rem, 4vw, 1.75rem); font-weight: 800; margin: 0 0 8px; letter-spacing: -0.02em; }
+    .sub { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+    h2 { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 28px 0 10px; font-weight: 800; }
+    p, li { font-size: 15px; color: #374151; }
+    ul { padding-left: 1.2rem; }
+    a { color: var(--accent); }
+    .foot { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+    .mono { font-size: 12px; letter-spacing: .04em; }
+    .related { margin-top: 32px; padding: 16px 18px; border-radius: 12px; background: #fff; border: 1px solid var(--border); }
+    .related p { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--text); }
+    .related ul { margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p class="mono" style="margin:0 0 16px;"><a href="{% url 'home' %}">← Ultramed</a></p>
+
+    <h1>Termos de Uso – Ultramed</h1>
+    <p class="sub">
+      <strong>Versão 1.0</strong><br />
+      <strong>Última atualização:</strong> 5 de agosto de 2026
+    </p>
+
+    <h2>1. Objeto</h2>
+    <p>
+      A <strong>Ultramed Clínica Médica</strong> (Ultramed Saúde Xingu), com atuação em São Félix do Xingu – PA,
+      disponibiliza site institucional, contratação de planos, área do paciente (“Meu Espaço”) e sistema interno
+      de apoio à operação da clínica.
+    </p>
+    <p>
+      Estes Termos de Uso regulam o acesso e a utilização do site
+      <strong>ultramedsaudexingu.com.br</strong>, dos formulários de contato, do checkout de planos, do painel do
+      paciente e demais funcionalidades digitais oferecidas pela Ultramed.
+    </p>
+    <p>
+      Ao acessar ou utilizar esses canais, o usuário declara que leu, compreendeu e concorda com estes Termos e com a
+      <a href="{% url 'privacidade' %}">Política de Privacidade</a>.
+    </p>
+
+    <h2>2. Cadastro e responsabilidade do usuário</h2>
+    <p>
+      O usuário compromete-se a fornecer informações verdadeiras, completas e atualizadas (incluindo nome, CPF,
+      telefone e demais dados solicitados), mantendo a confidencialidade de suas credenciais de acesso.
+    </p>
+    <p>
+      O titular do plano é responsável pelos dados dos dependentes informados no cadastro e pela utilização adequada
+      da área do paciente. O uso indevido de login/senha é de responsabilidade do titular das credenciais.
+    </p>
+
+    <h2>3. Planos, contratação e pagamentos</h2>
+    <p>
+      A Ultramed oferece planos de saúde/assistência conforme condições comerciais divulgadas no site ou na clínica.
+      A cobrança de assinatura no ambiente digital ocorre, em regra, na modalidade de <strong>anuidade</strong>,
+      conforme o checkout.
+    </p>
+    <p>
+      Pagamentos online podem ser processados por intermediador (Mercado Pago), via PIX ou cartão. A liberação do
+      plano após pagamento depende da confirmação da operadora/intermediador.
+    </p>
+    <p>
+      Valores, coberturas, descontos e limites de dependentes seguem as regras do plano contratado e podem ser
+      confirmados pela equipe Ultramed. O inadimplemento pode resultar em suspensão de benefícios até a regularização.
+    </p>
+
+    <h2>4. Serviços clínicos e limitações do sistema</h2>
+    <p>
+      O site e o sistema digital são ferramentas de apoio à contratação, comunicação, agenda, prontuário e gestão.
+      Eles <strong>não substituem</strong> atendimento médico presencial, diagnóstico, urgência/emergência ou
+      orientação profissional quando exigidos.
+    </p>
+    <p>
+      Em caso de emergência médica, procure o serviço de saúde adequado imediatamente.
+    </p>
+
+    <h2>5. Disponibilidade</h2>
+    <p>
+      A Ultramed busca manter os canais digitais disponíveis de forma contínua, podendo ocorrer interrupções por
+      manutenção, atualizações, falhas de infraestrutura, indisponibilidade de terceiros (como meios de pagamento)
+      ou força maior.
+    </p>
+
+    <h2>6. Propriedade intelectual</h2>
+    <p>
+      Marcas, layout, textos, logotipos e demais elementos do site e do sistema Ultramed são protegidos. É vedada
+      reprodução ou uso não autorizado sem autorização prévia.
+    </p>
+
+    <h2>7. Tratamento de dados pessoais</h2>
+    <p>
+      O tratamento de dados pessoais, inclusive dados de saúde quando aplicável, observa a legislação vigente,
+      especialmente a LGPD (Lei nº 13.709/2018), conforme a
+      <a href="{% url 'privacidade' %}">Política de Privacidade</a>.
+    </p>
+
+    <h2>8. Condutas proibidas</h2>
+    <p>É vedado ao usuário:</p>
+    <ul>
+      <li>utilizar os canais para fins ilícitos ou fraudulentos;</li>
+      <li>tentar obter acesso não autorizado a áreas restritas;</li>
+      <li>inserir dados falsos ou de terceiros sem autorização;</li>
+      <li>comprometer a segurança ou o funcionamento do sistema.</li>
+    </ul>
+
+    <h2>9. Suspensão ou encerramento</h2>
+    <p>
+      A Ultramed poderá suspender ou restringir o acesso digital em casos de inadimplemento, uso ilícito, fraude,
+      violação destes Termos, risco à segurança ou determinação legal.
+    </p>
+
+    <h2>10. Alterações dos Termos</h2>
+    <p>
+      Estes Termos poderão ser atualizados para refletir mudanças legais, operacionais ou comerciais. A versão
+      vigente permanece disponível neste endereço.
+    </p>
+
+    <h2>11. Legislação aplicável</h2>
+    <p>
+      Estes Termos são regidos pelas leis da República Federativa do Brasil.
+    </p>
+
+    <h2>12. Contato</h2>
+    <p>
+      Dúvidas sobre estes Termos podem ser encaminhadas à Ultramed pelo WhatsApp
+      <a href="https://wa.me/5594984496349">(94) 98449-6349</a> ou pelos canais oficiais da clínica.
+    </p>
+
+    <div class="related">
+      <p>Documentos relacionados</p>
+      <ul>
+        <li><a href="{% url 'privacidade' %}">Política de Privacidade</a></li>
+        <li><a href="{% url 'ajuda_paciente' %}">Ajuda do Paciente</a></li>
+      </ul>
+    </div>
+
+    <div class="foot">
+      <a href="{% url 'privacidade' %}">Privacidade</a> ·
+      <a href="{% url 'ajuda_paciente' %}">Ajuda</a> ·
+      <a href="{% url 'home' %}">Início</a>
+    </div>
+  </div>
+</body>
+</html>

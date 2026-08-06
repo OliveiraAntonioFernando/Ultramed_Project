@@ -43,6 +43,9 @@
                     <span class="text-[10px] font-black bg-white/20 px-3 sm:px-4 py-1.5 rounded-full uppercase italic tracking-widest truncate max-w-[10rem] sm:max-w-none">
                         {{ request.user.username }}
                     </span>
+                    <a href="{% url 'sistema_interno:ajuda_equipe' %}" class="shrink-0 bg-white/20 hover:bg-white/30 text-white px-3 py-2 rounded-full text-[10px] font-black uppercase italic no-underline" title="Central da Equipe">
+                        <i class="fas fa-book-open mr-1"></i> Ajuda
+                    </a>
                     <a href="{% url 'sistema_interno:logout' %}" class="shrink-0 bg-white text-marsala-700 w-10 h-10 flex items-center justify-center rounded-full shadow-lg hover:bg-marsala-100 transition-all" title="Sair">
                         <i class="fas fa-power-off text-sm"></i>
                     </a>
@@ -62,11 +65,11 @@
                     <p class="text-[8px] sm:text-[9px] text-gray-400 font-bold uppercase text-center mt-2 tracking-wide leading-tight">{{ periodo_recebimentos_label }}</p>
                     <p class="text-[8px] sm:text-[9px] text-emerald-700/80 font-bold text-center mt-1">{{ qtd_recebimentos_periodo }} pagamento{% if qtd_recebimentos_periodo != 1 %}s{% endif %}</p>
                 </div>
-                <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-amber-500 shadow-sm">
+                <a href="{% url 'sistema_interno:planos_a_vencer' %}" class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-amber-500 shadow-sm block no-underline hover:bg-amber-50/40 transition-all">
                     <p class="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center leading-tight">Titulares à vencer</p>
                     <h3 class="text-lg sm:text-2xl font-black text-amber-600 mt-2 text-center tabular-nums">{{ pacientes_vencendo.count }}</h3>
-                    <p class="text-[8px] text-gray-400 font-bold uppercase text-center mt-2">Próximos 30 dias</p>
-                </div>
+                    <p class="text-[8px] text-amber-700 font-bold uppercase text-center mt-2">Ver lista · WhatsApp</p>
+                </a>
                 <div class="bg-white p-4 sm:p-6 rounded-2xl sm:rounded-[2rem] border-b-4 border-blue-500 shadow-sm">
                     <p class="text-[9px] sm:text-[10px] font-black text-gray-400 uppercase italic tracking-widest text-center leading-tight">Leads novos</p>
                     <h3 class="text-lg sm:text-2xl font-black text-blue-600 mt-2 text-center tabular-nums">{{ leads_recentes.count }}</h3>
@@ -114,7 +117,8 @@
                                         <th class="p-3 text-left hidden sm:table-cell">Data</th>
                                         <th class="p-3 text-left hidden md:table-cell">Método</th>
                                         <th class="p-3 text-right">Valor</th>
-                                        <th class="p-3 text-right pr-6 sm:pr-8">Status</th>
+                                        <th class="p-3 text-right">Status</th>
+                                        <th class="p-3 text-right pr-6 sm:pr-8">Recibo</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-gray-50">
@@ -127,11 +131,14 @@
                                         <td class="p-4 text-gray-600 font-bold text-xs hidden sm:table-cell">{{ b.data_pagamento|date:"d/m/Y" }}</td>
                                         <td class="p-4 text-[10px] font-bold text-gray-600 uppercase hidden md:table-cell">{{ b.get_metodo_pagamento_display|default:"—" }}</td>
                                         <td class="p-4 text-right"><span class="text-sm font-black text-emerald-600 tabular-nums">R$ {{ b.valor|floatformat:2 }}</span></td>
-                                        <td class="p-4 text-right pr-6 sm:pr-8"><span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Pago</span></td>
+                                        <td class="p-4 text-right"><span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Pago</span></td>
+                                        <td class="p-4 text-right pr-6 sm:pr-8">
+                                            <a href="{% url 'sistema_interno:comprovante_fatura' b.id %}" class="text-[9px] font-black uppercase text-marsala-700 no-underline hover:underline">Comprovante</a>
+                                        </td>
                                     </tr>
                                     {% empty %}
                                     <tr>
-                                        <td colspan="5" class="p-10 text-center text-[10px] font-bold text-gray-400 uppercase italic">Nenhum pagamento recebido neste período</td>
+                                        <td colspan="6" class="p-10 text-center text-[10px] font-bold text-gray-400 uppercase italic">Nenhum pagamento recebido neste período</td>
                                     </tr>
                                     {% endfor %}
                                 </tbody>
@@ -204,6 +211,20 @@
                 <section aria-labelledby="heading-operacao">
                     <h2 id="heading-operacao" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-3 ml-1">Operação</h2>
                     <div class="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm p-4 sm:p-5 space-y-3">
+                        <a href="{% url 'sistema_interno:planos_a_vencer' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-amber-400 hover:bg-amber-50/40 transition-all group no-underline">
+                            <div class="bg-amber-50 p-3 rounded-xl group-hover:bg-amber-500 group-hover:text-white text-amber-600 transition-all shrink-0"><i class="fas fa-bell" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">Planos a vencer</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Avisar no WhatsApp</span>
+                            </div>
+                        </a>
+                        <a href="{% url 'sistema_interno:ler_carteirinha' %}?modo=recepcao" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-emerald-400 hover:bg-emerald-50/40 transition-all group no-underline">
+                            <div class="bg-emerald-50 p-3 rounded-xl group-hover:bg-emerald-600 group-hover:text-white text-emerald-600 transition-all shrink-0"><i class="fas fa-qrcode" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">Ler carteirinha</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Recepção / Farmácia</span>
+                            </div>
+                        </a>
                         <a href="{% url 'sistema_interno:agenda_view' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-blue-400 hover:bg-blue-50/40 transition-all group no-underline">
                             <div class="bg-blue-50 p-3 rounded-xl group-hover:bg-blue-600 group-hover:text-white text-blue-600 transition-all shrink-0"><i class="fas fa-calendar-alt" aria-hidden="true"></i></div>
                             <div class="min-w-0">
@@ -225,6 +246,13 @@
                                 <span class="text-[9px] text-gray-400 font-bold uppercase">Lista e cadastros</span>
                             </div>
                         </a>
+                        <a href="{% url 'sistema_interno:ajuda_equipe' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-amber-500 hover:bg-amber-50/40 transition-all group no-underline">
+                            <div class="bg-amber-50 p-3 rounded-xl group-hover:bg-amber-600 group-hover:text-white text-amber-700 transition-all shrink-0"><i class="fas fa-book-open" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">Central da Equipe</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Manual interno</span>
+                            </div>
+                        </a>
                     </div>
                 </section>
 
@@ -232,17 +260,30 @@
                     <h2 id="heading-leads" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em] mb-3 ml-1">Leads do site</h2>
                     <div class="bg-white rounded-[1.75rem] border border-gray-100 p-4 sm:p-5 shadow-sm space-y-3 max-h-[28rem] overflow-y-auto">
                         {% for lead in leads_recentes %}
-                        <div class="bg-gray-50 p-4 rounded-2xl flex justify-between items-center gap-2">
-                            <div class="flex-1 min-w-0">
+                        <div class="bg-gray-50 p-4 rounded-2xl space-y-3" data-lead-card="{{ lead.id }}">
+                            <div class="min-w-0">
                                 <p class="text-[10px] font-black uppercase text-gray-800 leading-tight truncate">{{ lead.nome }}</p>
                                 <p class="text-xs text-marsala-600 font-bold mt-1">{{ lead.telefone }}</p>
                                 <p class="text-xs text-gray-600 font-bold mt-1">
                                     {{ lead.data_solicitacao|date:"d/m/Y" }} · {{ lead.data_solicitacao|date:"H:i" }}
                                 </p>
+                                {% if lead.interesse %}
+                                <p class="text-[9px] font-black uppercase text-sky-700 bg-sky-50 inline-block mt-2 px-2 py-0.5 rounded">{{ lead.interesse }}</p>
+                                {% endif %}
                             </div>
-                            <button type="button" class="btn-atender shrink-0 bg-emerald-500 text-white w-9 h-9 flex items-center justify-center rounded-xl border-none cursor-pointer hover:bg-emerald-600" data-id="{{ lead.id }}" data-tel="{{ lead.telefone }}" title="WhatsApp">
-                                <i class="fab fa-whatsapp text-lg" aria-hidden="true"></i>
-                            </button>
+                            <div class="flex gap-2">
+                                <a href="https://wa.me/55{{ lead.telefone|cut:' '|cut:'-'|cut:'('|cut:')' }}"
+                                   target="_blank" rel="noopener noreferrer"
+                                   class="flex-1 bg-emerald-500 text-white text-center py-2 rounded-xl text-[9px] font-black uppercase no-underline hover:bg-emerald-600">
+                                    <i class="fab fa-whatsapp mr-1"></i> WhatsApp
+                                </a>
+                                <button type="button"
+                                        class="btn-baixar-lead flex-1 bg-marsala-700 text-white py-2 rounded-xl text-[9px] font-black uppercase border-none cursor-pointer hover:bg-marsala-800"
+                                        data-id="{{ lead.id }}"
+                                        title="Marcar como contato feito">
+                                    <i class="fas fa-check mr-1"></i> Contato feito
+                                </button>
+                            </div>
                         </div>
                         {% empty %}
                         <p class="text-[9px] text-center text-gray-400 uppercase font-bold py-6 italic">Nenhum lead novo</p>
@@ -256,19 +297,41 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // 1. Atender Lead
-    document.querySelectorAll('.btn-atender').forEach(button => {
+    document.querySelectorAll('.btn-baixar-lead').forEach(button => {
         button.addEventListener('click', function() {
             const id = this.getAttribute('data-id');
-            const tel = this.getAttribute('data-tel').replace(/\D/g,'');
-            fetch("{% url 'sistema_interno:baixar_lead' 999001999 %}".replace("999001999", id)).then(() => { 
-                window.open("https://wa.me/55" + tel, "_blank");
-                setTimeout(() => { window.location.reload(); }, 1000); 
+            const btn = this;
+            btn.disabled = true;
+            btn.classList.add('opacity-60');
+            const url = "{% url 'sistema_interno:baixar_lead' 999001999 %}".replace("999001999", id);
+            fetch(url, {
+                method: "POST",
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Accept": "application/json",
+                    "X-CSRFToken": "{{ csrf_token }}",
+                },
+                credentials: "same-origin",
+            })
+            .then(async (response) => {
+                const data = await response.json().catch(() => ({}));
+                if (!response.ok || !data.success) {
+                    throw new Error(data.detail || "Não foi possível baixar o lead.");
+                }
+                const card = document.querySelector('[data-lead-card="' + id + '"]');
+                if (card) card.remove();
+                else window.location.reload();
+            })
+            .catch((err) => {
+                console.error(err);
+                alert(err.message || "Erro ao baixar lead.");
+                btn.disabled = false;
+                btn.classList.remove('opacity-60');
             });
         });
     });
 
-    // 2. Disparos CRM Personalizados - LISTA DEFINITIVA
+    // Disparos CRM Personalizados - LISTA DEFINITIVA
     document.querySelectorAll('.btn-promocao').forEach(button => {
         button.addEventListener('click', function() {
             const nome = this.getAttribute('data-nome');
