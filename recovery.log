@@ -9674,3 +9674,15 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    067d6db..0bf8325  main -> main
+[main 98ffd69] Ponto de Recuperação Automático: 2026-08-06 06:00:02
+ 21 files changed, 1965 insertions(+), 90 deletions(-)
+ create mode 100644 core_gestao/templates/ajuda_equipe.html
+ create mode 100644 core_gestao/templates/ajuda_paciente.html
+ create mode 100644 core_gestao/templates/comprovante_fatura.html
+ create mode 100644 core_gestao/templates/ler_carteirinha.html
+ create mode 100644 core_gestao/templates/planos_a_vencer.html
+ create mode 100644 core_gestao/templates/privacidade.html
+ create mode 100644 core_gestao/templates/termos.html
+ create mode 100644 core_gestao/templates/validar_carteirinha.html
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   0bf8325..98ffd69  main -> main
