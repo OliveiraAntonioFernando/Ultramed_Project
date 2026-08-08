@@ -106,6 +106,7 @@ RESUMO_PROCEDIMENTOS_PLANO = {
         "Ultrassonografia (USG)",
         "MAPA 24h",
         "Holter 24h",
+        "Desconto: 30% na 1ª do mês / 20% nas demais",
     ],
     "MASTER": [
         "Tudo do Essencial",
@@ -113,11 +114,12 @@ RESUMO_PROCEDIMENTOS_PLANO = {
         "ECG e Espirometria",
         "Endoscopia, PAAF e Biópsias",
         "DIU / Implanon, EEG, Polissonografia",
+        "Desconto: 30% nos procedimentos cobertos",
     ],
     "EMPRESARIAL": [
         "Tudo do Master",
         "Exames laboratoriais de rotina (40% off)",
-        "Consultas e procedimentos hormonais (30% off)",
+        "Consultas e procedimentos clínicos (30% off)",
     ],
 }
 

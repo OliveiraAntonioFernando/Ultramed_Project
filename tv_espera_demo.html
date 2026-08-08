@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ultramed · TV Sala de Espera (demo)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,wght@0,400;0,700;0,900;1,700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --marsala: #700c15;
+      --marsala-deep: #4a0810;
+      --cream: #f7f1ea;
+      --ink: #1a1210;
+      --gold: #c9a227;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0d0a09;
+      font-family: "DM Sans", system-ui, sans-serif;
+      color: var(--cream);
+    }
+
+    /* ===== TV stage (16:9) ===== */
+    .stage {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 40%, #2a1518 0%, #0d0a09 70%);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+    }
+
+    /* ===== Top bar ===== */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.1rem 2rem;
+      background: linear-gradient(180deg, rgba(112,12,21,.95), rgba(112,12,21,.75));
+      border-bottom: 3px solid var(--gold);
+      z-index: 5;
+    }
+
+    .brand {
+      display: flex;
+      align-items: baseline;
+      gap: .75rem;
+    }
+
+    .brand h1 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(1.8rem, 4vw, 2.8rem);
+      letter-spacing: .06em;
+      line-height: 1;
+    }
+
+    .brand span {
+      font-size: .7rem;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .22em;
+      opacity: .75;
+    }
+
+    .clock-block {
+      text-align: right;
+    }
+
+    .clock {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      letter-spacing: .04em;
+      line-height: 1;
+    }
+
+    .date {
+      font-size: .7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .16em;
+      opacity: .7;
+      margin-top: .2rem;
+    }
+
+    /* ===== Main content ===== */
+    .main {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 0;
+      min-height: 0;
+    }
+
+    .cinema {
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(135deg, rgba(112,12,21,.35), transparent 50%),
+        repeating-linear-gradient(
+          -12deg,
+          transparent,
+          transparent 40px,
+          rgba(255,255,255,.015) 40px,
+          rgba(255,255,255,.015) 41px
+        );
+    }
+
+    .cinema-inner {
+      text-align: center;
+      padding: 2rem;
+      max-width: 640px;
+    }
+
+    .cinema-inner .tag {
+      display: inline-block;
+      font-size: .65rem;
+      font-weight: 900;
+      letter-spacing: .28em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+
+    .cinema-inner h2 {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(2.2rem, 6vw, 4.5rem);
+      line-height: .95;
+      letter-spacing: .02em;
+      margin-bottom: 1rem;
+    }
+
+    .cinema-inner p {
+      font-size: clamp(.9rem, 1.5vw, 1.15rem);
+      font-weight: 700;
+      opacity: .65;
+      line-height: 1.5;
+    }
+
+    /* Side news panel */
+    .news-panel {
+      background: rgba(0,0,0,.45);
+      border-left: 1px solid rgba(201,162,39,.35);
+      padding: 1.25rem 1.1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      overflow: hidden;
+    }
+
+    .news-panel h3 {
+      font-size: .65rem;
+      font-weight: 900;
+      letter-spacing: .24em;
+      text-transform: uppercase;
+      color: var(--gold);
+    }
+
+    .news-list {
+      display: flex;
+      flex-direction: column;
+      gap: .85rem;
+      overflow: hidden;
+      flex: 1;
+    }
+
+    .news-item {
+      padding-bottom: .85rem;
+      border-bottom: 1px solid rgba(255,255,255,.08);
+      animation: fadeSlide .6s ease both;
+    }
+
+    .news-item .src {
+      font-size: .55rem;
+      font-weight: 900;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      color: #e8b4b8;
+      margin-bottom: .3rem;
+    }
+
+    .news-item .title {
+      font-size: .92rem;
+      font-weight: 700;
+      line-height: 1.35;
+      font-style: italic;
+    }
+
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ===== Bottom ticker ===== */
+    .ticker {
+      background: var(--marsala-deep);
+      border-top: 2px solid var(--gold);
+      display: flex;
+      align-items: stretch;
+      height: 52px;
+      overflow: hidden;
+      z-index: 5;
+    }
+
+    .ticker-label {
+      background: var(--gold);
+      color: var(--ink);
+      font-size: .65rem;
+      font-weight: 900;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+      padding: 0 1.2rem;
+      display: flex;
+      align-items: center;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .ticker-track {
+      flex: 1;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      mask-image: linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
+    }
+
+    .ticker-move {
+      display: flex;
+      gap: 3rem;
+      white-space: nowrap;
+      animation: ticker 40s linear infinite;
+      padding-left: 100%;
+    }
+
+    .ticker-move span {
+      font-size: .95rem;
+      font-weight: 700;
+      font-style: italic;
+    }
+
+    .ticker-move span::after {
+      content: "  ·  ";
+      opacity: .4;
+      font-style: normal;
+    }
+
+    @keyframes ticker {
+      from { transform: translateX(0); }
+      to { transform: translateX(-100%); }
+    }
+
+    /* ===== CALL OVERLAY ===== */
+    .call-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10, 6, 6, .88);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .35s ease;
+    }
+
+    .call-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .call-card {
+      text-align: center;
+      padding: 2.5rem 3rem;
+      max-width: min(920px, 92vw);
+      transform: scale(.92);
+      transition: transform .4s cubic-bezier(.2, .9, .2, 1);
+    }
+
+    .call-overlay.active .call-card {
+      transform: scale(1);
+      animation: pulseGlow 1.8s ease-in-out infinite;
+    }
+
+    @keyframes pulseGlow {
+      0%, 100% { filter: drop-shadow(0 0 0 transparent); }
+      50% { filter: drop-shadow(0 0 40px rgba(201,162,39,.35)); }
+    }
+
+    .call-card .eyebrow {
+      font-size: .8rem;
+      font-weight: 900;
+      letter-spacing: .35em;
+      text-transform: uppercase;
+      color: var(--gold);
+      margin-bottom: 1rem;
+    }
+
+    .call-card .name {
+      font-family: "Bebas Neue", sans-serif;
+      font-size: clamp(3rem, 10vw, 7rem);
+      line-height: .95;
+      letter-spacing: .02em;
+      color: #fff;
+      text-transform: uppercase;
+    }
+
+    .call-card .room {
+      margin-top: 1.25rem;
+      font-size: clamp(1rem, 2.5vw, 1.6rem);
+      font-weight: 900;
+      font-style: italic;
+      color: #f0c9cd;
+    }
+
+    .call-card .consultorio {
+      margin-top: .5rem;
+      display: inline-block;
+      background: var(--marsala);
+      border: 2px solid var(--gold);
+      padding: .55rem 1.4rem;
+      border-radius: 999px;
+      font-size: .75rem;
+      font-weight: 900;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    /* ===== Demo controls (só no emulador) ===== */
+    .demo-dock {
+      position: fixed;
+      right: 1rem;
+      bottom: 4.2rem;
+      z-index: 60;
+      background: rgba(255,255,255,.96);
+      color: var(--ink);
+      border-radius: 1.25rem;
+      padding: 1rem 1.1rem;
+      width: 260px;
+      box-shadow: 0 16px 40px rgba(0,0,0,.45);
+      font-size: .8rem;
+    }
+
+    .demo-dock strong {
+      display: block;
+      font-size: .65rem;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: .6rem;
+      color: var(--marsala);
+    }
+
+    .demo-dock input, .demo-dock select {
+      width: 100%;
+      margin: .35rem 0 .6rem;
+      padding: .55rem .65rem;
+      border: 1px solid #ddd;
+      border-radius: .6rem;
+      font: inherit;
+      font-weight: 700;
+    }
+
+    .demo-dock button {
+      width: 100%;
+      border: none;
+      cursor: pointer;
+      background: var(--marsala);
+      color: #fff;
+      font-weight: 900;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      font-size: .7rem;
+      padding: .75rem;
+      border-radius: .7rem;
+      margin-top: .2rem;
+    }
+
+    .demo-dock button.secondary {
+      background: #222;
+      margin-top: .4rem;
+    }
+
+    .demo-dock .hint {
+      margin-top: .65rem;
+      font-size: .65rem;
+      opacity: .55;
+      line-height: 1.35;
+    }
+
+    @media (max-width: 800px) {
+      .main { grid-template-columns: 1fr; }
+      .news-panel { display: none; }
+      .demo-dock { width: calc(100vw - 2rem); right: 1rem; left: 1rem; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage">
+    <header class="topbar">
+      <div class="brand">
+        <h1>ULTRAMED</h1>
+        <span>Sala de espera</span>
+      </div>
+      <div class="clock-block">
+        <div class="clock" id="clock">--:--</div>
+        <div class="date" id="date">—</div>
+      </div>
+    </header>
+
+    <div class="main">
+      <section class="cinema">
+        <div class="cinema-inner">
+          <p class="tag">Cuidado que acolhe</p>
+          <h2>Bem-vindo à Ultramed</h2>
+          <p>
+            Aguarde ser chamado pelo painel. Mantenha o volume do celular baixo
+            e acompanhe as informações na tela.
+          </p>
+        </div>
+      </section>
+
+      <aside class="news-panel">
+        <h3>Notícias · agora</h3>
+        <div class="news-list" id="newsList"></div>
+      </aside>
+    </div>
+
+    <div class="ticker">
+      <div class="ticker-label">Ao vivo</div>
+      <div class="ticker-track">
+        <div class="ticker-move" id="tickerMove"></div>
+      </div>
+    </div>
+
+    <!-- Overlay de chamada -->
+    <div class="call-overlay" id="callOverlay" aria-live="assertive">
+      <div class="call-card">
+        <p class="eyebrow">Por favor, dirija-se ao</p>
+        <p class="name" id="callName">NOME DO PACIENTE</p>
+        <p class="room" id="callMsg">Sua consulta vai começar</p>
+        <p class="consultorio" id="callRoom">Consultório 1</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Controles só para emular (no sistema real some — o médico chama pelo painel) -->
+  <div class="demo-dock">
+    <strong>Emulador · demo</strong>
+    <label>Nome do paciente</label>
+    <input id="demoName" value="Fernando Antonio de Oliveira" />
+    <label>Consultório</label>
+    <select id="demoRoom">
+      <option>Consultório 1</option>
+      <option>Consultório 2</option>
+      <option>Sala de Exames</option>
+    </select>
+    <button type="button" id="btnCall">▶ Simular chamada</button>
+    <button type="button" class="secondary" id="btnClear">Limpar tela</button>
+    <p class="hint">
+      Abra este arquivo no Chrome (F11 tela cheia). No sistema real, a chamada
+      vem do botão do médico — sem este painel.
+    </p>
+  </div>
+
+  <script>
+    const NEWS = [
+      { src: "Saúde", title: "Ministério reforça campanha de vacinação contra gripe no Pará" },
+      { src: "Brasil", title: "Governo anuncia novo pacote de investimentos em atenção básica" },
+      { src: "Pará", title: "Xingu: previsão de chuva moderada para o fim de semana" },
+      { src: "Ciência", title: "Estudo aponta benefícios do check-up anual em adultos" },
+      { src: "Mundo", title: "OMS atualiza diretrizes sobre prevenção de doenças crônicas" },
+      { src: "Economia", title: "Mercado acompanha variação do dólar e impacto em insumos" },
+      { src: "Ultramed", title: "Lembrete: traga documento e carteirinha digital no atendimento" },
+      { src: "Clima", title: "Temperatura amena em São Félix do Xingu nesta manhã" },
+    ];
+
+    const newsList = document.getElementById("newsList");
+    const tickerMove = document.getElementById("tickerMove");
+    let newsIndex = 0;
+
+    function renderSideNews() {
+      const slice = [];
+      for (let i = 0; i < 5; i++) {
+        slice.push(NEWS[(newsIndex + i) % NEWS.length]);
+      }
+      newsList.innerHTML = slice.map((n) => `
+        <article class="news-item">
+          <p class="src">${n.src}</p>
+          <p class="title">${n.title}</p>
+        </article>
+      `).join("");
+      newsIndex = (newsIndex + 1) % NEWS.length;
+    }
+
+    function renderTicker() {
+      const text = NEWS.map((n) => `<span>${n.title}</span>`).join("");
+      tickerMove.innerHTML = text + text;
+    }
+
+    function tickClock() {
+      const now = new Date();
+      document.getElementById("clock").textContent = now.toLocaleTimeString("pt-BR", {
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      document.getElementById("date").textContent = now.toLocaleDateString("pt-BR", {
+        weekday: "long",
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      });
+    }
+
+    // Som simples de chamada (Web Audio — sem arquivo externo)
+    function playChime() {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        const notes = [523.25, 659.25, 783.99];
+        notes.forEach((freq, i) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = "sine";
+          osc.frequency.value = freq;
+          gain.gain.value = 0.0001;
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          const t0 = ctx.currentTime + i * 0.18;
+          gain.gain.exponentialRampToValueAtTime(0.12, t0 + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + 0.45);
+          osc.start(t0);
+          osc.stop(t0 + 0.5);
+        });
+      } catch (_) {}
+    }
+
+    let hideTimer = null;
+    const overlay = document.getElementById("callOverlay");
+
+    function showCall(name, room) {
+      document.getElementById("callName").textContent = name;
+      document.getElementById("callRoom").textContent = room;
+      document.getElementById("callMsg").textContent = "Sua consulta vai começar";
+      overlay.classList.add("active");
+      playChime();
+      clearTimeout(hideTimer);
+      hideTimer = setTimeout(() => overlay.classList.remove("active"), 18000);
+    }
+
+    function clearCall() {
+      overlay.classList.remove("active");
+      clearTimeout(hideTimer);
+    }
+
+    document.getElementById("btnCall").addEventListener("click", () => {
+      const name = document.getElementById("demoName").value.trim() || "Paciente";
+      const room = document.getElementById("demoRoom").value;
+      showCall(name, room);
+    });
+    document.getElementById("btnClear").addEventListener("click", clearCall);
+
+    // Atalho: tecla C chama / Esc limpa
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "c" || e.key === "C") {
+        document.getElementById("btnCall").click();
+      }
+      if (e.key === "Escape") clearCall();
+      if (e.key === "f" || e.key === "F") {
+        if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+        else document.exitFullscreen?.();
+      }
+    });
+
+    tickClock();
+    setInterval(tickClock, 1000);
+    renderTicker();
+    renderSideNews();
+    setInterval(renderSideNews, 8000);
+  </script>
+</body>
+</html>

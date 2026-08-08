@@ -1,0 +1,136 @@
+{% extends 'base.html' %}
+
+{% block title %}Mensalidade Rinan Code | Ultramed{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50 min-h-screen pb-24 text-left">
+    <nav class="bg-marsala-700 shadow-xl text-white sticky top-0 z-50 border-b border-black/10" style="background-color: #700c15;">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div class="min-w-0">
+                <p class="text-[9px] font-black uppercase tracking-[0.2em] text-white/60">Rinan Code</p>
+                <h1 class="text-xl sm:text-2xl font-black italic uppercase tracking-tighter truncate">Mensalidades do sistema</h1>
+                <p class="text-[10px] text-white/70 font-bold uppercase tracking-widest mt-1">Pagamentos da Ultramed à Rinan · fora do caixa da clínica</p>
+            </div>
+            <a href="{% url 'sistema_interno:master_dashboard' %}" class="shrink-0 bg-white/15 hover:bg-white/25 text-white px-4 py-2.5 rounded-full text-[10px] font-black uppercase italic no-underline">
+                <i class="fas fa-arrow-left mr-1"></i> Voltar ao Master
+            </a>
+        </div>
+    </nav>
+
+    <main class="px-4 sm:px-6 lg:px-8 py-8 max-w-5xl mx-auto space-y-8">
+
+        <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4" aria-label="Resumo">
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-[9px] font-black uppercase text-gray-400 tracking-widest">Plano</p>
+                <p class="text-sm font-black uppercase text-marsala-800 mt-2">Licença Ultramed</p>
+            </div>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-[9px] font-black uppercase text-gray-400 tracking-widest">Valor mensal</p>
+                <p class="text-lg font-black text-gray-900 mt-1 tabular-nums">R$ {{ licenca_valor|floatformat:2 }}</p>
+            </div>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-[9px] font-black uppercase text-gray-400 tracking-widest">Vencimento</p>
+                <p class="text-lg font-black text-gray-900 mt-1">Todo dia {{ licenca_dia_vencimento }}</p>
+            </div>
+            <div class="bg-white p-4 sm:p-5 rounded-2xl border border-gray-100 shadow-sm">
+                <p class="text-[9px] font-black uppercase text-gray-400 tracking-widest">Situação</p>
+                {% if licenca_aberta %}
+                    {% if licenca_aberta.status == 'ATRASADO' %}
+                    <p class="text-lg font-black text-red-600 mt-1">Atrasado</p>
+                    {% else %}
+                    <p class="text-lg font-black text-amber-600 mt-1">Em aberto</p>
+                    {% endif %}
+                {% else %}
+                <p class="text-lg font-black text-emerald-600 mt-1">Em dia</p>
+                {% endif %}
+            </div>
+        </section>
+
+        {% if licenca_aberta %}
+        <section class="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm overflow-hidden" aria-labelledby="heading-aberta">
+            <div class="p-5 sm:p-6 border-b border-gray-50 bg-marsala-50/40 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h2 id="heading-aberta" class="text-xs font-black uppercase italic text-marsala-800">Fatura em aberto</h2>
+                    <p class="text-[10px] font-bold text-gray-500 uppercase mt-1">
+                        {{ licenca_aberta.competencia_label }} · vence {{ licenca_aberta.data_vencimento|date:"d/m/Y" }}
+                    </p>
+                    <p class="text-2xl font-black text-gray-900 mt-3 tabular-nums">R$ {{ licenca_aberta.valor|floatformat:2 }}</p>
+                </div>
+                <div class="flex flex-col sm:flex-row gap-2 shrink-0">
+                    {% if licenca_mp_ok %}
+                    <a href="{% url 'sistema_interno:licenca_pagar' licenca_aberta.id %}"
+                       class="inline-flex items-center justify-center gap-2 bg-marsala-700 hover:bg-marsala-800 text-white px-5 py-3 rounded-xl text-[10px] font-black uppercase italic no-underline">
+                        <i class="fas fa-qrcode" aria-hidden="true"></i> Pagar com PIX / cartão
+                    </a>
+                    {% endif %}
+                    <form method="POST" action="{% url 'sistema_interno:licenca_baixar' licenca_aberta.id %}"
+                          onsubmit="return confirm('Marcar {{ licenca_aberta.competencia_label }} como pago à Rinan Code?');">
+                        {% csrf_token %}
+                        <button type="submit"
+                                class="w-full inline-flex items-center justify-center gap-2 bg-white border border-gray-200 hover:border-marsala-400 text-gray-700 px-4 py-3 rounded-xl text-[9px] font-black uppercase italic cursor-pointer">
+                            Já paguei · confirmar
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% if not licenca_mp_ok %}
+            <p class="px-5 sm:px-6 py-3 text-[9px] font-bold text-gray-400 uppercase">
+                Pagamento online libera quando o Access Token da conta Rinan estiver no servidor. Public Key já registrada.
+            </p>
+            {% endif %}
+        </section>
+        {% endif %}
+
+        <section aria-labelledby="heading-historico">
+            <div class="flex items-end justify-between gap-4 mb-3 ml-1">
+                <h2 id="heading-historico" class="text-[10px] font-black uppercase text-gray-400 tracking-[0.2em]">Histórico de mensalidades</h2>
+            </div>
+            <div class="bg-white rounded-[1.75rem] border border-gray-100 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-sm min-w-[28rem]">
+                        <thead class="bg-gray-50 text-[9px] font-black uppercase text-gray-500 tracking-wider">
+                            <tr>
+                                <th class="p-3 pl-6 text-left">Competência</th>
+                                <th class="p-3 text-left">Vencimento</th>
+                                <th class="p-3 text-right">Valor</th>
+                                <th class="p-3 text-right pr-6">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-50">
+                            {% for f in licenca_historico %}
+                            <tr class="hover:bg-gray-50">
+                                <td class="p-4 pl-6 font-black text-sm uppercase text-gray-800">{{ f.competencia_label }}</td>
+                                <td class="p-4 text-gray-600 font-bold text-xs">
+                                    {{ f.data_vencimento|date:"d/m/Y" }}
+                                    {% if f.data_pagamento %}
+                                    <div class="text-[9px] text-emerald-600 font-bold mt-1">Pago {{ f.data_pagamento|date:"d/m/Y" }}</div>
+                                    {% endif %}
+                                </td>
+                                <td class="p-4 text-right">
+                                    <span class="text-sm font-black tabular-nums {% if f.status == 'PAGO' %}text-emerald-600{% else %}text-gray-800{% endif %}">
+                                        R$ {{ f.valor|floatformat:2 }}
+                                    </span>
+                                </td>
+                                <td class="p-4 text-right pr-6">
+                                    {% if f.status == 'PAGO' %}
+                                    <span class="text-[8px] font-black bg-emerald-100 text-emerald-700 px-2 py-1 rounded-lg uppercase italic border border-emerald-200">Pago</span>
+                                    {% elif f.status == 'ATRASADO' %}
+                                    <span class="text-[8px] font-black bg-red-100 text-red-700 px-2 py-1 rounded-lg uppercase italic border border-red-200">Atrasado</span>
+                                    {% else %}
+                                    <span class="text-[8px] font-black bg-amber-100 text-amber-800 px-2 py-1 rounded-lg uppercase italic border border-amber-200">Pendente</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="4" class="p-10 text-center text-[10px] font-bold text-gray-400 uppercase italic">Nenhuma mensalidade registrada</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+{% endblock %}

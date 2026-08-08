@@ -135,9 +135,93 @@ class Receita(models.Model):
 # 5. CRM E LEADS
 # =================================================================
 
+class ChamadaPainel(models.Model):
+    """Última chamada exibida na TV da sala de espera (singleton pk=1)."""
+    paciente = models.ForeignKey(
+        Paciente, on_delete=models.SET_NULL, null=True, blank=True
+    )
+    paciente_nome = models.CharField(max_length=255)
+    consultorio = models.CharField(max_length=80, default="Consultório 1")
+    mensagem = models.CharField(max_length=255, default="Sua consulta vai começar")
+    chamada_em = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.paciente_nome} → {self.consultorio}"
+
+    @classmethod
+    def registrar(cls, paciente, consultorio="Consultório 1"):
+        from django.utils import timezone
+
+        obj, _ = cls.objects.update_or_create(
+            pk=1,
+            defaults={
+                "paciente": paciente,
+                "paciente_nome": paciente.nome_completo,
+                "consultorio": consultorio or "Consultório 1",
+                "mensagem": "Sua consulta vai começar",
+            },
+        )
+        # Garante novo timestamp ao repetir o mesmo paciente (TV detecta nova chamada)
+        cls.objects.filter(pk=obj.pk).update(chamada_em=timezone.now())
+        obj.refresh_from_db()
+        return obj
+
+
 class LeadSite(models.Model):
     nome = models.CharField(max_length=255)
     telefone = models.CharField(max_length=20)
     interesse = models.CharField(max_length=100)
     atendido = models.BooleanField(default=False)
     data_solicitacao = models.DateTimeField(auto_now_add=True)
+
+
+# =================================================================
+# 6. LICENÇA DO SISTEMA (mensalidade Ultramed → Rinan Code)
+# =================================================================
+
+class FaturaLicencaSistema(models.Model):
+    """
+    Mensalidade do uso do sistema Ultramed, paga à Rinan Code.
+    Separada do financeiro de pacientes da clínica.
+    """
+    STATUS = [
+        ("PENDENTE", "Pendente"),
+        ("PAGO", "Pago"),
+        ("ATRASADO", "Atrasado"),
+    ]
+
+    referencia = models.CharField(
+        max_length=7,
+        unique=True,
+        help_text="Competência AAAA-MM (ex.: 2026-08)",
+    )
+    valor = models.DecimalField(max_digits=10, decimal_places=2, default=399.00)
+    data_vencimento = models.DateField()
+    status = models.CharField(max_length=10, choices=STATUS, default="PENDENTE")
+    data_pagamento = models.DateField(null=True, blank=True)
+    mercadopago_id = models.CharField(max_length=100, null=True, blank=True)
+    preferencia_id = models.CharField(max_length=100, null=True, blank=True)
+    checkout_url = models.URLField(max_length=500, blank=True, null=True)
+    observacao = models.CharField(max_length=255, blank=True, null=True)
+    criado_em = models.DateTimeField(auto_now_add=True)
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-data_vencimento", "-id"]
+        verbose_name = "Fatura licença sistema"
+        verbose_name_plural = "Faturas licença sistema"
+
+    def __str__(self):
+        return f"Licença {self.referencia} — R$ {self.valor} ({self.status})"
+
+    @property
+    def competencia_label(self):
+        try:
+            ano, mes = self.referencia.split("-")
+            meses = (
+                "", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+                "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+            )
+            return f"{meses[int(mes)]} / {ano}"
+        except Exception:
+            return self.referencia

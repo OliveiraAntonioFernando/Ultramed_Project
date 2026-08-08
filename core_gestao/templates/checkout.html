@@ -45,6 +45,13 @@
                         <p class="text-[9px] text-gray-400 font-bold uppercase mt-1">Valor integral do plano</p>
                     </div>
                 </div>
+                <p class="mt-5 text-[10px] text-gray-500 font-medium leading-relaxed">
+                    Ao pagar, você confirma o
+                    <a href="{% url 'contrato_adesao' %}?plano={{ plano.nome }}" target="_blank" rel="noopener" class="text-[#700c15] font-bold underline">
+                        Termo de Adesão
+                    </a>
+                    do plano {{ plano.nome }}.
+                </p>
             </div>
 
             <div id="paymentBrick_container"></div>

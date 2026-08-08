@@ -15,7 +15,13 @@ urlpatterns = [
     path('paciente/painel/', views.painel_paciente, name='painel_paciente'),
     path('colaborador/painel/', views.painel_colaborador, name='painel_colaborador'),
     path('medico/painel/', views.painel_medico, name='painel_medico'),
+    path('medico/chamar/<int:paciente_id>/', views.chamar_paciente_tv, name='chamar_paciente_tv'),
     path('master/dashboard/', views.master_dashboard, name='master_dashboard'),
+    path('master/licenca/', views.licenca_rinan, name='licenca_rinan'),
+    path('master/licenca/pagar/<int:fatura_id>/', views.licenca_pagar, name='licenca_pagar'),
+    path('master/licenca/retorno/', views.licenca_retorno, name='licenca_retorno'),
+    path('master/licenca/baixar/<int:fatura_id>/', views.licenca_baixar, name='licenca_baixar'),
+    path('tv-espera/', views.tv_espera, name='tv_espera'),
 
     # Gestão de Pacientes
     path('paciente/novo/', views.cliente_create, name='cliente_create'),
@@ -51,12 +57,15 @@ urlpatterns = [
     path('api/v1/processar-pagamento/', views.processar_pagamento_brick, name='processar_pagamento_brick'),
     path('api/v1/status-pagamento/', views.consultar_status_pagamento, name='status_pagamento'),
     path('api/v1/mp/webhook/', views.mercadopago_webhook, name='mp_webhook'),
+    path('api/v1/mp/webhook-rinan/', views.mercadopago_webhook_rinan, name='mp_webhook_rinan'),
     path('api/v1/mp/health/', views.mp_healthcheck, name='mp_healthcheck'),
     path('api/v1/solicitar-renovacao/', views.solicitar_renovacao_api, name='solicitar_renovacao_api'),
     path('api/v1/ultima-receita/<int:paciente_id>/', views.api_ultima_receita, name='api_ultima_receita'),
     path('api/v1/lead-capture/', views.api_lead_capture, name='lead_capture'),
     path('api/v1/buscar-paciente/', views.api_buscar_paciente, name='api_buscar_paciente'),
     path('api/v1/detalhes-paciente/<int:paciente_id>/', views.api_detalhes_paciente, name='api_detalhes_paciente'),
+    path('api/v1/tv-chamada/', views.api_tv_chamada, name='api_tv_chamada'),
+    path('api/v1/tv-stream/', views.api_tv_stream, name='api_tv_stream'),
     path('arquivo/exame/<int:exame_id>/', views.download_exame_arquivo, name='download_exame_arquivo'),
 ]
 

@@ -138,8 +138,12 @@
                 <div id="container-deps" class="space-y-3"></div>
             </div>
 
-            <button type="button" onclick="abrirContrato()" class="w-full bg-marsala-700 text-white font-black py-5 rounded-[2rem] uppercase italic text-lg shadow-xl border-none cursor-pointer">
-                GERAR TERMO DE ADESÃO
+            <a id="btn-ver-contrato" href="{% url 'contrato_adesao' %}" target="_blank" rel="noopener"
+               class="block w-full text-center bg-white border-2 border-marsala-700 text-marsala-700 font-black py-4 rounded-[2rem] uppercase italic text-sm no-underline mb-3">
+                Ver Termo de Adesão
+            </a>
+            <button type="submit" class="w-full bg-marsala-700 text-white font-black py-5 rounded-[2rem] uppercase italic text-lg shadow-xl border-none cursor-pointer">
+                Salvar cadastro
             </button>
         </form>
     </div>
@@ -247,8 +251,20 @@
         container.appendChild(div);
     }
     
-    function abrirContrato() {
-        document.getElementById('formCadastro').submit();
+    const planoStaff = document.getElementById('input_plano');
+    const btnContrato = document.getElementById('btn-ver-contrato');
+    if (planoStaff && btnContrato) {
+        const sync = () => {
+            const opt = planoStaff.options[planoStaff.selectedIndex];
+            const nome = (opt && opt.textContent || '').toLowerCase();
+            let p = '';
+            if (nome.includes('empresarial')) p = 'empresarial';
+            else if (nome.includes('master')) p = 'master';
+            else if (nome.includes('essencial')) p = 'essencial';
+            btnContrato.href = "{% url 'contrato_adesao' %}" + (p ? ("?plano=" + p) : "");
+        };
+        planoStaff.addEventListener('change', sync);
+        sync();
     }
 </script>
 {% endblock %}

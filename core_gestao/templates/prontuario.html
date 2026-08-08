@@ -4,19 +4,29 @@
 <div class="bg-gray-50 min-h-screen p-4 md:p-8">
     <div class="max-w-7xl mx-auto">
         
-        <div class="mb-6 flex justify-between items-center">
+        <div class="mb-6 flex flex-wrap justify-between items-center gap-3">
             <a href="{% url 'sistema_interno:painel_medico' %}" class="inline-flex items-center text-marsala-800 font-black uppercase tracking-tighter hover:scale-105 transition-transform no-underline">
                 <i class="fas fa-arrow-left mr-2"></i> Voltar à Fila
             </a>
 
-            <button type="button" onclick="abrirModalDoencas()" id="btn-cronico" 
-                class="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-md border-none cursor-pointer
-                {% if paciente.is_cronico %} bg-emerald-500 text-white {% else %} bg-gray-200 text-gray-500 {% endif %}">
-                <i class="fas fa-notes-medical mr-2"></i> 
-                <span id="txt-cronico">
-                    {% if paciente.doencas_cronicas %}{{ paciente.doencas_cronicas }}{% else %}Classificar Crônico{% endif %}
-                </span>
-            </button>
+            <div class="flex flex-wrap items-center gap-2">
+                <form method="post" action="{% url 'sistema_interno:chamar_paciente_tv' paciente.id %}" class="inline">
+                    {% csrf_token %}
+                    <input type="hidden" name="consultorio" value="Consultório 1">
+                    <input type="hidden" name="destino" value="repetir">
+                    <button type="submit" class="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-md border-none cursor-pointer bg-marsala-700 text-white hover:bg-marsala-800">
+                        <i class="fas fa-bullhorn mr-2"></i> Repetir chamado
+                    </button>
+                </form>
+                <button type="button" onclick="abrirModalDoencas()" id="btn-cronico" 
+                    class="px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all shadow-md border-none cursor-pointer
+                    {% if paciente.is_cronico %} bg-emerald-500 text-white {% else %} bg-gray-200 text-gray-500 {% endif %}">
+                    <i class="fas fa-notes-medical mr-2"></i> 
+                    <span id="txt-cronico">
+                        {% if paciente.doencas_cronicas %}{{ paciente.doencas_cronicas }}{% else %}Classificar Crônico{% endif %}
+                    </span>
+                </button>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -40,7 +50,7 @@
                         <div class="flex gap-2"><span class="text-gray-400 font-bold uppercase text-[9px]">CPF:</span><strong class="text-gray-900">{{ paciente.cpf|default:"---" }}</strong></div>
                         <div class="flex gap-2 justify-end"><span class="text-gray-400 font-bold uppercase text-[9px]">Idade:</span><strong class="text-gray-900">{{ paciente.data_nascimento|timesince }}</strong></div>
                         <div class="flex gap-4 col-span-2 border-t border-gray-100 pt-3 mt-1">
-                            <div class="flex gap-2"><span class="text-gray-400 font-bold uppercase text-[9px]">Médico:</span><strong class="uppercase text-gray-900 font-bold tracking-wider italic">Dr. {{ user.get_full_name|default:user.username }}</strong></div>
+                            <div class="flex gap-2 flex-wrap"><span class="text-gray-400 font-bold uppercase text-[9px]">Médico:</span><strong class="uppercase text-gray-900 font-bold tracking-wider italic">Dr. {{ medico_nome }}{% if medico_crm %} · CRM {{ medico_crm }}{% endif %}</strong></div>
                         </div>
                     </div>
                 </div>
@@ -178,8 +188,9 @@
             </div>
             <div class="mt-10 text-center border-t border-gray-100 pt-8 pb-10">
                 <div class="w-64 border-b-2 border-gray-300 mx-auto mb-2"></div>
-                <p class="text-sm font-black uppercase italic m-0">Dr. {{ user.get_full_name|default:user.username }}</p>
-                <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest m-0 italic">Médico Responsável</p>
+                <p class="text-sm font-black uppercase italic m-0">Dr. {{ medico_nome }}</p>
+                {% if medico_crm %}<p class="text-[10px] text-gray-500 font-black uppercase tracking-widest m-0 mt-1">CRM {{ medico_crm }}</p>{% endif %}
+                <p class="text-[9px] text-gray-400 font-bold uppercase tracking-widest m-0 italic mt-1">Médico Responsável</p>
             </div>
         </div>
     </div>

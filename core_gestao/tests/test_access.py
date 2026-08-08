@@ -10,7 +10,7 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
-from core_gestao.models import Agenda, Paciente, Plano
+from core_gestao.models import Agenda, ChamadaPainel, Paciente, Plano
 
 
 class StaffUserMixin:
@@ -287,3 +287,68 @@ class AgendaCheckinTests(StaffUserMixin, TestCase):
         self.assertEqual(r.url, url)
         self.ag.refresh_from_db()
         self.assertEqual(self.ag.status, "CHEGOU")
+
+
+class TvEsperaTests(StaffUserMixin, TestCase):
+    def setUp(self):
+        self.plano = Plano.objects.create(
+            nome="ESSENCIAL",
+            descricao="Teste",
+            valor_anual=100.00,
+        )
+        self.paciente = Paciente.objects.create(
+            nome_completo="Paciente TV",
+            cpf="77766655544",
+            telefone="94000000003",
+            data_nascimento=date(1990, 1, 1),
+            sexo="F",
+            is_titular=True,
+            plano=self.plano,
+            vencimento_plano=date(2030, 1, 1),
+        )
+
+    def test_tv_espera_requer_equipe(self):
+        r = self.client.get(reverse("sistema_interno:tv_espera"))
+        self.assertEqual(r.status_code, 302)
+
+    def test_tv_espera_ok_recepcao(self):
+        self.client.login(username="recepcao", password=self.password)
+        r = self.client.get(reverse("sistema_interno:tv_espera"))
+        self.assertEqual(r.status_code, 200)
+        self.assertContains(r, "Sala de espera")
+
+    def test_medico_chama_na_tv(self):
+        self.client.login(username="medico", password=self.password)
+        url = reverse("sistema_interno:chamar_paciente_tv", args=[self.paciente.id])
+        r = self.client.post(url, {"consultorio": "Consultório 1"})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(
+            reverse("sistema_interno:prontuario_view", args=[self.paciente.id]),
+            r.url,
+        )
+        chamada = ChamadaPainel.objects.get(pk=1)
+        self.assertEqual(chamada.paciente_nome, "Paciente TV")
+        api = self.client.get(reverse("sistema_interno:api_tv_chamada"))
+        self.assertEqual(api.status_code, 200)
+        self.assertTrue(api.json()["ativa"])
+
+    def test_medico_chama_tv_fica_na_fila(self):
+        self.client.login(username="medico", password=self.password)
+        url = reverse("sistema_interno:chamar_paciente_tv", args=[self.paciente.id])
+        r = self.client.post(
+            url, {"consultorio": "Consultório 1", "destino": "fila"}
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.url, reverse("sistema_interno:painel_medico"))
+
+    def test_medico_repete_chamado_no_prontuario(self):
+        self.client.login(username="medico", password=self.password)
+        url = reverse("sistema_interno:chamar_paciente_tv", args=[self.paciente.id])
+        r = self.client.post(
+            url, {"consultorio": "Consultório 1", "destino": "repetir"}
+        )
+        self.assertEqual(r.status_code, 302)
+        self.assertIn(
+            reverse("sistema_interno:prontuario_view", args=[self.paciente.id]),
+            r.url,
+        )

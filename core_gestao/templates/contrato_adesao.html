@@ -1,0 +1,191 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#700c15" />
+  <title>Termo de Adesão — Ultramed{% if plano_nome %} · {{ plano_nome }}{% endif %}</title>
+  <link rel="icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3" />
+  <style>
+    :root { --accent: #700c15; --text: #1f1113; --muted: #6b7280; --bg: #faf7f7; --border: rgba(112,12,21,.18); }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Georgia, "Times New Roman", serif; background: var(--bg); color: var(--text); line-height: 1.55; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 28px 18px 72px; }
+    .bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 20px; font-family: system-ui, sans-serif; }
+    .bar a { color: var(--accent); text-decoration: none; font-size: 13px; font-weight: 700; }
+    .btn-print {
+      font-family: system-ui, sans-serif; border: 0; cursor: pointer;
+      background: var(--accent); color: #fff; font-weight: 800; font-size: 11px;
+      letter-spacing: .06em; text-transform: uppercase; padding: 10px 14px; border-radius: 999px;
+    }
+    .paper {
+      background: #fff; border: 1px solid var(--border); border-radius: 16px;
+      padding: 28px 22px 36px; box-shadow: 0 10px 30px rgba(112,12,21,.06);
+    }
+    h1 { font-size: clamp(1.25rem, 3.5vw, 1.6rem); margin: 0 0 6px; letter-spacing: -.02em; }
+    .sub { font-family: system-ui, sans-serif; color: var(--muted); font-size: 13px; margin: 0 0 22px; }
+    h2 { font-family: system-ui, sans-serif; font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); margin: 22px 0 8px; font-weight: 800; }
+    p, li { font-size: 14.5px; color: #374151; }
+    ul { padding-left: 1.2rem; margin: 8px 0; }
+    .highlight {
+      font-family: system-ui, sans-serif; background: #fcf4f4; border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 16px; margin: 16px 0;
+    }
+    .highlight strong { color: var(--accent); }
+    .meta { font-family: system-ui, sans-serif; font-size: 12px; color: var(--muted); }
+    .sign { margin-top: 28px; padding-top: 18px; border-top: 1px dashed var(--border); font-family: system-ui, sans-serif; font-size: 13px; color: #4b5563; }
+    @media print {
+      body { background: #fff; }
+      .bar, .btn-print { display: none !important; }
+      .paper { border: 0; box-shadow: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="bar">
+      <a href="{% url 'home' %}">← Ultramed</a>
+      <button type="button" class="btn-print" onclick="window.print()">Imprimir / PDF</button>
+    </div>
+
+    <article class="paper">
+      <h1>Termo de Adesão ao Plano Ultramed</h1>
+      <p class="sub">
+        <strong>Versão 1.0</strong> · Atualizado em 7 de agosto de 2026<br />
+        Documento apresentado ao titular no ato da contratação do plano.
+      </p>
+
+      <div class="highlight">
+        <p style="margin:0 0 6px"><strong>Plano:</strong> {{ plano_nome|default:"conforme seleção no cadastro" }}</p>
+        <p style="margin:0 0 6px"><strong>Valor:</strong> {{ plano_valor_label|default:"conforme tabela vigente do sistema" }}</p>
+        {% if plano_dependentes != None %}
+        <p style="margin:0 0 6px"><strong>Dependentes:</strong> titular + até {{ plano_dependentes }}</p>
+        {% endif %}
+        {% if plano_beneficios %}
+        <p style="margin:0 0 6px"><strong>Benefícios:</strong> {{ plano_beneficios|join:" · " }}</p>
+        {% endif %}
+        <p style="margin:0" class="meta">A cobrança no ambiente digital é feita como <strong>anuidade (12 meses)</strong> no checkout, conforme valor do plano no sistema.</p>
+      </div>
+
+      <h2>1. Partes</h2>
+      <p>
+        De um lado, a <strong>Ultramed Clínica Médica</strong> (Ultramed Saúde Xingu), com atuação em
+        São Félix do Xingu – PA, doravante <strong>CONTRATADA</strong>; de outro lado, o(a) titular
+        identificado(a) no cadastro de adesão, doravante <strong>CONTRATANTE</strong> (titular do plano).
+      </p>
+
+      <h2>2. Natureza do serviço</h2>
+      <p>
+        O presente termo regula a adesão a um <strong>plano de benefícios e descontos</strong> oferecido pela
+        Ultramed para utilização de consultas, exames e procedimentos realizados na própria clínica,
+        conforme o plano escolhido.
+      </p>
+      <p>
+        <strong>Não se trata</strong> de plano de saúde regulamentado pela ANS (Agência Nacional de Saúde
+        Suplementar), nem de seguro-saúde. Não há cobertura para rede credenciada externa, internação
+        hospitalar, urgência/emergência fora da Ultramed ou reembolso de despesas realizadas em terceiros,
+        salvo indicação expressa e por escrito da CONTRATADA.
+      </p>
+
+      <h2>3. Objeto</h2>
+      <p>
+        Pela adesão, o CONTRATANTE passa a ter direito aos benefícios do plano escolhido, pelo prazo de
+        <strong>12 (doze) meses</strong> contados da confirmação do pagamento, incluindo dependentes
+        cadastrados dentro do limite do plano.
+      </p>
+
+      <h2>4. Planos, valores e limites</h2>
+      <p>Tabela vigente no sistema (mensalidade de referência, anuidade cobrada no checkout e limite de pessoas):</p>
+      <ul>
+        {% for p in tabela_planos %}
+        <li>
+          <strong>{{ p.nome }}</strong> —
+          {{ p.mensal_label }}/mês (referência) ·
+          anuidade {{ p.anuidade_label }} ·
+          titular + até {{ p.dependentes }}
+          {% if p.beneficios %} · {{ p.beneficios|join:"; " }}{% endif %}
+        </li>
+        {% empty %}
+        <li>Consulte a clínica Ultramed para a tabela de planos vigente.</li>
+        {% endfor %}
+      </ul>
+      <p>
+        A lista de procedimentos elegíveis e percentuais de desconto segue a tabela operacional da Ultramed
+        e pode ser confirmada na clínica. Procedimentos não listados no plano contratado não fazem jus ao desconto do plano.
+      </p>
+
+      <h2>5. Pagamento e vigência</h2>
+      <p>
+        O pagamento da adesão é realizado no checkout digital (PIX ou cartão), por intermediador de pagamento
+        (Mercado Pago), ou presencialmente na clínica quando assim combinado. A vigência do plano inicia-se
+        após a <strong>confirmação do pagamento</strong>.
+      </p>
+      <p>
+        O inadimplemento ou a não confirmação do pagamento impede a ativação ou pode resultar na suspensão
+        dos benefícios até a regularização.
+      </p>
+
+      <h2>6. Obrigações do titular</h2>
+      <ul>
+        <li>informar dados verdadeiros e manter cadastro atualizado (titular e dependentes);</li>
+        <li>apresentar documento de identificação e, quando solicitado, a carteirinha/QR Code Ultramed;</li>
+        <li>agendar atendimentos conforme disponibilidade da clínica;</li>
+        <li>respeitar as regras de uso do plano e as orientações da equipe Ultramed.</li>
+      </ul>
+
+      <h2>7. Obrigações da Ultramed</h2>
+      <ul>
+        <li>aplicar os descontos e benefícios do plano contratado nos procedimentos elegíveis;</li>
+        <li>disponibilizar canais digitais de apoio (site, Meu Espaço e comunicação oficial);</li>
+        <li>prestar os serviços clínicos com profissionais habilitados, conforme agenda e capacidade operacional.</li>
+      </ul>
+
+      <h2>8. Limitações importantes</h2>
+      <ul>
+        <li>o sistema digital e o plano <strong>não substituem</strong> atendimento de urgência/emergência;</li>
+        <li>em emergência médica, procure imediatamente o serviço de saúde adequado (SAMU 192 / unidade de pronto atendimento);</li>
+        <li>a disponibilidade de agenda, equipamentos e profissionais pode variar por demanda e manutenção.</li>
+      </ul>
+
+      <h2>9. Cancelamento e renovação</h2>
+      <p>
+        O CONTRATANTE pode solicitar o cancelamento pelos canais oficiais da Ultramed. Valores já pagos
+        referentes ao período contratado observam a política comercial da clínica vigente na data do pedido,
+        sem prejuízo de direitos previstos no Código de Defesa do Consumidor.
+      </p>
+      <p>
+        Ao fim da vigência de 12 meses, a renovação depende de novo pagamento/adesão, salvo renovação
+        automática eventualmente comunicada pela Ultramed.
+      </p>
+
+      <h2>10. Dados pessoais</h2>
+      <p>
+        O tratamento de dados pessoais, inclusive dados de saúde quando necessários ao atendimento,
+        observa a LGPD (Lei nº 13.709/2018) e a
+        <a href="{% url 'privacidade' %}" style="color:var(--accent)">Política de Privacidade</a> da Ultramed.
+      </p>
+
+      <h2>11. Aceite</h2>
+      <p>
+        Ao marcar a opção de aceite no cadastro e/ou concluir o pagamento do plano, o CONTRATANTE declara
+        que <strong>leu, compreendeu e concorda</strong> com este Termo de Adesão, com os
+        <a href="{% url 'termos' %}" style="color:var(--accent)">Termos de Uso</a> e com a
+        <a href="{% url 'privacidade' %}" style="color:var(--accent)">Política de Privacidade</a>.
+      </p>
+
+      <h2>12. Foro</h2>
+      <p>
+        Fica eleito o foro da comarca de São Félix do Xingu – PA, com renúncia a qualquer outro, por mais
+        privilegiado que seja, para dirimir controvérsias oriundas deste termo, salvo foro privilegiado
+        do consumidor quando aplicável.
+      </p>
+
+      <div class="sign">
+        <p><strong>Contato Ultramed:</strong> WhatsApp <a href="https://wa.me/5594984496349" style="color:var(--accent)">(94) 98449-6349</a> · São Félix do Xingu – PA</p>
+        <p style="margin-top:18px">São Félix do Xingu – PA, {{ data_documento }}.</p>
+      </div>
+    </article>
+  </div>
+</body>
+</html>

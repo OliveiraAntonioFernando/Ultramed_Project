@@ -21,18 +21,23 @@ def _parse_x_signature(header: str) -> tuple[str, str]:
     return ts, v1
 
 
-def validar_assinatura_webhook_mp(request, payment_id: str | None) -> bool:
+def validar_assinatura_webhook_mp(
+    request, payment_id: str | None, secret: str | None = None
+) -> bool:
     """
-    Valida x-signature do Mercado Pago quando MERCADO_PAGO_WEBHOOK_SECRET está definido.
+    Valida x-signature do Mercado Pago quando o secret está definido.
     Se o secret não estiver configurado, aceita (confirmação via API MP no handler).
     """
-    secret = (getattr(settings, "MERCADO_PAGO_WEBHOOK_SECRET", "") or "").strip()
+    if secret is None:
+        secret = (getattr(settings, "MERCADO_PAGO_WEBHOOK_SECRET", "") or "").strip()
+    else:
+        secret = (secret or "").strip()
     x_signature = request.headers.get("x-signature", "")
     x_request_id = request.headers.get("x-request-id", "")
 
     if not secret:
         if x_signature:
-            logger.warning("Webhook MP com assinatura, mas MERCADO_PAGO_WEBHOOK_SECRET ausente.")
+            logger.warning("Webhook MP com assinatura, mas secret ausente.")
         return True
 
     if not x_signature or not payment_id:

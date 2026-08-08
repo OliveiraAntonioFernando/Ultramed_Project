@@ -145,6 +145,12 @@ LOGIN_URL = "sistema_interno:login"
 LOGIN_REDIRECT_URL = "sistema_interno:painel_paciente"
 LOGOUT_REDIRECT_URL = "sistema_interno:login"
 
+# Dados de exibição do médico (painel / prontuário / receitas)
+MEDICO_NOME_COMPLETO = os.getenv(
+    "MEDICO_NOME_COMPLETO", "Valdenor Lima Gomes Junior"
+).strip()
+MEDICO_CRM = os.getenv("MEDICO_CRM", "17870/PA").strip()
+
 # =================================================================
 # MERCADO PAGO (credenciais apenas via ambiente em produção)
 # =================================================================
@@ -163,6 +169,17 @@ MERCADO_PAGO_TEST_PAYER_EMAIL = os.getenv("MERCADO_PAGO_TEST_PAYER_EMAIL", "").s
 MERCADO_PAGO_TIMEOUT_SECONDS = int(os.getenv("MERCADO_PAGO_TIMEOUT_SECONDS", "15"))
 MERCADO_PAGO_MAX_ATTEMPTS = int(os.getenv("MERCADO_PAGO_MAX_ATTEMPTS", "2"))
 MERCADO_PAGO_WEBHOOK_SECRET = os.getenv("MERCADO_PAGO_WEBHOOK_SECRET", "").strip()
+
+# Mercado Pago da Rinan Code — licença mensal do sistema (não misturar com Ultramed)
+MERCADO_PAGO_RINAN_PUBLIC_KEY = os.getenv("MERCADO_PAGO_RINAN_PUBLIC_KEY", "").strip()
+MERCADO_PAGO_RINAN_ACCESS_TOKEN = os.getenv("MERCADO_PAGO_RINAN_ACCESS_TOKEN", "").strip()
+MERCADO_PAGO_RINAN_WEBHOOK_SECRET = os.getenv(
+    "MERCADO_PAGO_RINAN_WEBHOOK_SECRET", ""
+).strip()
+
+# Licença Ultramed → Rinan Code (Master only)
+LICENCA_RINAN_VALOR = os.getenv("LICENCA_RINAN_VALOR", "399.00").strip()
+LICENCA_RINAN_DIA_VENCIMENTO = int(os.getenv("LICENCA_RINAN_DIA_VENCIMENTO", "10"))
 
 if not DEBUG:
     if not MERCADO_PAGO_PUBLIC_KEY:

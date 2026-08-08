@@ -225,6 +225,13 @@
                                 <span class="text-[9px] text-gray-400 font-bold uppercase">Recepção / Farmácia</span>
                             </div>
                         </a>
+                        <a href="{% url 'sistema_interno:tv_espera' %}" target="_blank" rel="noopener" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-marsala-700 hover:bg-marsala-50/30 transition-all group no-underline">
+                            <div class="bg-marsala-50 p-3 rounded-xl group-hover:bg-marsala-700 group-hover:text-white text-marsala-700 transition-all shrink-0"><i class="fas fa-tv" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">TV Sala de Espera</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">Chamada de pacientes</span>
+                            </div>
+                        </a>
                         <a href="{% url 'sistema_interno:agenda_view' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-blue-400 hover:bg-blue-50/40 transition-all group no-underline">
                             <div class="bg-blue-50 p-3 rounded-xl group-hover:bg-blue-600 group-hover:text-white text-blue-600 transition-all shrink-0"><i class="fas fa-calendar-alt" aria-hidden="true"></i></div>
                             <div class="min-w-0">
@@ -237,6 +244,19 @@
                             <div class="min-w-0">
                                 <span class="text-xs font-black uppercase italic text-marsala-800 block">Lançar pagamento</span>
                                 <span class="text-[9px] text-gray-400 font-bold uppercase">Nova fatura</span>
+                            </div>
+                        </a>
+                        <a href="{% url 'sistema_interno:licenca_rinan' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-slate-400 hover:bg-slate-50/60 transition-all group no-underline">
+                            <div class="bg-slate-100 p-3 rounded-xl group-hover:bg-slate-800 group-hover:text-white text-slate-700 transition-all shrink-0"><i class="fas fa-building" aria-hidden="true"></i></div>
+                            <div class="min-w-0">
+                                <span class="text-xs font-black uppercase italic text-gray-800 block">Mensalidade Rinan</span>
+                                <span class="text-[9px] text-gray-400 font-bold uppercase">
+                                    {% if licenca_aberta %}
+                                        {% if licenca_aberta.status == 'ATRASADO' %}Atrasada{% else %}Em aberto{% endif %} · R$ {{ licenca_aberta.valor|floatformat:2 }}
+                                    {% else %}
+                                        Em dia · licença sistema
+                                    {% endif %}
+                                </span>
                             </div>
                         </a>
                         <a href="{% url 'sistema_interno:cliente_list' %}" class="flex items-center gap-4 p-4 rounded-2xl border border-gray-100 hover:border-emerald-500 hover:bg-emerald-50/40 transition-all group no-underline">

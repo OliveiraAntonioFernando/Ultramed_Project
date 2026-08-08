@@ -93,8 +93,8 @@
                     <div>
                         <label class="text-[10px] font-black text-gray-400 uppercase ml-2 mb-1 block">Plano Selecionado</label>
                         <select name="plano_tipo" class="w-full p-5 glass-input rounded-2xl font-black uppercase italic text-sm text-marsala-700">
-                            <option value="Essencial" {% if plano_selecionado == 'Essencial' %}selected{% endif %}>PLANO ESSENCIAL - R$ 44,90</option>
-                            <option value="Master" {% if plano_selecionado == 'Master' %}selected{% endif %}>PLANO MASTER FAMILIAR - R$ 59,90</option>
+                            <option value="Essencial" {% if plano_selecionado == 'Essencial' %}selected{% endif %}>PLANO ESSENCIAL - R$ 59,90</option>
+                            <option value="Master" {% if plano_selecionado == 'Master' %}selected{% endif %}>PLANO MASTER FAMILIAR - R$ 79,90</option>
                             <option value="Empresarial" {% if plano_selecionado == 'Empresarial' %}selected{% endif %}>PLANO EMPRESARIAL</option>
                         </select>
                     </div>
@@ -114,6 +114,37 @@
                 <div id="lista-dependentes" class="space-y-4"></div>
             </div>
 
+            <div class="bg-white p-8 app-card shadow-lg border border-marsala-50">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4 border-b border-gray-100 pb-4">
+                    <div class="flex items-center gap-3">
+                        <span class="bg-marsala-700 text-white w-6 h-6 flex items-center justify-center rounded-full text-[10px] font-black italic">03</span>
+                        <h2 class="text-xs font-black text-marsala-700 uppercase tracking-widest italic">Termo de Adesão</h2>
+                    </div>
+                    <a id="link-contrato-completo" href="{% url 'contrato_adesao' %}?plano={{ plano_selecionado|default:'Essencial' }}" target="_blank" rel="noopener"
+                       class="text-[10px] font-black uppercase text-marsala-700 no-underline hover:underline">
+                        Abrir contrato completo <i class="fas fa-external-link-alt ml-1"></i>
+                    </a>
+                </div>
+                <div class="h-56 overflow-y-auto rounded-2xl border border-gray-100 bg-gray-50 p-4 text-left text-[11px] leading-relaxed text-gray-700 space-y-3">
+                    <p class="font-black uppercase text-marsala-800 text-[10px] tracking-wide">Contrato que o titular aceita ao aderir ao plano</p>
+                    <p>A Ultramed Clínica Médica (São Félix do Xingu – PA) oferece planos de <strong>benefícios e descontos</strong> para consultas, exames e procedimentos na própria clínica. <strong>Não é plano de saúde ANS</strong> nem seguro-saúde.</p>
+                    <p>Vigência de <strong>12 meses</strong> após confirmação do pagamento. Cobrança no checkout digital como <strong>anuidade</strong> (PIX ou cartão via Mercado Pago).</p>
+                    <p><strong>Essencial</strong> R$ 59,90/mês · titular + até 2 dependentes · USG/MAPA/Holter com desconto. <strong>Master</strong> R$ 79,90/mês · até 5 dependentes · + consultas e procedimentos cobertos (30%). <strong>Empresarial</strong> R$ 99,90/mês · até 20 beneficiários · lab 40% / clínico 30%.</p>
+                    <p>O titular declara dados verdadeiros, autoriza o tratamento de dados conforme a LGPD e a Política de Privacidade, e reconhece que em emergência deve procurar serviço de urgência adequado.</p>
+                    <p>O texto integral está disponível no link “Abrir contrato completo”. Ao marcar o aceite abaixo e concluir o pagamento, o titular declara que leu e concorda com o Termo de Adesão, os Termos de Uso e a Política de Privacidade.</p>
+                </div>
+                <label class="mt-5 flex items-start gap-3 cursor-pointer select-none">
+                    <input type="checkbox" name="aceito_contrato" id="aceito_contrato" value="1" required
+                           class="mt-1 w-5 h-5 accent-[#700c15] shrink-0">
+                    <span class="text-[11px] font-bold text-gray-700 leading-snug">
+                        Li e aceito o <strong>Termo de Adesão ao Plano Ultramed</strong>, os
+                        <a href="{% url 'termos' %}" target="_blank" class="text-marsala-700">Termos de Uso</a>
+                        e a
+                        <a href="{% url 'privacidade' %}" target="_blank" class="text-marsala-700">Política de Privacidade</a>.
+                    </span>
+                </label>
+            </div>
+
             <button type="submit" class="btn-tap w-full bg-marsala-700 text-white py-6 rounded-[2.5rem] font-black uppercase italic text-xl shadow-2xl hover:bg-marsala-800 transition-all flex items-center justify-center gap-4 border-b-4 border-marsala-800">
                 <i class="fas fa-check-double"></i> FINALIZAR E PAGAR
             </button>
@@ -121,6 +152,18 @@
     </div>
 
     <script>
+        const planoSelect = document.querySelector('select[name="plano_tipo"]');
+        const linkContrato = document.getElementById('link-contrato-completo');
+        function syncContratoLink() {
+            if (!planoSelect || !linkContrato) return;
+            const v = (planoSelect.value || 'Essencial').toLowerCase();
+            linkContrato.href = "{% url 'contrato_adesao' %}?plano=" + encodeURIComponent(v);
+        }
+        if (planoSelect) {
+            planoSelect.addEventListener('change', syncContratoLink);
+            syncContratoLink();
+        }
+
         function addDependente() {
             const container = document.getElementById('lista-dependentes');
             const div = document.createElement('div');

@@ -14,8 +14,11 @@ from datetime import timedelta, date
 import calendar as cal_module
 from django.contrib import messages
 from django.conf import settings
+from django.core.cache import cache
 from django.urls import reverse
 from urllib.parse import quote
+from urllib.request import Request, urlopen
+from xml.etree import ElementTree as ET
 import mercadopago
 from mercadopago.config import RequestOptions
 import json
@@ -23,10 +26,32 @@ import logging
 import re
 import uuid
 
-from .models import Paciente, Fatura, Prontuario, LeadSite, Plano, Exame, Agenda, Receita
+from .models import (
+    Paciente,
+    Fatura,
+    FaturaLicencaSistema,
+    Prontuario,
+    LeadSite,
+    Plano,
+    Exame,
+    Agenda,
+    Receita,
+    ChamadaPainel,
+)
 from .procedimentos_catalogo import catalogo_por_grupos, procedimento_por_id
 from .mp_webhook_utils import validar_assinatura_webhook_mp
 from .rate_limit import rate_limit_or_429
+from .licenca_rinan import (
+    dia_vencimento_licenca,
+    external_reference_licenca,
+    fatura_aberta_atual,
+    garantir_faturas_licenca,
+    marcar_licenca_paga,
+    parse_external_reference_licenca,
+    rinan_mp_configurado,
+    sincronizar_status_fatura,
+    valor_licenca_mensal,
+)
 from .plano_utils import (
     avaliar_desconto_procedimento,
     calcular_valor_com_desconto,
@@ -43,6 +68,8 @@ from .plano_utils import (
     validar_checkout_token,
     valor_checkout_plano,
     valores_mp_coincidem,
+    MAX_DEPENDENTES,
+    RESUMO_PROCEDIMENTOS_PLANO,
 )
 
 logger = logging.getLogger(__name__)
@@ -498,6 +525,79 @@ def termos_uso(request):
 
 def privacidade(request):
     return render(request, "privacidade.html")
+
+
+_CONTRATO_NOMES_EXIBICAO = {
+    "ESSENCIAL": "Ultramed Essencial",
+    "MASTER": "Ultramed Master Familiar",
+    "EMPRESARIAL": "Ultramed Empresarial",
+}
+
+
+def _contrato_chave_plano(texto: str) -> str:
+    t = (texto or "").strip().lower()
+    if "empresarial" in t:
+        return "EMPRESARIAL"
+    if "master" in t or "familiar" in t:
+        return "MASTER"
+    if "essencial" in t:
+        return "ESSENCIAL"
+    return ""
+
+
+def _contrato_linha_plano(plano: Plano) -> dict:
+    chave = (plano.nome or "").upper()
+    mensal = float(plano.valor_anual or 0)
+    # No banco, valor_anual < 100 é mensalidade de referência; checkout cobra anuidade.
+    anuidade = valor_checkout_plano(plano)
+    deps = max_dependentes_plano(plano)
+    beneficios = RESUMO_PROCEDIMENTOS_PLANO.get(chave, [])
+    nome_exibicao = _CONTRATO_NOMES_EXIBICAO.get(chave, plano.nome)
+    return {
+        "chave": chave,
+        "nome": nome_exibicao,
+        "mensal": mensal,
+        "mensal_label": f"R$ {mensal:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        "anuidade": anuidade,
+        "anuidade_label": f"R$ {anuidade:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+        "dependentes": deps,
+        "beneficios": beneficios,
+        "valor_label": (
+            f"R$ {mensal:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            + f"/mês (referência) · anuidade R$ {anuidade:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            + " no checkout"
+        ),
+    }
+
+
+def contrato_adesao(request):
+    """Termo de adesão exibido ao cliente na contratação do plano (dados do banco)."""
+    raw = (request.GET.get("plano") or "").strip()
+    chave = _contrato_chave_plano(raw)
+    plano_sel = Plano.objects.filter(nome=chave).first() if chave else None
+    if not plano_sel and raw:
+        plano_sel = resolver_plano(tipo=raw, url_nome=raw)
+
+    planos_db = list(Plano.objects.filter(nome__in=["ESSENCIAL", "MASTER", "EMPRESARIAL"]).order_by("id"))
+    if not planos_db:
+        planos_db = list(Plano.objects.all().order_by("id"))
+    tabela_planos = [_contrato_linha_plano(p) for p in planos_db]
+
+    selecionado = _contrato_linha_plano(plano_sel) if plano_sel else None
+
+    return render(
+        request,
+        "contrato_adesao.html",
+        {
+            "plano_nome": selecionado["nome"] if selecionado else None,
+            "plano_valor_label": selecionado["valor_label"] if selecionado else None,
+            "plano_anuidade_label": selecionado["anuidade_label"] if selecionado else None,
+            "plano_dependentes": selecionado["dependentes"] if selecionado else None,
+            "plano_beneficios": selecionado["beneficios"] if selecionado else [],
+            "tabela_planos": tabela_planos,
+            "data_documento": timezone.now().strftime("%d/%m/%Y"),
+        },
+    )
 
 
 @login_required
@@ -1387,6 +1487,8 @@ def master_dashboard(request):
     anos_referencia_opcao = list(range(hoje.year - 5, hoje.year + 2))
     periodo_recebimentos_label = f"{_MESES_PT[periodo_mes]} de {periodo_ano}"
 
+    licenca_aberta = fatura_aberta_atual(hoje)
+
     return render(request, 'master_dashboard.html', {
         'pacientes_lista': pacientes_lista,
         'doenca_selecionada': doenca_filtro,
@@ -1402,7 +1504,207 @@ def master_dashboard(request):
         'periodo_recebimentos_mes': periodo_mes,
         'periodo_recebimentos_ano': periodo_ano,
         'periodo_recebimentos_label': periodo_recebimentos_label,
+        'licenca_aberta': licenca_aberta,
     })
+
+
+@login_required
+@master_member_required
+def licenca_rinan(request):
+    """Área Master: mensalidades Ultramed → Rinan Code (separada do caixa da clínica)."""
+    hoje = timezone.now().date()
+    garantir_faturas_licenca(hoje)
+    licenca_aberta = fatura_aberta_atual(hoje)
+    return render(
+        request,
+        "licenca_rinan.html",
+        {
+            "licenca_aberta": licenca_aberta,
+            "licenca_historico": list(FaturaLicencaSistema.objects.all()[:24]),
+            "licenca_mp_ok": rinan_mp_configurado(),
+            "licenca_valor": valor_licenca_mensal(),
+            "licenca_dia_vencimento": dia_vencimento_licenca(),
+        },
+    )
+
+
+def _confirmar_licenca_por_pagamento_mp(payment_id: str, resposta: dict) -> bool:
+    """Marca fatura de licença como paga se o pagamento MP Rinan estiver approved."""
+    if (resposta or {}).get("status") != "approved":
+        return False
+    fatura_id = parse_external_reference_licenca(resposta.get("external_reference"))
+    if not fatura_id:
+        return False
+    fatura = FaturaLicencaSistema.objects.filter(id=fatura_id).first()
+    if not fatura or fatura.status == "PAGO":
+        return bool(fatura)
+    marcar_licenca_paga(fatura, payment_id=str(payment_id))
+    return True
+
+
+@login_required
+@master_member_required
+def licenca_pagar(request, fatura_id):
+    fatura = get_object_or_404(FaturaLicencaSistema, id=fatura_id)
+    sincronizar_status_fatura(fatura)
+    if fatura.status == "PAGO":
+        messages.info(request, f"Licença {fatura.referencia} já está paga.")
+        return redirect("sistema_interno:licenca_rinan")
+
+    if not rinan_mp_configurado():
+        messages.error(
+            request,
+            "Pagamento online indisponível: falta o Access Token da conta Rinan no servidor.",
+        )
+        return redirect("sistema_interno:licenca_rinan")
+
+    token = (getattr(settings, "MERCADO_PAGO_RINAN_ACCESS_TOKEN", "") or "").strip()
+    success_url = request.build_absolute_uri(
+        reverse("sistema_interno:licenca_retorno") + f"?fatura_id={fatura.id}&status=success"
+    )
+    pending_url = request.build_absolute_uri(
+        reverse("sistema_interno:licenca_retorno") + f"?fatura_id={fatura.id}&status=pending"
+    )
+    failure_url = request.build_absolute_uri(
+        reverse("sistema_interno:licenca_retorno") + f"?fatura_id={fatura.id}&status=failure"
+    )
+    webhook_url = request.build_absolute_uri(reverse("sistema_interno:mp_webhook_rinan"))
+
+    preference_data = {
+        "items": [
+            {
+                "title": f"Licença Ultramed · {fatura.competencia_label}",
+                "description": "Mensalidade do sistema Ultramed — Rinan Code",
+                "quantity": 1,
+                "currency_id": "BRL",
+                "unit_price": float(fatura.valor),
+            }
+        ],
+        "external_reference": external_reference_licenca(fatura.id),
+        "back_urls": {
+            "success": success_url,
+            "pending": pending_url,
+            "failure": failure_url,
+        },
+        "auto_return": "approved",
+        "notification_url": webhook_url,
+        "statement_descriptor": "RINAN ULTRAMED",
+    }
+
+    sdk = mercadopago.SDK(token)
+    pref_res = _mp_call_with_timeout(sdk.preference().create, preference_data)
+    if pref_res.get("status") not in (200, 201):
+        detail = (pref_res.get("response") or {}).get("message") or "Erro ao criar checkout."
+        logger.error("Licença MP Rinan preference falhou: %s", pref_res)
+        messages.error(request, f"Não foi possível abrir o pagamento: {detail}")
+        return redirect("sistema_interno:licenca_rinan")
+
+    preference = pref_res["response"]
+    checkout_url = preference.get("init_point") or preference.get("sandbox_init_point")
+    fatura.preferencia_id = preference.get("id") or ""
+    fatura.checkout_url = checkout_url or ""
+    fatura.save(update_fields=["preferencia_id", "checkout_url", "atualizado_em"])
+
+    if not checkout_url:
+        messages.error(request, "Checkout criado sem URL de pagamento. Tente novamente.")
+        return redirect("sistema_interno:licenca_rinan")
+    return redirect(checkout_url)
+
+
+@login_required
+@master_member_required
+def licenca_retorno(request):
+    fatura_id = request.GET.get("fatura_id")
+    status_ret = (request.GET.get("status") or "").strip().lower()
+    payment_id = request.GET.get("payment_id") or request.GET.get("collection_id")
+
+    fatura = None
+    if fatura_id:
+        fatura = FaturaLicencaSistema.objects.filter(id=fatura_id).first()
+
+    if fatura and fatura.status != "PAGO" and payment_id and rinan_mp_configurado():
+        token = (getattr(settings, "MERCADO_PAGO_RINAN_ACCESS_TOKEN", "") or "").strip()
+        sdk = mercadopago.SDK(token)
+        payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
+        if payment_info.get("status") == 200:
+            _confirmar_licenca_por_pagamento_mp(str(payment_id), payment_info.get("response") or {})
+            fatura.refresh_from_db()
+
+    if fatura and fatura.status == "PAGO":
+        messages.success(
+            request,
+            f"Licença {fatura.competencia_label} paga. Obrigado — Rinan Code.",
+        )
+    elif status_ret == "pending":
+        messages.info(
+            request,
+            "Pagamento da licença em análise. Assim que o Mercado Pago confirmar, o status atualiza.",
+        )
+    elif status_ret == "failure":
+        messages.error(request, "Pagamento da licença não concluído. Você pode tentar de novo.")
+    else:
+        messages.info(request, "Retorno do pagamento da licença registrado.")
+
+    return redirect("sistema_interno:licenca_rinan")
+
+
+@login_required
+@master_member_required
+def licenca_baixar(request, fatura_id):
+    if request.method != "POST":
+        return redirect("sistema_interno:licenca_rinan")
+    fatura = get_object_or_404(FaturaLicencaSistema, id=fatura_id)
+    if fatura.status == "PAGO":
+        messages.info(request, f"Licença {fatura.referencia} já estava paga.")
+        return redirect("sistema_interno:licenca_rinan")
+    obs = (request.POST.get("observacao") or "Baixa manual no Master").strip()[:255]
+    marcar_licenca_paga(fatura, observacao=obs)
+    messages.success(
+        request,
+        f"Licença {fatura.competencia_label} marcada como paga (baixa manual).",
+    )
+    return redirect("sistema_interno:licenca_rinan")
+
+
+@csrf_exempt
+def mercadopago_webhook_rinan(request):
+    """Webhook Mercado Pago da conta Rinan — só licença do sistema."""
+    if request.method != "POST":
+        return JsonResponse({"status": "erro"}, status=400)
+
+    payment_id = None
+    ctype = (request.content_type or "").lower()
+    if "application/json" in ctype and request.body:
+        try:
+            payload = json.loads(request.body)
+            inner = payload.get("data") or {}
+            payment_id = inner.get("id")
+        except json.JSONDecodeError:
+            payment_id = None
+    if not payment_id:
+        payment_id = (
+            request.GET.get("id")
+            or request.GET.get("data.id")
+            or request.POST.get("data.id")
+        )
+
+    rinan_secret = (getattr(settings, "MERCADO_PAGO_RINAN_WEBHOOK_SECRET", "") or "").strip()
+    if payment_id and not validar_assinatura_webhook_mp(
+        request, str(payment_id), secret=rinan_secret
+    ):
+        return JsonResponse({"status": "forbidden"}, status=403)
+
+    if payment_id and rinan_mp_configurado():
+        token = (getattr(settings, "MERCADO_PAGO_RINAN_ACCESS_TOKEN", "") or "").strip()
+        sdk = mercadopago.SDK(token)
+        payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
+        if payment_info.get("status") == 200:
+            _confirmar_licenca_por_pagamento_mp(
+                str(payment_id), payment_info.get("response") or {}
+            )
+
+    return JsonResponse({"status": "ok"}, status=200)
+
 
 @login_required
 @recepcao_ou_master_required
@@ -1434,6 +1736,13 @@ def painel_colaborador(request):
         'na_fila': na_fila,
     })
 
+def _medico_display():
+    return {
+        "medico_nome": getattr(settings, "MEDICO_NOME_COMPLETO", "") or "Médico",
+        "medico_crm": getattr(settings, "MEDICO_CRM", "") or "",
+    }
+
+
 @login_required
 @staff_member_required
 def painel_medico(request):
@@ -1441,7 +1750,290 @@ def painel_medico(request):
         messages.error(request, "Acesso restrito ao médico.")
         return _staff_home_redirect(request.user)
     espera = Agenda.objects.filter(data=timezone.now().date(), status='CHEGOU').order_by('hora')
-    return render(request, 'painel_medico.html', {'pacientes_espera': espera})
+    ctx = {'pacientes_espera': espera}
+    ctx.update(_medico_display())
+    return render(request, 'painel_medico.html', ctx)
+
+
+TV_CHAMADA_SEGUNDOS = 25
+JP_NEWS_CHANNEL_ID = "UCP391YRAjSOdM_bwievgaZA"
+# Fallback conhecido (atualizado automaticamente quando o YouTube responde)
+JP_NEWS_FALLBACK_VIDEO = "4dFcj4OUzxM"
+
+_TV_NOTICIAS = [
+    {"src": "Ultramed", "title": "Traga documento com foto e a carteirinha digital no atendimento"},
+    {"src": "Saúde", "title": "Hidrate-se e evite jejum prolongado sem orientação médica"},
+    {"src": "Clínica", "title": "Ao ser chamado, dirija-se ao consultório indicado no painel"},
+    {"src": "Planos", "title": "Renove o plano com antecedência pelo Meu Espaço ou na recepção"},
+    {"src": "Farmácia", "title": "Apresente o QR da carteirinha para validar o benefício"},
+    {"src": "Xingu", "title": "Ultramed — cuidado de qualidade em São Félix do Xingu"},
+    {"src": "Dica", "title": "Mantenha o celular no silencioso durante a espera"},
+    {"src": "Atendimento", "title": "Fila atualizada em tempo real após o check-in na recepção"},
+]
+
+# Benefícios da TV — alinhados às regras de cálculo em plano_utils
+_TV_PLANOS_EXTRA = {
+    "ESSENCIAL": {
+        "destaque": False,
+        "beneficios": [
+            "Até 3 pessoas (titular + 2 dep.)",
+            "USG, MAPA 24h e Holter 24h",
+            "30% na 1ª do mês · 20% nas demais",
+        ],
+    },
+    "MASTER": {
+        "destaque": True,
+        "selo": "Mais popular",
+        "beneficios": [
+            "Até 6 pessoas (titular + 5 dep.)",
+            "Tudo do Essencial + consultas",
+            "ECG, endoscopia, biópsias e mais",
+            "30% off nos procedimentos cobertos",
+        ],
+    },
+    "EMPRESARIAL": {
+        "destaque": False,
+        "beneficios": [
+            "Tudo do Master (até 21 vidas*)",
+            "40% off em lab. de rotina",
+            "30% off consultas e clínicos",
+            "*Limite no sistema: titular + 20 dep.",
+        ],
+    },
+}
+
+
+def _tv_planos_para_tela():
+    """Planos com preço e benefícios para a TV da recepção."""
+    ordem = ("ESSENCIAL", "MASTER", "EMPRESARIAL")
+    por_nome = {p.nome: p for p in Plano.objects.all()}
+    planos = []
+    for codigo in ordem:
+        p = por_nome.get(codigo)
+        extra = _TV_PLANOS_EXTRA.get(codigo, {})
+        # No cadastro, valor_anual guarda o valor mensal de vitrine
+        mensal = float(p.valor_anual) if p else {
+            "ESSENCIAL": 59.90,
+            "MASTER": 79.90,
+            "EMPRESARIAL": 99.90,
+        }.get(codigo, 0)
+        anual = round(mensal * 12, 2)
+        nome_display = p.get_nome_display() if p else {
+            "ESSENCIAL": "Ultramed Essencial",
+            "MASTER": "Ultramed Master Familiar",
+            "EMPRESARIAL": "Ultramed Empresarial",
+        }.get(codigo, codigo)
+        beneficios = list(extra.get("beneficios") or [])
+        if not beneficios:
+            beneficios = list(RESUMO_PROCEDIMENTOS_PLANO.get(codigo, []))
+            max_dep = MAX_DEPENDENTES.get(codigo)
+            if max_dep is not None:
+                beneficios.insert(0, f"Até {max_dep + 1} pessoas (titular + dependentes)")
+        planos.append(
+            {
+                "codigo": codigo,
+                "nome": nome_display,
+                "mensal": mensal,
+                "mensal_fmt": f"{mensal:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                "anual_fmt": f"{anual:,.2f}".replace(",", "X").replace(".", ",").replace("X", "."),
+                "beneficios": beneficios,
+                "destaque": bool(extra.get("destaque")),
+                "selo": extra.get("selo") or "",
+            }
+        )
+    return planos
+
+
+def _http_get_text(url, timeout=8):
+    req = Request(
+        url,
+        headers={
+            "User-Agent": (
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+            "Accept-Language": "pt-BR,pt;q=0.9",
+        },
+    )
+    with urlopen(req, timeout=timeout) as resp:
+        return resp.read().decode("utf-8", "ignore")
+
+
+def _jp_rss_latest_video_id():
+    feed = _http_get_text(
+        f"https://www.youtube.com/feeds/videos.xml?channel_id={JP_NEWS_CHANNEL_ID}"
+    )
+    root = ET.fromstring(feed)
+    ns = {"yt": "http://www.youtube.com/xml/schemas/2015"}
+    node = root.find(".//yt:videoId", ns)
+    if node is not None and node.text:
+        return node.text.strip()
+    return None
+
+
+def _jp_video_parece_ao_vivo(video_id):
+    """Confere se o vídeo ainda está marcado como live no YouTube."""
+    try:
+        html = _http_get_text(f"https://www.youtube.com/watch?v={video_id}")
+        return '"isLiveNow":true' in html or '"isLive":true' in html
+    except Exception:
+        return False
+
+
+def _resolver_jovem_pan_video_id():
+    """
+    O embed live_stream?channel= costuma falhar (player-unavailable).
+    Resolvemos um videoId concreto do canal Jovem Pan News.
+    """
+    cache_key = "tv_jp_news_video_id"
+    cached = cache.get(cache_key)
+    if cached:
+        return cached
+
+    video_id = None
+
+    # 1) Página /live — prioriza marcação isLiveNow
+    try:
+        html = _http_get_text(
+            f"https://www.youtube.com/channel/{JP_NEWS_CHANNEL_ID}/live"
+        )
+        m = re.search(
+            r'"videoId":"([A-Za-z0-9_-]{11})".{0,240}"isLiveNow"\s*:\s*true',
+            html,
+            re.DOTALL,
+        )
+        if not m:
+            m = re.search(
+                r'"isLiveNow"\s*:\s*true.{0,240}"videoId":"([A-Za-z0-9_-]{11})"',
+                html,
+                re.DOTALL,
+            )
+        if m:
+            video_id = m.group(1)
+    except Exception as exc:
+        logger.warning("TV JP: falha ao ler /live: %s", exc)
+
+    # 2) RSS do canal (programa mais recente — costuma ser o do dia)
+    if not video_id:
+        try:
+            video_id = _jp_rss_latest_video_id()
+        except Exception as exc:
+            logger.warning("TV JP: falha no RSS: %s", exc)
+
+    # 3) Confirma live no watch page dos candidatos do /live
+    if video_id and not _jp_video_parece_ao_vivo(video_id):
+        try:
+            html = _http_get_text(
+                f"https://www.youtube.com/channel/{JP_NEWS_CHANNEL_ID}/live"
+            )
+            for cand in list(
+                dict.fromkeys(re.findall(r'"videoId":"([A-Za-z0-9_-]{11})"', html))
+            )[:6]:
+                if _jp_video_parece_ao_vivo(cand):
+                    video_id = cand
+                    break
+        except Exception:
+            pass
+
+    video_id = video_id or JP_NEWS_FALLBACK_VIDEO
+    cache.set(cache_key, video_id, 180)
+    return video_id
+
+
+def _youtube_embed_url(video_id, mute=True):
+    mute_flag = "1" if mute else "0"
+    return (
+        f"https://www.youtube.com/embed/{video_id}"
+        f"?autoplay=1&mute={mute_flag}&controls=1&rel=0&modestbranding=1"
+        f"&playsinline=1&enablejsapi=1"
+    )
+
+
+def _tv_payload_chamada():
+    chamada = ChamadaPainel.objects.filter(pk=1).first()
+    if not chamada:
+        return {"ativa": False}
+    idade = (timezone.now() - chamada.chamada_em).total_seconds()
+    if idade > TV_CHAMADA_SEGUNDOS:
+        return {"ativa": False, "id": chamada.pk, "expirada": True}
+    return {
+        "ativa": True,
+        "id": chamada.pk,
+        "paciente_nome": chamada.paciente_nome,
+        "consultorio": chamada.consultorio,
+        "mensagem": chamada.mensagem,
+        "chamada_em": chamada.chamada_em.isoformat(),
+        "restante": max(0, int(TV_CHAMADA_SEGUNDOS - idade)),
+    }
+
+
+@login_required
+@staff_member_required
+def tv_espera(request):
+    """Tela fullscreen da TV na recepção (padrão Ultramed)."""
+    video_id = _resolver_jovem_pan_video_id()
+    planos_tv = _tv_planos_para_tela()
+    return render(
+        request,
+        "tv_espera.html",
+        {
+            "noticias_json": json.dumps(_TV_NOTICIAS, ensure_ascii=False),
+            "planos_json": json.dumps(planos_tv, ensure_ascii=False),
+            "planos_tv": planos_tv,
+            "poll_url": reverse("sistema_interno:api_tv_chamada"),
+            "stream_url": reverse("sistema_interno:api_tv_stream"),
+            "segundos_chamada": TV_CHAMADA_SEGUNDOS,
+            "youtube_video_id": video_id,
+            "youtube_embed_url": _youtube_embed_url(video_id, mute=True),
+        },
+    )
+
+
+@login_required
+@staff_member_required
+def api_tv_chamada(request):
+    """Polling da TV: última chamada ativa."""
+    return JsonResponse(_tv_payload_chamada())
+
+
+@login_required
+@staff_member_required
+def api_tv_stream(request):
+    """ID atual do ao vivo Jovem Pan News (para a TV trocar de programa)."""
+    if request.GET.get("refresh") == "1":
+        cache.delete("tv_jp_news_video_id")
+    video_id = _resolver_jovem_pan_video_id()
+    return JsonResponse(
+        {
+            "video_id": video_id,
+            "embed_url": _youtube_embed_url(video_id, mute=True),
+            "watch_url": f"https://www.youtube.com/watch?v={video_id}",
+        }
+    )
+
+
+@login_required
+@staff_member_required
+def chamar_paciente_tv(request, paciente_id):
+    """
+    Médico chama paciente na TV.
+    destino=prontuario (padrão) | fila | repetir (volta ao prontuário).
+    """
+    if not _is_medico_user(request.user):
+        messages.error(request, "Acesso restrito ao médico.")
+        return _staff_home_redirect(request.user)
+    if request.method != "POST":
+        return redirect("sistema_interno:painel_medico")
+    paciente = get_object_or_404(Paciente, id=paciente_id)
+    consultorio = (request.POST.get("consultorio") or "Consultório 1").strip()
+    ChamadaPainel.registrar(paciente, consultorio=consultorio)
+    messages.success(request, f"{paciente.nome_completo} chamado(a) na TV.")
+    destino = (request.POST.get("destino") or "prontuario").strip().lower()
+    if destino == "fila":
+        return redirect("sistema_interno:painel_medico")
+    # repetir / prontuario: fica ou abre o prontuário
+    return redirect("sistema_interno:prontuario_view", paciente_id=paciente.id)
 
 @login_required
 def painel_paciente(request):
@@ -1646,7 +2238,9 @@ def prontuario_view(request, paciente_id):
         
     hist = Prontuario.objects.filter(paciente=p).order_by('-data_atendimento')
     exames = Exame.objects.filter(paciente=p).order_by('-id')
-    return render(request, 'prontuario.html', {'paciente': p, 'historico': hist, 'exames': exames})
+    ctx = {'paciente': p, 'historico': hist, 'exames': exames}
+    ctx.update(_medico_display())
+    return render(request, 'prontuario.html', ctx)
 
 @login_required
 @master_member_required
@@ -1927,9 +2521,19 @@ def cadastro_plano_completo(request, plano_nome):
         sexo = request.POST.get('titular_sexo') or request.POST.get('sexo') or 'M'
         nasc = request.POST.get('titular_nascimento') or request.POST.get('data_nascimento')
         plano_tipo = request.POST.get('plano_tipo')
+        aceito = (request.POST.get("aceito_contrato") or "").strip() in ("1", "on", "true", "True", "sim")
 
         if not nasc:
             nasc = "1900-01-01"
+
+        if not aceito:
+            return JsonResponse(
+                {
+                    "success": False,
+                    "error": "É necessário ler e aceitar o Termo de Adesão para continuar.",
+                },
+                status=400,
+            )
 
         plano = resolver_plano(tipo=plano_tipo, url_nome=plano_nome)
         if not plano:

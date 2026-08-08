@@ -1,6 +1,16 @@
 from django.contrib import admin
 
-from .models import Agenda, Exame, Fatura, LeadSite, Paciente, Plano, Prontuario, Receita
+from .models import (
+    Agenda,
+    Exame,
+    Fatura,
+    FaturaLicencaSistema,
+    LeadSite,
+    Paciente,
+    Plano,
+    Prontuario,
+    Receita,
+)
 
 
 @admin.register(Plano)
@@ -45,3 +55,18 @@ class ReceitaAdmin(admin.ModelAdmin):
 class LeadSiteAdmin(admin.ModelAdmin):
     list_display = ("nome", "telefone", "interesse", "atendido", "data_solicitacao")
     list_filter = ("atendido",)
+
+
+@admin.register(FaturaLicencaSistema)
+class FaturaLicencaSistemaAdmin(admin.ModelAdmin):
+    list_display = (
+        "referencia",
+        "valor",
+        "data_vencimento",
+        "status",
+        "data_pagamento",
+        "mercadopago_id",
+    )
+    list_filter = ("status",)
+    search_fields = ("referencia", "mercadopago_id", "preferencia_id")
+    readonly_fields = ("criado_em", "atualizado_em")

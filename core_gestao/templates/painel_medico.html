@@ -6,9 +6,14 @@
             Consultório | <span class="font-light opacity-80">Fila de Atendimento</span>
         </h2>
         <div class="flex items-center gap-4">
-            <span class="text-[10px] font-black bg-white/20 px-4 py-2 rounded-full uppercase italic tracking-widest">
-                Dr(a). {{ request.user.username }}
+            <span class="text-[10px] font-black bg-white/20 px-4 py-2 rounded-full uppercase italic tracking-widest text-right leading-tight">
+                Dr. {{ medico_nome }}
+                {% if medico_crm %}<span class="block font-bold opacity-80 normal-case tracking-wider mt-0.5">CRM {{ medico_crm }}</span>{% endif %}
             </span>
+            <a href="{% url 'sistema_interno:tv_espera' %}" target="_blank" rel="noopener"
+               class="bg-white/20 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase italic no-underline hover:bg-white/30" title="Abrir TV da recepção">
+                <i class="fas fa-tv mr-1"></i> TV
+            </a>
             <a href="{% url 'sistema_interno:ajuda_equipe' %}" class="bg-white/20 text-white px-4 py-2 rounded-full text-[10px] font-black uppercase italic no-underline hover:bg-white/30" title="Central da Equipe">
                 <i class="fas fa-book-open mr-1"></i> Ajuda
             </a>
@@ -56,10 +61,23 @@
                         </div>
                     </div>
 
-                    <div class="flex items-center gap-3">
-                        <a href="{% url 'sistema_interno:prontuario_view' ag.paciente.id %}" class="bg-marsala-700 text-white px-8 py-4 rounded-2xl text-[10px] font-black uppercase italic shadow-lg hover:bg-marsala-800 transition-all no-underline">
-                            Chamar Paciente
-                        </a>
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                        <form method="post" action="{% url 'sistema_interno:chamar_paciente_tv' ag.paciente.id %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="consultorio" value="Consultório 1">
+                            <input type="hidden" name="destino" value="fila">
+                            <button type="submit" class="bg-white text-marsala-700 border border-marsala-700 px-5 py-3.5 rounded-2xl text-[10px] font-black uppercase italic hover:bg-marsala-50 transition-all cursor-pointer w-full sm:w-auto" title="Só chama na TV e permanece na fila">
+                                <i class="fas fa-bullhorn mr-1"></i> Chamar TV
+                            </button>
+                        </form>
+                        <form method="post" action="{% url 'sistema_interno:chamar_paciente_tv' ag.paciente.id %}" class="inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="consultorio" value="Consultório 1">
+                            <input type="hidden" name="destino" value="prontuario">
+                            <button type="submit" class="bg-marsala-700 text-white px-6 py-3.5 rounded-2xl text-[10px] font-black uppercase italic shadow-lg hover:bg-marsala-800 transition-all border-none cursor-pointer w-full sm:w-auto">
+                                <i class="fas fa-notes-medical mr-1"></i> Chamar e atender
+                            </button>
+                        </form>
                     </div>
                 </div>
                 {% empty %}

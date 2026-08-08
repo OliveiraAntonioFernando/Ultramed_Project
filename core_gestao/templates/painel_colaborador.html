@@ -63,6 +63,15 @@
                     <span class="text-[9px] text-gray-400 font-bold uppercase">Ler carteirinha · colocar na fila</span>
                 </div>
             </a>
+            <a href="{% url 'sistema_interno:tv_espera' %}" target="_blank" rel="noopener" class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:border-marsala-700 transition-all group flex items-center gap-4 no-underline md:col-span-2 lg:col-span-2">
+                <div class="w-12 h-12 bg-marsala-100 text-marsala-700 rounded-2xl flex items-center justify-center text-xl group-hover:bg-marsala-700 group-hover:text-white transition-all">
+                    <i class="fas fa-tv"></i>
+                </div>
+                <div>
+                    <span class="text-xs font-black uppercase text-gray-700 italic block">TV Sala de Espera</span>
+                    <span class="text-[9px] text-gray-400 font-bold uppercase">Abrir na TV · F11 tela cheia</span>
+                </div>
+            </a>
             <a href="{% url 'sistema_interno:ler_carteirinha' %}?modo=farmacia" class="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 hover:border-sky-500 transition-all group flex items-center gap-4 no-underline md:col-span-2 lg:col-span-2">
                 <div class="w-12 h-12 bg-sky-100 text-sky-700 rounded-2xl flex items-center justify-center text-xl group-hover:bg-sky-600 group-hover:text-white transition-all">
                     <i class="fas fa-prescription-bottle-medical"></i>

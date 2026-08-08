@@ -1,0 +1,554 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TV Sala de Espera | Ultramed</title>
+    <link rel="icon" type="image/png" href="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        marsala: {
+                            50: '#fcf4f4',
+                            100: '#f9e9e9',
+                            700: '#700c15',
+                            800: '#5c0a11'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html, body { height: 100%; overflow: hidden; }
+        @keyframes ticker {
+            from { transform: translateX(0); }
+            to { transform: translateX(-50%); }
+        }
+        .ticker-move {
+            display: inline-flex;
+            animation: ticker 45s linear infinite;
+            will-change: transform;
+        }
+        @keyframes callIn {
+            from { opacity: 0; transform: scale(.96); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        .call-in { animation: callIn .45s ease both; }
+        @keyframes softPulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(112, 12, 21, .25); }
+            50% { box-shadow: 0 0 0 28px rgba(112, 12, 21, 0); }
+        }
+        .call-pulse { animation: softPulse 2s ease-in-out infinite; }
+        #callOverlay {
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            background: rgba(20, 6, 8, 0.88);
+        }
+        #callOverlay .call-scrim {
+            position: absolute;
+            inset: 0;
+            background: radial-gradient(ellipse at center, rgba(112,12,21,.35) 0%, rgba(10,4,6,.92) 70%);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans antialiased h-screen">
+<div class="h-screen flex flex-col" style="background: linear-gradient(180deg, #f9e9e9 0%, #f3f4f6 35%, #f3f4f6 100%);">
+
+    <!-- Topo Ultramed -->
+    <header class="shrink-0 text-white px-6 sm:px-10 py-5 flex items-center justify-between shadow-xl" style="background-color: #700c15;">
+        <div class="flex items-center gap-4 min-w-0">
+            <img src="{% static 'sistema_interno/img/logo_ultramed.png' %}?v=3" alt="Ultramed"
+                 class="h-12 w-12 sm:h-14 sm:w-14 object-contain rounded-2xl bg-white/10 p-1.5 shrink-0">
+            <div class="min-w-0">
+                <h1 class="text-2xl sm:text-3xl font-black uppercase italic tracking-tighter leading-none">Ultramed</h1>
+                <p class="text-[10px] sm:text-xs font-bold uppercase tracking-[0.22em] opacity-80 mt-1">Sala de espera · São Félix do Xingu</p>
+            </div>
+        </div>
+        <div class="text-right shrink-0">
+            <p id="clock" class="text-3xl sm:text-4xl font-black italic leading-none tracking-tight">--:--</p>
+            <p id="dateLabel" class="text-[9px] sm:text-[10px] font-black uppercase tracking-widest opacity-70 mt-1">—</p>
+        </div>
+    </header>
+
+    <!-- Conteúdo -->
+    <main class="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6 p-4 sm:p-6">
+
+        <!-- Painel central: Jovem Pan News ao vivo -->
+        <section class="lg:col-span-8 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden relative flex flex-col min-h-0">
+            <div class="shrink-0 px-5 sm:px-6 py-3 border-b border-gray-50 flex items-center justify-between gap-3 bg-white">
+                <div class="flex items-center gap-3 min-w-0">
+                    <span class="inline-flex items-center gap-2 bg-red-600 text-white text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-full">
+                        <span class="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span> Ao vivo
+                    </span>
+                    <p class="text-[10px] sm:text-xs font-black uppercase italic text-gray-800 tracking-widest truncate">
+                        Jovem Pan News
+                    </p>
+                </div>
+                <p class="text-[9px] font-bold uppercase text-marsala-700 italic shrink-0 hidden sm:block">
+                    Ultramed · Sala de espera
+                </p>
+            </div>
+            <div class="relative flex-1 min-h-0 bg-black">
+                <div class="absolute inset-0 flex flex-col items-center justify-center px-8 text-center text-white/80 z-0">
+                    <p class="text-[10px] font-black uppercase tracking-[0.28em] text-white/50 mb-3">Ultramed</p>
+                    <p class="text-2xl font-black uppercase italic tracking-tighter">Bem-vindo</p>
+                    <p class="text-xs font-bold uppercase italic mt-2 opacity-60">Carregando Jovem Pan News…</p>
+                </div>
+                <iframe
+                    id="jpLive"
+                    class="absolute inset-0 w-full h-full z-10 border-0"
+                    src="{{ youtube_embed_url }}"
+                    title="Jovem Pan News ao vivo"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowfullscreen
+                    referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
+                <!-- Muitos navegadores / TVs pedem um toque para iniciar -->
+                <button type="button" id="btnStartVideo"
+                        class="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/55 border-none cursor-pointer text-white">
+                    <span class="w-20 h-20 rounded-full bg-marsala-700 flex items-center justify-center shadow-xl mb-4">
+                        <i class="fas fa-play text-2xl ml-1"></i>
+                    </span>
+                    <span class="text-sm font-black uppercase italic tracking-widest">Toque para iniciar vídeo e som</span>
+                    <span class="text-[10px] font-bold uppercase opacity-70 mt-2">Obrigatório para o alerta da chamada</span>
+                </button>
+            </div>
+            <div class="shrink-0 px-6 py-3 border-t border-gray-50 flex flex-wrap items-center justify-between bg-gray-50/80 gap-3">
+                <p id="audioStatus" class="text-[9px] font-black uppercase tracking-widest text-amber-600">
+                    Som da chamada: toque na tela para ativar
+                </p>
+                <div class="flex items-center gap-2">
+                    <button type="button" id="btnTestChime"
+                            class="bg-amber-500 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase italic border-none cursor-pointer hover:bg-amber-600">
+                        <i class="fas fa-bell mr-1"></i> Testar som
+                    </button>
+                    <button type="button" id="btnRefreshStream"
+                            class="bg-gray-800 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase italic border-none cursor-pointer hover:bg-black">
+                        <i class="fas fa-sync-alt mr-1"></i> Atualizar canal
+                    </button>
+                    <button type="button" id="btnMuteToggle"
+                            class="bg-marsala-700 text-white px-4 py-2 rounded-xl text-[9px] font-black uppercase italic border-none cursor-pointer hover:bg-marsala-800">
+                        <i class="fas fa-volume-mute mr-1"></i> <span id="muteLabel">Som desligado</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Planos Ultramed (preços + benefícios) -->
+        <aside class="lg:col-span-4 bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden flex flex-col min-h-0">
+            <div class="px-6 py-5 border-b border-gray-50 flex items-center justify-between shrink-0">
+                <div>
+                    <h3 class="text-xs font-black uppercase italic text-gray-800 tracking-widest">Nossos planos</h3>
+                    <p class="text-[9px] font-bold text-marsala-700 uppercase mt-1">Valores e benefícios</p>
+                </div>
+                <span class="bg-marsala-100 text-marsala-700 text-[9px] px-3 py-1 rounded-full font-black uppercase italic">Contrate na recepção</span>
+            </div>
+            <div id="planosPanel" class="flex-1 overflow-hidden p-4 sm:p-5 relative min-h-0"></div>
+            <div class="shrink-0 px-5 pb-4 flex items-center justify-center gap-2" id="planosDots"></div>
+        </aside>
+    </main>
+
+    <!-- Faixa inferior -->
+    <footer class="shrink-0 h-12 sm:h-14 flex items-stretch overflow-hidden shadow-inner" style="background-color: #5c0a11;">
+        <div class="bg-white text-marsala-700 px-4 sm:px-6 flex items-center text-[9px] sm:text-[10px] font-black uppercase tracking-[0.2em] shrink-0">
+            Ultramed
+        </div>
+        <div class="flex-1 overflow-hidden flex items-center text-white mask-fade">
+            <div class="ticker-move whitespace-nowrap text-sm font-black italic uppercase tracking-tight" id="tickerTrack"></div>
+        </div>
+    </footer>
+</div>
+
+<!-- Overlay chamada: popup tela cheia com transparência (reduz ruído visual) -->
+<div id="callOverlay" class="fixed inset-0 z-[80] hidden items-center justify-center px-4 sm:px-8" aria-live="assertive">
+    <div class="call-scrim" aria-hidden="true"></div>
+    <div class="call-in call-pulse relative z-10 bg-white/95 rounded-[2.5rem] shadow-2xl border border-white/40 max-w-5xl w-full px-8 sm:px-16 py-14 sm:py-20 text-center">
+        <p class="text-[10px] sm:text-xs font-black uppercase tracking-[0.35em] text-marsala-700 mb-5">
+            Chamada · Ultramed
+        </p>
+        <p class="text-[11px] sm:text-sm font-black uppercase tracking-[0.28em] text-gray-400 mb-4">
+            Por favor, dirija-se ao consultório
+        </p>
+        <p id="callName" class="text-4xl sm:text-6xl md:text-7xl font-black uppercase italic tracking-tighter text-gray-900 leading-none break-words">
+            —
+        </p>
+        <p id="callMsg" class="mt-7 text-base sm:text-xl font-black uppercase italic text-gray-400">
+            Sua consulta vai começar
+        </p>
+        <p id="callRoom" class="mt-8 inline-flex items-center gap-2 bg-marsala-700 text-white px-10 py-4 rounded-2xl text-xs sm:text-sm font-black uppercase italic tracking-widest shadow-lg">
+            Consultório 1
+        </p>
+    </div>
+</div>
+
+<script>
+(function () {
+    const NOTICIAS = {{ noticias_json|safe }};
+    const PLANOS = {{ planos_json|safe }};
+    const POLL_URL = "{{ poll_url|escapejs }}";
+    const STREAM_URL = "{{ stream_url|escapejs }}";
+    const SEGUNDOS = {{ segundos_chamada|default:25 }};
+    let currentVideoId = "{{ youtube_video_id|escapejs }}";
+
+    const planosPanel = document.getElementById("planosPanel");
+    const planosDots = document.getElementById("planosDots");
+    const tickerTrack = document.getElementById("tickerTrack");
+    const overlay = document.getElementById("callOverlay");
+    const jpLive = document.getElementById("jpLive");
+    const startBtn = document.getElementById("btnStartVideo");
+    let planoIndex = 0;
+    let lastCallKey = null;
+    let hideTimer = null;
+    let chimeTimers = [];
+    let streamMuted = true;
+    let mutedBeforeCall = true;
+    let audioUnlocked = false;
+    let audioCtx = null;
+    let beepUrl = null;
+
+    function setAudioStatus(ok) {
+        const el = document.getElementById("audioStatus");
+        if (!el) return;
+        if (ok) {
+            el.className = "text-[9px] font-black uppercase tracking-widest text-emerald-600";
+            el.textContent = "Som da chamada: ativo";
+        } else {
+            el.className = "text-[9px] font-black uppercase tracking-widest text-amber-600";
+            el.textContent = "Som da chamada: toque na tela para ativar";
+        }
+    }
+
+    /**
+     * Chime suave estilo "ding-dong" de consultório:
+     * duas notas (Mi → Sol), ataque lento e fade longo — sem bip seco.
+     */
+    function buildBeepUrl() {
+        const sampleRate = 44100;
+        const duration = 1.35;
+        const n = Math.floor(sampleRate * duration);
+        const buffer = new ArrayBuffer(44 + n * 2);
+        const view = new DataView(buffer);
+        const writeStr = (o, s) => { for (let i = 0; i < s.length; i++) view.setUint8(o + i, s.charCodeAt(i)); };
+        writeStr(0, "RIFF");
+        view.setUint32(4, 36 + n * 2, true);
+        writeStr(8, "WAVE");
+        writeStr(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true);
+        view.setUint16(22, 1, true);
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, "data");
+        view.setUint32(40, n * 2, true);
+
+        // Notas: E5 (659.25) e G5 (783.99) — intervalo agradável
+        const note1 = { freq: 659.25, start: 0.00, len: 0.70 };
+        const note2 = { freq: 783.99, start: 0.42, len: 0.85 };
+
+        function noteSample(t, note) {
+            const local = t - note.start;
+            if (local < 0 || local > note.len) return 0;
+            // ataque ~80ms, sustain curto, release longo
+            const attack = 0.08;
+            const release = 0.45;
+            let env = 1;
+            if (local < attack) env = local / attack;
+            else if (local > note.len - release) env = Math.max(0, (note.len - local) / release);
+            env = env * env; // curva mais suave
+            const fund = Math.sin(2 * Math.PI * note.freq * local);
+            const soft = Math.sin(2 * Math.PI * note.freq * 2 * local) * 0.12;
+            return (fund + soft) * env * 0.28;
+        }
+
+        for (let i = 0; i < n; i++) {
+            const t = i / sampleRate;
+            let sample = noteSample(t, note1) + noteSample(t, note2);
+            sample = Math.max(-1, Math.min(1, sample));
+            view.setInt16(44 + i * 2, sample * 32767, true);
+        }
+        return URL.createObjectURL(new Blob([buffer], { type: "audio/wav" }));
+    }
+
+    async function unlockAudio() {
+        try {
+            if (!beepUrl) beepUrl = buildBeepUrl();
+            const AC = window.AudioContext || window.webkitAudioContext;
+            if (AC) {
+                if (!audioCtx) audioCtx = new AC();
+                if (audioCtx.state === "suspended") await audioCtx.resume();
+            }
+            const a = new Audio(beepUrl);
+            a.volume = 0.01;
+            await a.play().catch(() => {});
+            a.pause();
+            audioUnlocked = true;
+            setAudioStatus(true);
+            return true;
+        } catch (_) {
+            setAudioStatus(false);
+            return false;
+        }
+    }
+
+    function playSoftChimeWebAudio() {
+        try {
+            if (!audioCtx) {
+                const AC = window.AudioContext || window.webkitAudioContext;
+                if (AC) audioCtx = new AC();
+            }
+            if (!audioCtx) return;
+            audioCtx.resume().then(() => {
+                const notes = [
+                    { freq: 659.25, at: 0.00, dur: 0.70 },
+                    { freq: 783.99, at: 0.42, dur: 0.85 },
+                ];
+                notes.forEach((n) => {
+                    const osc = audioCtx.createOscillator();
+                    const gain = audioCtx.createGain();
+                    osc.type = "sine";
+                    osc.frequency.value = n.freq;
+                    osc.connect(gain);
+                    gain.connect(audioCtx.destination);
+                    const t0 = audioCtx.currentTime + n.at;
+                    gain.gain.setValueAtTime(0.0001, t0);
+                    gain.gain.exponentialRampToValueAtTime(0.22, t0 + 0.08);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + n.dur);
+                    osc.start(t0);
+                    osc.stop(t0 + n.dur + 0.02);
+                });
+            });
+        } catch (_) {}
+    }
+
+    function playChimeOnce() {
+        try {
+            if (!beepUrl) beepUrl = buildBeepUrl();
+            const a = new Audio(beepUrl);
+            a.volume = 0.75;
+            a.play().catch(() => playSoftChimeWebAudio());
+        } catch (_) {
+            playSoftChimeWebAudio();
+        }
+    }
+
+    /** Repete o chime suave algumas vezes (sem agressividade). */
+    function playChime() {
+        stopChimes();
+        unlockAudio().then(() => {
+            const repeats = 3;
+            const gapMs = 2200;
+            for (let n = 0; n < repeats; n++) {
+                chimeTimers.push(setTimeout(playChimeOnce, n * gapMs));
+            }
+        });
+    }
+
+    function stopChimes() {
+        chimeTimers.forEach((t) => clearTimeout(t));
+        chimeTimers = [];
+    }
+
+    function streamSrc(videoId, mute) {
+        return "https://www.youtube.com/embed/" + videoId
+            + "?autoplay=1&mute=" + (mute ? "1" : "0")
+            + "&controls=1&rel=0&modestbranding=1&playsinline=1&enablejsapi=1";
+    }
+
+    function applyStreamMute(mute) {
+        streamMuted = !!mute;
+        if (jpLive && currentVideoId) jpLive.src = streamSrc(currentVideoId, streamMuted);
+        const btn = document.getElementById("btnMuteToggle");
+        if (btn) {
+            btn.innerHTML = streamMuted
+                ? '<i class="fas fa-volume-mute mr-1"></i> <span id="muteLabel">Som desligado</span>'
+                : '<i class="fas fa-volume-up mr-1"></i> <span id="muteLabel">Som ligado</span>';
+        }
+    }
+
+    function hideStartOverlay() {
+        if (startBtn) startBtn.style.display = "none";
+    }
+
+    function loadStream(videoId, mute) {
+        if (!videoId || !jpLive) return;
+        currentVideoId = videoId;
+        jpLive.src = streamSrc(videoId, mute !== undefined ? mute : streamMuted);
+    }
+
+    async function refreshStream(force) {
+        try {
+            const url = STREAM_URL + (force ? "?refresh=1" : "");
+            const r = await fetch(url, {
+                headers: { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" },
+                credentials: "same-origin",
+            });
+            if (!r.ok) return;
+            const data = await r.json();
+            if (data.video_id && data.video_id !== currentVideoId) {
+                loadStream(data.video_id, streamMuted);
+            } else if (force && data.video_id) {
+                loadStream(data.video_id, streamMuted);
+            }
+        } catch (_) {}
+    }
+
+    function tickClock() {
+        const now = new Date();
+        document.getElementById("clock").textContent = now.toLocaleTimeString("pt-BR", {
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+        document.getElementById("dateLabel").textContent = now.toLocaleDateString("pt-BR", {
+            weekday: "long",
+            day: "2-digit",
+            month: "long",
+        });
+    }
+
+    function renderPlanoCard(p) {
+        const shell = p.destaque
+            ? "bg-marsala-700 text-white border-marsala-700"
+            : "bg-gray-50 text-gray-800 border-gray-100";
+        const priceClass = p.destaque ? "text-yellow-300" : "text-marsala-700";
+        const muteClass = p.destaque ? "text-white/70" : "text-gray-400";
+        const beneClass = p.destaque ? "text-white" : "text-gray-700";
+        const checkColor = p.destaque ? "text-yellow-300" : "text-marsala-700";
+        return `
+            <article class="h-full rounded-[1.75rem] border-2 ${shell} p-5 sm:p-6 flex flex-col relative overflow-hidden call-in">
+                ${p.selo ? `<span class="absolute top-3 right-3 bg-yellow-400 text-marsala-800 text-[9px] font-black uppercase tracking-widest px-3 py-1 rounded-full">${p.selo}</span>` : ""}
+                <p class="text-[10px] font-black uppercase tracking-[0.22em] ${muteClass}">${p.codigo}</p>
+                <h4 class="text-xl sm:text-2xl font-black uppercase italic tracking-tighter mt-2 leading-none">${p.nome.replace("Ultramed ", "")}</h4>
+                <div class="mt-4 mb-1 flex items-baseline gap-1">
+                    <span class="text-3xl sm:text-4xl font-black italic ${priceClass}">R$ ${p.mensal_fmt}</span>
+                    <span class="text-[10px] font-bold uppercase ${muteClass}">/mês*</span>
+                </div>
+                <p class="text-[9px] font-black uppercase tracking-widest ${muteClass}">Total anual R$ ${p.anual_fmt}</p>
+                <ul class="mt-5 space-y-2.5 flex-1 ${beneClass}">
+                    ${(p.beneficios || []).map((b) => `
+                        <li class="flex items-start gap-2 text-[13px] sm:text-sm font-bold leading-snug">
+                            <i class="fas fa-check ${checkColor} mt-0.5 shrink-0"></i>
+                            <span>${b}</span>
+                        </li>
+                    `).join("")}
+                </ul>
+                <p class="mt-5 text-[9px] font-black uppercase tracking-widest ${muteClass}">Fale com a recepção para contratar</p>
+            </article>
+        `;
+    }
+
+    function renderPlanos() {
+        if (!planosPanel || !PLANOS.length) return;
+        const p = PLANOS[planoIndex % PLANOS.length];
+        planosPanel.innerHTML = renderPlanoCard(p);
+        if (planosDots) {
+            planosDots.innerHTML = PLANOS.map((_, i) => `
+                <span class="inline-block w-2.5 h-2.5 rounded-full ${i === (planoIndex % PLANOS.length) ? "bg-marsala-700" : "bg-gray-200"}"></span>
+            `).join("");
+        }
+        planoIndex = (planoIndex + 1) % PLANOS.length;
+    }
+
+    function renderTicker() {
+        const planParts = PLANOS.map((p) =>
+            `<span class="mx-6">${p.nome} · R$ ${p.mensal_fmt}/mês* · ${(p.beneficios || []).slice(0, 2).join(" · ")}</span><span class="opacity-40">·</span>`
+        ).join("");
+        const newsParts = NOTICIAS.map((n) => `<span class="mx-6">${n.title}</span><span class="opacity-40">·</span>`).join("");
+        tickerTrack.innerHTML = planParts + newsParts + planParts + newsParts;
+    }
+
+    function showCall(data) {
+        document.getElementById("callName").textContent = data.paciente_nome || "Paciente";
+        document.getElementById("callMsg").textContent = data.mensagem || "Sua consulta vai começar";
+        document.getElementById("callRoom").textContent = data.consultorio || "Consultório 1";
+        overlay.classList.remove("hidden");
+        overlay.classList.add("flex");
+        mutedBeforeCall = streamMuted;
+        if (!streamMuted) applyStreamMute(true);
+        playChime();
+        clearTimeout(hideTimer);
+        const ms = Math.max(3, data.restante || SEGUNDOS) * 1000;
+        hideTimer = setTimeout(hideCall, ms);
+    }
+
+    function hideCall() {
+        overlay.classList.add("hidden");
+        overlay.classList.remove("flex");
+        clearTimeout(hideTimer);
+        stopChimes();
+        if (!mutedBeforeCall) applyStreamMute(false);
+    }
+
+    async function poll() {
+        try {
+            const r = await fetch(POLL_URL, {
+                headers: { "Accept": "application/json", "X-Requested-With": "XMLHttpRequest" },
+                credentials: "same-origin",
+            });
+            if (!r.ok) return;
+            const data = await r.json();
+            if (data.ativa) {
+                const key = (data.chamada_em || "") + "|" + (data.paciente_nome || "");
+                if (key !== lastCallKey) {
+                    lastCallKey = key;
+                    showCall(data);
+                }
+            }
+        } catch (_) {}
+    }
+
+    document.getElementById("btnMuteToggle")?.addEventListener("click", async () => {
+        await unlockAudio();
+        applyStreamMute(!streamMuted);
+        hideStartOverlay();
+    });
+    document.getElementById("btnRefreshStream")?.addEventListener("click", async () => {
+        await unlockAudio();
+        refreshStream(true);
+        hideStartOverlay();
+    });
+    document.getElementById("btnTestChime")?.addEventListener("click", async () => {
+        await unlockAudio();
+        hideStartOverlay();
+        playChime();
+    });
+    startBtn?.addEventListener("click", async () => {
+        await unlockAudio();
+        loadStream(currentVideoId, streamMuted);
+        hideStartOverlay();
+        // Confirmação curta de que o som liberou
+        playChimeOnce();
+    });
+    // Qualquer toque na página ajuda a liberar o áudio (política do navegador)
+    document.body.addEventListener("pointerdown", () => { unlockAudio(); }, { once: true });
+
+    // Troca de programa ao vivo a cada 5 min
+    setInterval(() => refreshStream(false), 300000);
+
+    tickClock();
+    setInterval(tickClock, 1000);
+    renderTicker();
+    renderPlanos();
+    setInterval(renderPlanos, 7000);
+    poll();
+    setInterval(poll, 2000);
+
+    document.addEventListener("keydown", (e) => {
+        if (e.key === "f" || e.key === "F") {
+            if (!document.fullscreenElement) document.documentElement.requestFullscreen?.();
+            else document.exitFullscreen?.();
+        }
+        if (e.key === "Escape") hideCall();
+    });
+})();
+</script>
+</body>
+</html>
