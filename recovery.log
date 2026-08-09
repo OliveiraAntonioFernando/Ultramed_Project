@@ -9690,3 +9690,22 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 12 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    98ffd69..132d374  main -> main
+[main 3c0bed0] Ponto de Recuperação Automático: 2026-08-08 06:00:04
+ 37 files changed, 4157 insertions(+), 61 deletions(-)
+ create mode 100644 core_gestao/licenca_rinan.py
+ create mode 100644 core_gestao/migrations/0015_chamada_painel.py
+ create mode 100644 core_gestao/migrations/0016_fatura_licenca_sistema.py
+ create mode 100644 core_gestao/templates/contrato_adesao.html
+ create mode 100644 core_gestao/templates/licenca_rinan.html
+ create mode 100644 core_gestao/templates/tv_espera.html
+ create mode 100644 static/sistema_interno/img/logo_drogarias_rebuild.png
+ create mode 100644 static/sistema_interno/img/logo_drogarias_tight.png
+ create mode 100644 static/sistema_interno/img/logo_drogarias_ultramed.png
+ create mode 100644 static/sistema_interno/img/logo_drogarias_ultramed.svg
+ create mode 100644 static/sistema_interno/img/logo_drogarias_ultramed_clean.png
+ create mode 100644 static_content/sistema_interno/img/logo_drogarias_ultramed.png
+ create mode 100644 static_content/sistema_interno/img/logo_drogarias_ultramed.svg
+ create mode 100644 static_content/sistema_interno/img/logo_drogarias_ultramed_clean.png
+ create mode 100644 tv_espera_demo.html
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   132d374..3c0bed0  main -> main
