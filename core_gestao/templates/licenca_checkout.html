@@ -1,0 +1,235 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rinan Code — Pagamento da licença</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    <script src="https://sdk.mercadopago.com/js/v2"></script>
+    <style>
+        :root { color-scheme: light; }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #f0f7ff;
+            color: #0f172a;
+            font-family: Inter, system-ui, sans-serif;
+        }
+        .wrap { width: min(980px, 94vw); margin: 0 auto; padding: 28px 0 48px; }
+        .top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+        .brand { font-family: "JetBrains Mono", ui-monospace, monospace; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; color: #0f172a; }
+        .brand span { color: #0c87eb; }
+        .back { color: #64748b; text-decoration: none; font-size: 0.875rem; font-weight: 600; }
+        .back:hover { color: #0069c9; }
+        .grid { display: grid; grid-template-columns: 320px 1fr; gap: 18px; align-items: start; }
+        .card { background: #fff; border: 1px solid #b9ddfe; border-radius: 18px; }
+        .summary { padding: 22px; }
+        .kicker {
+            display: inline-flex; padding: 4px 8px; border-radius: 999px;
+            background: #e0effe; color: #0069c9; font-size: 0.625rem;
+            font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase;
+        }
+        .summary h1 { margin: 12px 0 8px; font-size: 1.5rem; letter-spacing: -0.03em; }
+        .price { font-size: 2rem; font-weight: 800; letter-spacing: -0.04em; color: #0069c9; }
+        .price span { font-size: 0.875rem; font-weight: 600; color: #64748b; }
+        .summary ul { list-style: none; margin: 16px 0 0; padding: 0; }
+        .summary li { padding: 6px 0 6px 16px; position: relative; font-size: 0.8125rem; color: #334155; }
+        .summary li::before {
+            content: ""; position: absolute; left: 0; top: 12px;
+            width: 7px; height: 7px; border-radius: 50%; background: #0c87eb;
+        }
+        .box { padding: 8px 8px 16px; min-height: 320px; }
+        .box-head { padding: 14px 14px 0; }
+        .box-head h2 { margin: 0; font-size: 1.125rem; font-weight: 800; letter-spacing: -0.03em; }
+        .box-head p { margin: 6px 0 8px; font-size: 0.8125rem; color: #64748b; line-height: 1.45; }
+        .status { padding: 10px 16px 0; font-size: 0.8125rem; color: #64748b; }
+        .status.err { color: #b91c1c; }
+        .status.ok { color: #0154a3; }
+        .note { margin: 16px 16px 0; font-size: 0.75rem; color: #94a3b8; line-height: 1.45; }
+        .pix { display: none; padding: 8px 16px 8px; text-align: center; }
+        .pix.show { display: block; }
+        .pix img { width: 220px; height: 220px; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 8px; }
+        .pix textarea {
+            width: 100%; min-height: 88px; margin-top: 10px; font-family: ui-monospace, monospace;
+            font-size: 0.7rem; border: 1px solid #e2e8f0; border-radius: 10px; padding: 10px; resize: none;
+        }
+        .pix button {
+            margin-top: 8px; width: 100%; border: 0; border-radius: 10px; padding: 12px;
+            background: #0c87eb; color: #fff; font-weight: 800; font-size: 0.75rem;
+            text-transform: uppercase; letter-spacing: 0.04em; cursor: pointer;
+        }
+        @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+    {% csrf_token %}
+    <div class="wrap">
+        <div class="top">
+            <div class="brand">RINAN<span>_CODE</span></div>
+            <a class="back" href="{% url 'sistema_interno:licenca_rinan' %}">Voltar às mensalidades</a>
+        </div>
+        <div class="grid">
+            <aside class="card summary">
+                <span class="kicker">Mensalidade do sistema</span>
+                <h1>Licença Ultramed</h1>
+                <div class="price">R$ {{ fatura.valor|floatformat:2 }} <span>/mês</span></div>
+                <ul>
+                    <li>Competência {{ fatura.competencia_label }}</li>
+                    <li>Vence em {{ fatura.data_vencimento|date:"d/m/Y" }}</li>
+                    <li>Pago pela clínica à Rinan Code</li>
+                    <li>Fora do caixa de pacientes</li>
+                </ul>
+            </aside>
+            <section class="card box">
+                <div class="box-head">
+                    <h2>Pagamento</h2>
+                    <p>Cartão, Pix ou saldo Mercado Pago. Os dados do cartão ficam só com o Mercado Pago.</p>
+                </div>
+                <p id="pay_status" class="status">Preparando checkout...</p>
+                <div id="paymentBrick_container"></div>
+                <div id="pixPanel" class="pix">
+                    <p>Escaneie o QR ou copie o código. A confirmação é automática.</p>
+                    <img id="pixQrImg" alt="QR Code PIX" hidden>
+                    <textarea id="pixCode" readonly hidden></textarea>
+                    <button type="button" id="pixCopyBtn" hidden>Copiar código PIX</button>
+                    <p id="pixWait" class="status">Aguardando pagamento...</p>
+                </div>
+                <p class="note">Processado pelo Mercado Pago na conta Rinan Code. A fatura só fecha depois da confirmação.</p>
+            </section>
+        </div>
+    </div>
+    <script>
+        const CSRF_TOKEN = "{{ csrf_token }}";
+        const FATURA_ID = {{ fatura.id }};
+        const AMOUNT = parseFloat("{{ fatura.valor }}".replace(",", "."));
+        const PUBLIC_KEY = "{{ public_key|escapejs }}";
+        const PAYER_EMAIL = "{{ payer_email|escapejs }}";
+        const PROCESS_URL = "{% url 'sistema_interno:licenca_processar' %}";
+        const STATUS_URL = "{% url 'sistema_interno:licenca_status' %}";
+        const DONE_URL = "{% url 'sistema_interno:licenca_rinan' %}";
+        const statusEl = document.getElementById("pay_status");
+        let pixTimer = null;
+
+        function setStatus(msg, kind) {
+            statusEl.textContent = msg || "";
+            statusEl.className = "status" + (kind ? " " + kind : "");
+        }
+
+        function irPago() {
+            window.location.href = DONE_URL;
+        }
+
+        async function consultarStatus(paymentId) {
+            const res = await fetch(STATUS_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+                body: JSON.stringify({ fatura_id: FATURA_ID, payment_id: paymentId }),
+            });
+            return res.json().catch(function () { return {}; });
+        }
+
+        function iniciarPolling(paymentId) {
+            if (pixTimer) clearInterval(pixTimer);
+            pixTimer = setInterval(async function () {
+                try {
+                    const result = await consultarStatus(paymentId);
+                    if (result.status === "approved") {
+                        clearInterval(pixTimer);
+                        setStatus("Pagamento confirmado.", "ok");
+                        setTimeout(irPago, 800);
+                    } else if (result.status === "rejected") {
+                        clearInterval(pixTimer);
+                        setStatus(result.detail || "Pagamento não aprovado.", "err");
+                    }
+                } catch (_) {}
+            }, 3500);
+        }
+
+        function mostrarPix(result) {
+            document.getElementById("paymentBrick_container").style.display = "none";
+            const panel = document.getElementById("pixPanel");
+            panel.classList.add("show");
+            const img = document.getElementById("pixQrImg");
+            if (result.qr_code_base64) {
+                img.src = result.qr_code_base64;
+                img.hidden = false;
+            }
+            const ta = document.getElementById("pixCode");
+            const btn = document.getElementById("pixCopyBtn");
+            if (result.qr_code) {
+                ta.value = result.qr_code;
+                ta.hidden = false;
+                btn.hidden = false;
+                btn.onclick = async function () {
+                    try { await navigator.clipboard.writeText(ta.value); btn.textContent = "Código copiado"; }
+                    catch (_) { ta.select(); document.execCommand("copy"); }
+                };
+            }
+            if (result.id) iniciarPolling(result.id);
+        }
+
+        if (!PUBLIC_KEY) {
+            setStatus("Checkout sem chave pública da Rinan. Avise o suporte.", "err");
+        } else {
+            const mp = new MercadoPago(PUBLIC_KEY, { locale: "pt-BR" });
+            const bricksBuilder = mp.bricks();
+            const settings = {
+                initialization: {
+                    amount: AMOUNT,
+                    payer: PAYER_EMAIL ? { email: PAYER_EMAIL } : {},
+                },
+                customization: {
+                    paymentMethods: { bankTransfer: "all", creditCard: "all", maxInstallments: 1 },
+                    visual: { style: { theme: "default" } },
+                },
+                callbacks: {
+                    onReady: function () { setStatus(""); },
+                    onSubmit: function ({ formData }) {
+                        formData.fatura_id = FATURA_ID;
+                        formData.transaction_amount = AMOUNT;
+                        return new Promise(function (resolve, reject) {
+                            fetch(PROCESS_URL, {
+                                method: "POST",
+                                headers: { "Content-Type": "application/json", "X-CSRFToken": CSRF_TOKEN },
+                                body: JSON.stringify(formData),
+                            })
+                            .then(async function (response) {
+                                const result = await response.json().catch(function () { return {}; });
+                                if (!response.ok) throw new Error(result.detail || result.message || "Erro no servidor");
+                                return result;
+                            })
+                            .then(function (result) {
+                                if (result.status === "approved") {
+                                    resolve();
+                                    setStatus("Pagamento confirmado.", "ok");
+                                    setTimeout(irPago, 700);
+                                    return;
+                                }
+                                if (result.status === "pending" && (result.qr_code || result.qr_code_base64 || result.id)) {
+                                    resolve();
+                                    setStatus("PIX gerado. Aguarde a confirmação.", "");
+                                    mostrarPix(result);
+                                    return;
+                                }
+                                setStatus(result.detail || "Pagamento não aprovado.", "err");
+                                resolve();
+                            })
+                            .catch(function (err) {
+                                setStatus(err.message || "Falha de comunicação.", "err");
+                                reject();
+                            });
+                        });
+                    },
+                    onError: function () { setStatus("Não foi possível carregar o checkout.", "err"); },
+                },
+            };
+            bricksBuilder.create("payment", "paymentBrick_container", settings);
+        }
+        window.addEventListener("beforeunload", function () { if (pixTimer) clearInterval(pixTimer); });
+    </script>
+</body>
+</html>

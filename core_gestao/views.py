@@ -48,7 +48,9 @@ from .licenca_rinan import (
     garantir_faturas_licenca,
     marcar_licenca_paga,
     parse_external_reference_licenca,
+    rinan_mp_checkout_ok,
     rinan_mp_configurado,
+    rinan_mp_public_key,
     sincronizar_status_fatura,
     valor_licenca_mensal,
 )
@@ -1521,7 +1523,7 @@ def licenca_rinan(request):
         {
             "licenca_aberta": licenca_aberta,
             "licenca_historico": list(FaturaLicencaSistema.objects.all()[:24]),
-            "licenca_mp_ok": rinan_mp_configurado(),
+            "licenca_mp_ok": rinan_mp_checkout_ok(),
             "licenca_valor": valor_licenca_mensal(),
             "licenca_dia_vencimento": dia_vencimento_licenca(),
         },
@@ -1542,6 +1544,28 @@ def _confirmar_licenca_por_pagamento_mp(payment_id: str, resposta: dict) -> bool
     return True
 
 
+def _mp_payer_licenca(data, user):
+    payer_in = data.get("payer") if isinstance(data.get("payer"), dict) else {}
+    email = (
+        (payer_in.get("email") or "").strip()
+        or (getattr(user, "email", "") or "").strip()
+    )
+    ident = payer_in.get("identification") if isinstance(payer_in.get("identification"), dict) else {}
+    payer = {"email": email}
+    cpf = re.sub(r"\D", "", str(ident.get("number") or ""))
+    if len(cpf) >= 11:
+        payer["identification"] = {"type": ident.get("type") or "CPF", "number": cpf}
+    if payer_in.get("first_name"):
+        payer["first_name"] = payer_in.get("first_name")
+    if payer_in.get("last_name"):
+        payer["last_name"] = payer_in.get("last_name")
+    return payer
+
+
+def _mp_notification_url_rinan(request) -> str:
+    return request.build_absolute_uri(reverse("sistema_interno:mp_webhook_rinan"))
+
+
 @login_required
 @master_member_required
 def licenca_pagar(request, fatura_id):
@@ -1551,64 +1575,173 @@ def licenca_pagar(request, fatura_id):
         messages.info(request, f"Licença {fatura.referencia} já está paga.")
         return redirect("sistema_interno:licenca_rinan")
 
-    if not rinan_mp_configurado():
+    if not rinan_mp_checkout_ok():
         messages.error(
             request,
-            "Pagamento online indisponível: falta o Access Token da conta Rinan no servidor.",
+            "Pagamento online indisponível: falta a chave pública ou o Access Token da conta Rinan.",
         )
         return redirect("sistema_interno:licenca_rinan")
 
-    token = (getattr(settings, "MERCADO_PAGO_RINAN_ACCESS_TOKEN", "") or "").strip()
-    success_url = request.build_absolute_uri(
-        reverse("sistema_interno:licenca_retorno") + f"?fatura_id={fatura.id}&status=success"
-    )
-    pending_url = request.build_absolute_uri(
-        reverse("sistema_interno:licenca_retorno") + f"?fatura_id={fatura.id}&status=pending"
-    )
-    failure_url = request.build_absolute_uri(
-        reverse("sistema_interno:licenca_retorno") + f"?fatura_id={fatura.id}&status=failure"
-    )
-    webhook_url = request.build_absolute_uri(reverse("sistema_interno:mp_webhook_rinan"))
-
-    preference_data = {
-        "items": [
-            {
-                "title": f"Licença Ultramed · {fatura.competencia_label}",
-                "description": "Mensalidade do sistema Ultramed — Rinan Code",
-                "quantity": 1,
-                "currency_id": "BRL",
-                "unit_price": float(fatura.valor),
-            }
-        ],
-        "external_reference": external_reference_licenca(fatura.id),
-        "back_urls": {
-            "success": success_url,
-            "pending": pending_url,
-            "failure": failure_url,
+    return render(
+        request,
+        "licenca_checkout.html",
+        {
+            "fatura": fatura,
+            "public_key": rinan_mp_public_key(),
+            "payer_email": (getattr(request.user, "email", "") or "").strip(),
+            "licenca_valor": fatura.valor,
         },
-        "auto_return": "approved",
-        "notification_url": webhook_url,
+    )
+
+
+@login_required
+@master_member_required
+def processar_pagamento_licenca(request):
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=405)
+    if not rinan_mp_configurado():
+        return JsonResponse(
+            {"status": "error", "detail": "Pagamento Rinan não configurado."},
+            status=503,
+        )
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "detail": "JSON inválido."}, status=400)
+
+    try:
+        fatura_id = int(data.get("fatura_id") or 0)
+    except (TypeError, ValueError):
+        fatura_id = 0
+    fatura = FaturaLicencaSistema.objects.filter(id=fatura_id).first()
+    if not fatura:
+        return JsonResponse({"status": "error", "detail": "Fatura inválida."}, status=404)
+
+    sincronizar_status_fatura(fatura)
+    if fatura.status == "PAGO":
+        return JsonResponse({"status": "approved", "id": fatura.mercadopago_id or fatura.id, "fatura_id": fatura.id})
+
+    token = (getattr(settings, "MERCADO_PAGO_RINAN_ACCESS_TOKEN", "") or "").strip()
+    sdk = mercadopago.SDK(token)
+    payer = _mp_payer_licenca(data, request.user)
+    if not payer.get("email"):
+        return JsonResponse(
+            {"status": "error", "detail": "Informe um e-mail para o pagamento."},
+            status=400,
+        )
+
+    pm_id = data.get("payment_method_id")
+    card_token = data.get("token")
+    notification_url = _mp_notification_url_rinan(request)
+    descricao = f"Licença Ultramed · {fatura.competencia_label}"
+    payment_data = {
+        "transaction_amount": float(fatura.valor),
+        "description": descricao,
+        "payer": payer,
+        "external_reference": external_reference_licenca(fatura.id),
+        "notification_url": notification_url,
         "statement_descriptor": "RINAN ULTRAMED",
     }
+    if pm_id == "pix":
+        payment_data["payment_method_id"] = "pix"
+    elif card_token and pm_id:
+        payment_data.update(
+            {
+                "token": card_token,
+                "payment_method_id": pm_id,
+                "installments": _mp_installments(data.get("installments", 1)),
+            }
+        )
+        issuer_id = data.get("issuer_id")
+        if issuer_id is not None and str(issuer_id).strip() != "":
+            payment_data["issuer_id"] = str(issuer_id)
+    else:
+        return JsonResponse(
+            {"status": "error", "detail": "Pagamento incompleto: use cartão ou PIX."},
+            status=400,
+        )
 
+    req_opts = RequestOptions(custom_headers={"x-idempotency-key": str(uuid.uuid4())})
+    payment_response = _mp_call_with_timeout(sdk.payment().create, payment_data, req_opts)
+    payment = payment_response.get("response") or {}
+    if payment_response.get("status") not in (200, 201):
+        detalhe = payment.get("status_detail") or payment.get("message") or "Dados inválidos"
+        logger.warning("Licença Rinan rejeitada pelo MP: %s", detalhe)
+        return JsonResponse({"status": "rejected", "detail": detalhe})
+
+    status_mp = payment.get("status")
+    payment_id = payment.get("id")
+    if status_mp == "approved":
+        if not valores_mp_coincidem(fatura.valor, payment.get("transaction_amount")):
+            return JsonResponse(
+                {"status": "rejected", "detail": "Valor do pagamento não confere com a fatura."}
+            )
+        marcar_licenca_paga(fatura, payment_id=str(payment_id))
+        return JsonResponse({"status": "approved", "id": payment_id, "fatura_id": fatura.id})
+
+    if status_mp == "pending":
+        fatura.mercadopago_id = str(payment_id or "")
+        fatura.save(update_fields=["mercadopago_id", "atualizado_em"])
+        payload = {"status": "pending", "id": payment_id, "fatura_id": fatura.id}
+        if pm_id == "pix":
+            payload.update(_mp_extrair_dados_pix(payment))
+        return JsonResponse(payload)
+
+    return JsonResponse({"status": status_mp, "id": payment_id, "fatura_id": fatura.id})
+
+
+@login_required
+@master_member_required
+def consultar_status_licenca(request):
+    if request.method != "POST":
+        return JsonResponse({"status": "error"}, status=405)
+    try:
+        data = json.loads(request.body or b"{}")
+    except json.JSONDecodeError:
+        return JsonResponse({"status": "error", "detail": "JSON inválido."}, status=400)
+
+    try:
+        fatura_id = int(data.get("fatura_id") or 0)
+    except (TypeError, ValueError):
+        fatura_id = 0
+    fatura = FaturaLicencaSistema.objects.filter(id=fatura_id).first()
+    if not fatura:
+        return JsonResponse({"status": "error", "detail": "Fatura inválida."}, status=404)
+
+    if fatura.status == "PAGO":
+        return JsonResponse(
+            {"status": "approved", "id": fatura.mercadopago_id, "fatura_id": fatura.id}
+        )
+
+    payment_id = data.get("payment_id") or data.get("id") or fatura.mercadopago_id
+    if not payment_id or not rinan_mp_configurado():
+        return JsonResponse({"status": "pending", "id": payment_id, "fatura_id": fatura.id})
+
+    token = (getattr(settings, "MERCADO_PAGO_RINAN_ACCESS_TOKEN", "") or "").strip()
     sdk = mercadopago.SDK(token)
-    pref_res = _mp_call_with_timeout(sdk.preference().create, preference_data)
-    if pref_res.get("status") not in (200, 201):
-        detail = (pref_res.get("response") or {}).get("message") or "Erro ao criar checkout."
-        logger.error("Licença MP Rinan preference falhou: %s", pref_res)
-        messages.error(request, f"Não foi possível abrir o pagamento: {detail}")
-        return redirect("sistema_interno:licenca_rinan")
+    payment_info = _mp_call_with_timeout(sdk.payment().get, payment_id)
+    if payment_info.get("status") != 200:
+        return JsonResponse({"status": "pending", "id": payment_id, "fatura_id": fatura.id})
 
-    preference = pref_res["response"]
-    checkout_url = preference.get("init_point") or preference.get("sandbox_init_point")
-    fatura.preferencia_id = preference.get("id") or ""
-    fatura.checkout_url = checkout_url or ""
-    fatura.save(update_fields=["preferencia_id", "checkout_url", "atualizado_em"])
+    resposta = payment_info.get("response") or {}
+    status_mp = resposta.get("status") or "pending"
+    if status_mp == "approved":
+        if not valores_mp_coincidem(fatura.valor, resposta.get("transaction_amount")):
+            return JsonResponse(
+                {"status": "rejected", "detail": "Valor do pagamento não confere com a fatura."}
+            )
+        marcar_licenca_paga(fatura, payment_id=str(resposta.get("id") or payment_id))
+        return JsonResponse({"status": "approved", "id": resposta.get("id") or payment_id, "fatura_id": fatura.id})
 
-    if not checkout_url:
-        messages.error(request, "Checkout criado sem URL de pagamento. Tente novamente.")
-        return redirect("sistema_interno:licenca_rinan")
-    return redirect(checkout_url)
+    if status_mp in ("rejected", "cancelled", "canceled"):
+        return JsonResponse(
+            {
+                "status": "rejected",
+                "id": payment_id,
+                "detail": resposta.get("status_detail") or "Pagamento não aprovado.",
+            }
+        )
+    return JsonResponse({"status": status_mp, "id": payment_id, "fatura_id": fatura.id})
 
 
 @login_required

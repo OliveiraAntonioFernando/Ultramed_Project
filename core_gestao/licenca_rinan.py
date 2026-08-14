@@ -45,6 +45,14 @@ def rinan_mp_configurado() -> bool:
     return bool(token)
 
 
+def rinan_mp_public_key() -> str:
+    return (getattr(settings, "MERCADO_PAGO_RINAN_PUBLIC_KEY", "") or "").strip()
+
+
+def rinan_mp_checkout_ok() -> bool:
+    return rinan_mp_configurado() and bool(rinan_mp_public_key())
+
+
 def sincronizar_status_fatura(fatura: FaturaLicencaSistema, hoje: date | None = None) -> FaturaLicencaSistema:
     hoje = hoje or timezone.now().date()
     if fatura.status == "PAGO":
