@@ -9729,3 +9729,9 @@ To github.com:OliveiraAntonioFernando/Ultramed_Project.git
  1 file changed, 4 insertions(+)
 To github.com:OliveiraAntonioFernando/Ultramed_Project.git
    edc89e2..e3f1cdf  main -> main
+[main 4c15fad] Ponto de Recuperação Automático: 2026-08-14 06:00:02
+ 8 files changed, 466 insertions(+), 47 deletions(-)
+ create mode 100644 core_gestao/templates/licenca_checkout.html
+ create mode 100644 core_gestao/tests/test_licenca_checkout.py
+To github.com:OliveiraAntonioFernando/Ultramed_Project.git
+   e3f1cdf..4c15fad  main -> main
